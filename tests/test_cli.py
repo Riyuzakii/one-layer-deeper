@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 from uuid import uuid4
 
 from client import cli
-from client.cli import build_parser, command_jobs
+from client.cli import build_parser, command_jobs, command_metrics
 
 
 class CliTests(unittest.TestCase):
@@ -134,6 +134,86 @@ class CliTests(unittest.TestCase):
         self.assertEqual(result, 0)
         self.assertEqual(json.loads(output.getvalue()), rows)
         self.assertEqual(get.call_args.kwargs["params"], {"active": False})
+
+    def test_metrics_downloads_authenticated_artifact(self) -> None:
+        submission_id = str(uuid4())
+        response = Mock(content=b'{"type":"summary"}\n')
+
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "metrics.jsonl"
+            args = build_parser().parse_args(
+                [
+                    "metrics",
+                    submission_id,
+                    "--output",
+                    str(output_path),
+                    "--server",
+                    "https://one-layer.example/",
+                    "--api-key",
+                    "old_test",
+                ]
+            )
+            output = io.StringIO()
+            with (
+                patch("client.cli.httpx.get", return_value=response) as get,
+                redirect_stdout(output),
+            ):
+                result = args.handler(args)
+
+            self.assertEqual(output_path.read_bytes(), response.content)
+
+        self.assertIs(args.handler, command_metrics)
+        self.assertEqual(result, 0)
+        self.assertIn("saved metrics", output.getvalue())
+        get.assert_called_once_with(
+            f"https://one-layer.example/api/submissions/{submission_id}/metrics",
+            headers={"Authorization": "Bearer old_test"},
+            timeout=30.0,
+        )
+        response.raise_for_status.assert_called_once_with()
+
+    def test_metrics_existing_output_requires_force(self) -> None:
+        submission_id = str(uuid4())
+        args = build_parser().parse_args(
+            ["metrics", submission_id, "--api-key", "old_test"]
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "metrics.jsonl"
+            output_path.write_text("existing\n", encoding="utf-8")
+            args.output = str(output_path)
+            with patch("client.cli.httpx.get") as get:
+                with self.assertRaisesRegex(ValueError, "already exists"):
+                    args.handler(args)
+
+        get.assert_not_called()
+
+    def test_metrics_force_overwrites_existing_output(self) -> None:
+        submission_id = str(uuid4())
+        response = Mock(content=b'{"type":"summary"}\n')
+
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "metrics.jsonl"
+            output_path.write_text("existing\n", encoding="utf-8")
+            args = build_parser().parse_args(
+                [
+                    "metrics",
+                    submission_id,
+                    "--output",
+                    str(output_path),
+                    "--force",
+                    "--api-key",
+                    "old_test",
+                ]
+            )
+            with (
+                patch("client.cli.httpx.get", return_value=response),
+                redirect_stdout(io.StringIO()),
+            ):
+                result = args.handler(args)
+
+            self.assertEqual(result, 0)
+            self.assertEqual(output_path.read_bytes(), response.content)
 
     def test_leaderboard_does_not_require_authentication(self) -> None:
         response = Mock()

@@ -34,12 +34,18 @@ one-layer validate submission.py
 one-layer submit submission.py --tier easy --dataset e1 --wait
 one-layer jobs
 one-layer status <submission-id>
+one-layer metrics <submission-id> --output metrics.jsonl
 one-layer leaderboard
 ```
 
 `one-layer login` opens GitHub authentication, receives a generated `old_…` API key through a temporary localhost callback, and saves it to `~/.config/one-layer/config.json` with user-only permissions. Signing in again rotates a lost key. The service stores the GitHub identity plus only the key's SHA-256 digest and short support prefix.
 
 The CLI defaults to the [hosted leaderboard](https://http--one-layer-deeper--7v28wph27ynb.code.run). Set `ONE_LAYER_URL` or pass `--server` to use another compatible endpoint. Set `ONE_LAYER_API_KEY` or pass `--api-key` instead of saving a key locally.
+
+After a successful evaluation, `one-layer metrics <submission-id>` downloads the
+structured JSONL metrics artifact. It defaults to
+`<submission-id>-metrics.jsonl`; use `--output` to choose another path and
+`--force` to overwrite an existing file.
 
 ## Official rules
 

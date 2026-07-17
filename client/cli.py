@@ -303,6 +303,32 @@ def command_jobs(args) -> int:
     return 0
 
 
+def command_metrics(args) -> int:
+    submission_id = str(UUID(args.submission_id))
+    output = Path(args.output or f"{submission_id}-metrics.jsonl")
+    if output.exists() and not args.force:
+        raise ValueError(f"{output} already exists; pass --force to overwrite it")
+    server = _server(args.server)
+    response = httpx.get(
+        f"{server}/api/submissions/{submission_id}/metrics",
+        headers=_auth_headers(args),
+        timeout=args.request_timeout,
+    )
+    response.raise_for_status()
+    if args.force:
+        output.write_bytes(response.content)
+    else:
+        try:
+            with output.open("xb") as file:
+                file.write(response.content)
+        except FileExistsError as exc:
+            raise ValueError(
+                f"{output} already exists; pass --force to overwrite it"
+            ) from exc
+    print(f"saved metrics to {output}")
+    return 0
+
+
 def command_leaderboard(args) -> int:
     server = _server(args.server)
     response = httpx.get(f"{server}/api/leaderboard", timeout=args.request_timeout)
@@ -392,6 +418,17 @@ def build_parser() -> argparse.ArgumentParser:
     _add_connection_args(status)
     _add_auth_arg(status)
     status.set_defaults(handler=command_status)
+
+    metrics = subparsers.add_parser(
+        "metrics",
+        help="download structured metrics for one completed submission",
+    )
+    metrics.add_argument("submission_id")
+    metrics.add_argument("--output")
+    metrics.add_argument("--force", action="store_true")
+    _add_connection_args(metrics)
+    _add_auth_arg(metrics)
+    metrics.set_defaults(handler=command_metrics)
 
     jobs = subparsers.add_parser("jobs", help="list your submission jobs")
     jobs.add_argument(
