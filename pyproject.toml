@@ -1,0 +1,39 @@
+[project]
+name = "one-layer-benchmark"
+version = "0.1.0"
+description = "Participant toolkit and CLI for the One Layer Deeper competition."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = "==3.13.5"
+dependencies = [
+    "httpx>=0.28,<1",
+]
+
+[project.optional-dependencies]
+benchmark = [
+    "jsonargparse==4.49.0",
+    "numpy==2.5.0",
+    "torch==2.12.1",
+]
+
+[project.scripts]
+one-layer = "client.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/tilde-research/one-layer-benchmark"
+Repository = "https://github.com/tilde-research/one-layer-benchmark"
+Issues = "https://github.com/tilde-research/one-layer-benchmark/issues"
+
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["benchmark", "benchmark.manifests", "client", "data"]
+py-modules = ["submission_validation"]
+
+[tool.setuptools.package-data]
+benchmark = ["manifests/*.json"]
+
+[tool.uv]
+package = true
