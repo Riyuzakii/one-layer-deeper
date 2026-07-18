@@ -16,10 +16,10 @@ import webbrowser
 import httpx
 
 from submission_validation import validate_submission_source
-from client.catalog import resolve_tier_dataset
+from service.tiers import resolve_tier_dataset
 
 
-HOSTED_SERVER = "https://http--one-layer-deeper--7v28wph27ynb.code.run"
+HOSTED_SERVER = "https://onelayerdeeper.ai"
 DEFAULT_SERVER = os.environ.get("ONE_LAYER_URL", HOSTED_SERVER)
 CONFIG_PATH = Path(
     os.environ.get(
@@ -91,8 +91,9 @@ def _print_status(row: dict) -> None:
     print(f"dataset     {row.get('dataset_label') or row['manifest_name']}")
     print(f"suite       {row['manifest_name']}")
     print(f"run         {row['run_id']}")
-    if row.get("error"):
-        print(f"error       {row['error']}")
+    print(f"modal call  {row.get('modal_call_id') or 'not started'}")
+    if row.get("error_code"):
+        print(f"error       {row['error_code']}")
 
 
 def _get_status(

@@ -249,7 +249,7 @@ class CliTests(unittest.TestCase):
             "score": 0.75,
             "tier": "hard",
             "dataset_label": "H1",
-            "manifest_name": "squaring-mod-hard-h1",
+            "manifest_name": "hidden-hard-h1",
             "run_id": str(uuid4()),
         }
         client = Mock()

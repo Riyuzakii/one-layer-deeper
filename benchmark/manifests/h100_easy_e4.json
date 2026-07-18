@@ -2,7 +2,7 @@
   "name": "squaring-mod-easy-e4",
   "data": {
     "kind": "squaring_mod",
-    "data_root": "data/generated/squaring_mod_new11_easy_causal_fixed_t_b1112_t2",
+    "data_root": "data/generated/squaring_mod_new11_easy_bidirectional_fixed_t_b1112_t2",
     "batch_size": 512,
     "eval_batch_size": 512,
     "shuffle_train": true,

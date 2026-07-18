@@ -8,11 +8,12 @@ For competition updates, join [discord.gg/gpumode](https://discord.gg/gpumode) a
 
 ## Acknowledgements
 
-We are grateful to [Modal](https://modal.com/) for supporting the GPU evaluation infrastructure and to [Northflank](https://northflank.com/) for supporting the competition service and leaderboard.
+We are grateful to [Modal](https://modal.com/) for supporting the GPU evaluation infrastructure and to [Northflank](https://northflank.com/) for supporting the competition service and leaderboard. Thank you both for helping make this research competition possible.
 
 ## Install the CLI
 
-Note, this is the submission CLI only go to [Local development](#local-development) to develop locally.
+This installs the lightweight submission CLI only. To run evaluations locally, see [Local development](#local-development).
+
 Install [uv](https://docs.astral.sh/uv/) and then install the command directly from GitHub:
 
 ```bash
@@ -20,7 +21,7 @@ uv tool install git+https://github.com/tilde-research/one-layer-deeper.git
 one-layer --help
 ```
 
-The CLI installation is lightweight and does not install PyTorch or the local evaluator. Upgrade it with:
+The CLI does not install PyTorch or the local evaluator. Upgrade it with:
 
 ```bash
 uv tool upgrade one-layer-benchmark
@@ -38,14 +39,22 @@ one-layer metrics <submission-id> --output metrics.jsonl
 one-layer leaderboard
 ```
 
-`one-layer login` opens GitHub authentication, receives a generated `old_…` API key through a temporary localhost callback, and saves it to `~/.config/one-layer/config.json` with user-only permissions. Signing in again rotates a lost key. The service stores the GitHub identity plus only the key's SHA-256 digest and short support prefix.
+`one-layer login` opens GitHub authentication, receives a generated `old_…` API key through a temporary localhost callback, and saves it to `~/.config/one-layer/config.json` with user-only permissions. Signing in again rotates a lost key. The service stores the GitHub identity plus only the key's SHA-256 digest and short support prefix. By default, one evaluation may be queued or running per GitHub account.
 
-The CLI defaults to the [hosted leaderboard](https://http--one-layer-deeper--7v28wph27ynb.code.run). Set `ONE_LAYER_URL` or pass `--server` to use another compatible endpoint. Set `ONE_LAYER_API_KEY` or pass `--api-key` instead of saving a key locally.
+`one-layer jobs` lists the signed-in participant's queued and running submissions,
+including the submission IDs accepted by `one-layer status <submission-id>`. Use
+`one-layer jobs --all` to include completed and failed submissions, or `--json`
+for machine-readable output.
 
-After a successful evaluation, `one-layer metrics <submission-id>` downloads the
-structured JSONL metrics artifact. It defaults to
-`<submission-id>-metrics.jsonl`; use `--output` to choose another path and
-`--force` to overwrite an existing file.
+After a successful evaluation, `one-layer metrics <submission-id>` downloads a
+bounded JSONL history containing evaluator-selected training, evaluation, and
+summary metrics. Raw submission stdout, stderr, and exception text are not
+included in participant-facing status responses or metric downloads, and are
+deleted from the service database 24 hours after the run finishes.
+
+The GitHub OAuth app requests only access to the participant's verified email in addition to their public profile; it does not request repository access.
+
+The CLI defaults to the [hosted leaderboard](https://onelayerdeeper.ai). Set `ONE_LAYER_URL` or pass `--server` for another compatible endpoint. Set `ONE_LAYER_API_KEY` or pass `--api-key` instead of saving a key locally.
 
 ## Official rules
 
@@ -59,6 +68,7 @@ structured JSONL metrics artifact. It defaults to
 8. A custom training loss receives final logits, labels, and the model's auxiliary output and returns one differentiable finite scalar. The evaluator performs backward.
 9. Each final checkpoint is evaluated once with a separate time budget equal to half its training allowance. The evaluator uses fixed loss and exact accuracy, and the score is mean exact accuracy across fixed evaluation splits and seeds.
 10. Data inspection, task-specific solvers, custom training loops, participant-controlled backward passes, and manifest overrides are not allowed.
+11. The metric recorded for a Hard run must not be exploited. Any attempt to exploit it will result in an immediate ban.
 
 Depth is deliberately unconstrained. Fixed stacks, tied recurrence, iterative refinement, routing, adaptive halting, memory tokens, and parameter-free work are all valid if the model-state ceiling is respected. A deeper forward completes fewer optimizer updates under the same clock.
 
@@ -66,7 +76,9 @@ Depth is deliberately unconstrained. Fixed stacks, tied recurrence, iterative re
 
 The file is limited to 256 KiB. `build_model(spec)` receives `vocab_size`, `max_seq_len`, and `maximum_model_state_elements`. It returns a `torch.nn.Module` whose `config` exposes the first two matching fields. The model accepts evaluator tensor arguments and returns `(logits, auxiliary_value)`.
 
-The evaluator calls `model.train()` for optimization and `model.eval()` for final evaluation. Use PyTorch's inherited `self.training` flag if the model should behave differently during evaluation.
+The evaluator calls `model.train()` for optimization and `model.eval()` for final evaluation. If the model should behave differently during evaluation, use PyTorch's inherited `self.training` flag inside `forward` (for example, `if self.training: ... else: ...`).
+
+`build_optimizer(model, spec)` receives the per-seed time allowance and device type. It returns an `OptimizerBundle`; its optimizer must include every trainable parameter exactly once. An optional scheduler is stepped after every update.
 
 ```python
 from benchmark import ModelSpec, OptimizerBundle, OptimizerSpec, Submission, assert_model_state
@@ -87,9 +99,20 @@ SUBMISSION = Submission(
 )
 ```
 
-If omitted, `batch_size` and `max_steps` use evaluator defaults. An optional scheduler returned in `OptimizerBundle` is stepped after every completed optimizer update. A standalone AdamW example is available under `submissions/`.
+If omitted, `batch_size` and `max_steps` use the evaluator manifest defaults. A
+participant `batch_size` applies to both training and evaluation, while participant
+`max_steps` can end training early. The evaluator's wall-clock deadline and absolute
+step ceiling always remain enforced. An optional scheduler returned in
+`OptimizerBundle` is stepped after every completed optimizer update.
+
+The website offers one basic, non-recurrent Transformer using `torch.optim.AdamW`. Advanced standalone fixtures used to verify recurrence, custom optimizers, and Muon live under `submissions/`; every fixture directory contains only its own `submission.py`.
 
 ## Compute tiers
+
+The public Easy and Medium datasets provide separate prompt and output tensors.
+The evaluator supplies a padding mask, not a causal mask, so models can attend
+bidirectionally over the complete prompt in those practice tiers. Hard uses a
+private hidden evaluator.
 
 - **Easy:** datasets `e1`–`e5`, 60 training seconds, 60 accepted attempts per UTC day.
 - **Medium:** datasets `m1`–`m5`, 600 training seconds, 6 accepted attempts per UTC day.
@@ -99,35 +122,37 @@ Easy and Medium are practice tiers. The public leaderboard ranks only each parti
 
 ## Local development
 
-Clone the repository and install the benchmark extra:
+Clone the repository and install its dependencies:
 
 ```bash
-git clone https://github.com/tilde-research/one-layer-benchmark.git
-cd one-layer-benchmark
-uv sync --extra benchmark
-uv run python -m unittest discover -s tests
+git clone https://github.com/tilde-research/one-layer-deeper.git
+cd one-layer-deeper
+uv venv .venv
+source .venv/bin/activate
+uv sync
+python -m unittest discover -s tests
 ```
 
-The package requires exactly Python 3.13.5 to match the hosted evaluator.
+### Run a submission locally
 
-Run the short CPU smoke test without generating any datasets:
+Modal is not required for local evaluation. The runner takes an evaluator-owned
+manifest and one standalone submission file. Start with the short CPU smoke test:
 
 ```bash
-uv run python -m benchmark.runner \
+python -m benchmark.runner \
   --manifest benchmark/manifests/smoke_cpu.json \
-  --submission-file submissions/baseline_adamw/submission.py
+  --submission-file submission.py
 ```
 
-Generate the tier datasets before running an H100 manifest:
+The repository fixtures can be used in place of your own file, for example
+`submissions/recurrent_muon/submission.py`.
+
+For a tier-faithful run on a local H100, first find an idle GPU and expose only
+that device. The manifest's `cuda:0` will then refer to the selected physical
+GPU:
 
 ```bash
-uv run bash scripts/generate_datasets.sh
-```
-
-The generated data lives under `data/generated/` and is intentionally ignored by Git. To run on a local H100, identify an idle GPU and expose only that device:
-
-```bash
-CUDA_VISIBLE_DEVICES=0 uv run python -m benchmark.runner \
+CUDA_VISIBLE_DEVICES=0 python -m benchmark.runner \
   --manifest benchmark/manifests/h100_easy_e1.json \
   --submission-file submissions/baseline_adamw/submission.py
 ```

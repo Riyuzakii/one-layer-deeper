@@ -36,7 +36,9 @@ jobs:
           assert "client/catalog.py" in names
           assert "benchmark/manifests/smoke_cpu.json" in names
           assert any(name.endswith(".dist-info/licenses/LICENSE") for name in names)
-          assert not any(name.startswith("service/") for name in names)
+          assert "service/app.py" in names
+          assert "service/static/style.css" in names
+          assert "service/static/favicon.svg" in names
           PY
 
   benchmark:
@@ -49,7 +51,7 @@ jobs:
         with:
           python-version: "3.13.5"
           enable-cache: true
-      - run: uv sync --locked --extra benchmark
+      - run: uv sync --locked
       - run: uv run python -m unittest discover -s tests
       - name: Run CPU smoke evaluation
         run: |

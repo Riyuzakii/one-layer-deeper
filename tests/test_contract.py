@@ -24,6 +24,9 @@ from submission_validation import validate_submission_source
 ROOT = Path(__file__).resolve().parents[1]
 SAMPLES = {
     "baseline_adamw": 1,
+    "recurrent_adamw": 4,
+    "recurrent_lion": 4,
+    "recurrent_muon": 4,
 }
 
 
@@ -117,19 +120,10 @@ class ContractTests(unittest.TestCase):
                 self.assertIsNone(auxiliary)
                 self.assertLessEqual(count_model_state_elements(model), spec.maximum_model_state_elements)
 
-    def test_optional_training_loss_can_be_differentiable(self) -> None:
-        def training_loss(logits, labels, auxiliary):
-            del auxiliary
-            return torch.nn.functional.cross_entropy(logits, labels)
-
-        submission = Submission(
-            build_model=lambda spec: None,
-            build_optimizer=lambda model, spec: None,
-            training_loss=training_loss,
-        )
-        validate_submission(submission)
+    def test_optional_training_loss_is_differentiable(self) -> None:
+        training_loss = load_sample("recurrent_adamw").training_loss
         logits = torch.zeros(4, self.model_spec.vocab_size, requires_grad=True)
-        loss = submission.training_loss(logits, torch.tensor([0, 1, 0, 1]), None)
+        loss = training_loss(logits, torch.tensor([0, 1, 0, 1]), None)
         loss.backward()
         self.assertEqual(loss.ndim, 0)
         self.assertIsNotNone(logits.grad)

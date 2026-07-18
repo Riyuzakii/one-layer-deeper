@@ -28,6 +28,7 @@ from data import (
 from .api import ModelSpec, OptimizerBundle, OptimizerSpec, Submission
 from .batches import prepare_batch
 from .manifest import BenchmarkManifest, load_manifest
+from .metrics import MetricRecorder
 from .validation import (
     assert_state_versions_unchanged,
     capture_state_versions,
@@ -265,13 +266,17 @@ def _train(
     deadline: float,
     budget_seconds: float,
     max_steps: int,
+    seed: int,
+    metric_recorder: MetricRecorder | None = None,
 ) -> tuple[float | None, int, float, int]:
     optimizer = bundle.optimizer
     raw_model.train()
     validate_optimizer(bundle, raw_model, device)
     iterator = iter(dataloader)
     final_loss = None
+    final_accuracy = None
     completed_steps = 0
+    last_metric_step = 0
     optimizer_state_elements = 0
 
     for step in range(1, max_steps + 1):
@@ -299,6 +304,7 @@ def _train(
             bundle.scheduler.step()
 
         final_loss = float(loss.item())
+        final_accuracy = accuracy
         completed_steps = step
         if step == 1:
             optimizer_state_elements = validate_optimizer(bundle, raw_model, device)
@@ -309,9 +315,30 @@ def _train(
                 f"elapsed={elapsed:.1f}s budget={budget_seconds:.1f}s",
                 flush=True,
             )
+            if metric_recorder is not None:
+                metric_recorder.record_training(
+                    seed=seed,
+                    step=step,
+                    elapsed_seconds=elapsed,
+                    loss=final_loss,
+                    exact_accuracy=accuracy,
+                )
+                last_metric_step = step
 
     elapsed = time.monotonic() - started_at
     validate_model_state(raw_model, manifest.model_state, device)
+    if (
+        metric_recorder is not None
+        and completed_steps > 0
+        and completed_steps != last_metric_step
+    ):
+        metric_recorder.record_training(
+            seed=seed,
+            step=completed_steps,
+            elapsed_seconds=elapsed,
+            loss=final_loss,
+            exact_accuracy=final_accuracy,
+        )
     return final_loss, completed_steps, elapsed, optimizer_state_elements
 
 
@@ -368,6 +395,7 @@ def _run_seed(
     budget_seconds: float,
     submission_load_seconds: float,
     dataloaders=None,
+    metric_recorder: MetricRecorder | None = None,
 ) -> dict:
     _configure_seed(seed, device)
     batch_size = submission.batch_size or manifest.data.batch_size
@@ -438,6 +466,8 @@ def _run_seed(
         deadline=deadline,
         budget_seconds=budget_seconds,
         max_steps=max_steps,
+        seed=seed,
+        metric_recorder=metric_recorder,
     )
 
     evaluation = {}
@@ -460,6 +490,13 @@ def _run_seed(
             f"exact_accuracy={metrics['exact_accuracy']:.6f}",
             flush=True,
         )
+        if metric_recorder is not None:
+            metric_recorder.record_evaluation(
+                seed=seed,
+                split=split_name,
+                loss=metrics["loss"],
+                exact_accuracy=metrics["exact_accuracy"],
+            )
     evaluation_seconds = time.monotonic() - evaluation_started_at
 
     return {
@@ -499,7 +536,12 @@ def _load_submission_file(path: str | Path) -> Submission:
     return submission
 
 
-def run_submission_file(submission_path: str | Path, manifest_path: str | Path) -> dict:
+def run_submission_file(
+    submission_path: str | Path,
+    manifest_path: str | Path,
+    *,
+    include_structured_metrics: bool = False,
+) -> dict:
     manifest = load_manifest(manifest_path)
     device = _resolve_device(manifest)
     model_spec = _make_model_spec(manifest)
@@ -521,6 +563,7 @@ def run_submission_file(submission_path: str | Path, manifest_path: str | Path) 
         manifest.runtime.seeds
     )
     evaluation_budget_per_seed = budget_per_seed * EVALUATION_TIME_FRACTION
+    metric_recorder = MetricRecorder() if include_structured_metrics else None
 
     print(
         json.dumps(
@@ -556,6 +599,7 @@ def run_submission_file(submission_path: str | Path, manifest_path: str | Path) 
             budget_per_seed,
             submission_load_seconds / len(manifest.runtime.seeds),
             preloaded_dataloaders.get(seed),
+            metric_recorder,
         )
         for seed in manifest.runtime.seeds
     ]
@@ -576,6 +620,18 @@ def run_submission_file(submission_path: str | Path, manifest_path: str | Path) 
         },
         "seeds": seed_results,
     }
+    if metric_recorder is not None:
+        metric_recorder.record_summary(
+            completed_steps=sum(
+                seed_result["completed_training_steps"]
+                for seed_result in seed_results
+            ),
+            training_seconds=sum(
+                seed_result["training_seconds"] for seed_result in seed_results
+            ),
+            mean_exact_accuracy=result["score"]["mean_exact_accuracy"],
+        )
+        result["structured_metrics"] = metric_recorder.snapshot()
     print("RESULT_JSON=" + json.dumps(result, sort_keys=True), flush=True)
     return result
 
@@ -584,8 +640,13 @@ def cli() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--submission-file", required=True)
+    parser.add_argument("--include-structured-metrics", action="store_true")
     args = parser.parse_args()
-    run_submission_file(args.submission_file, args.manifest)
+    run_submission_file(
+        args.submission_file,
+        args.manifest,
+        include_structured_metrics=args.include_structured_metrics,
+    )
 
 
 if __name__ == "__main__":

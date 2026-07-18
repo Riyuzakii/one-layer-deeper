@@ -13,12 +13,14 @@ import torch
 
 from benchmark import ModelSpec, OptimizerBundle, Submission
 from benchmark.manifest import load_manifest
+from benchmark.metrics import MetricRecorder
 from data.squaring_mod import generate_squaring_mod_smoke_dataset
 
 from benchmark.runner import (
     _evaluate,
     _run_seed,
     _scoring_split_names,
+    _train,
     _with_batch_size,
 )
 
@@ -130,6 +132,46 @@ class RunnerBudgetTests(unittest.TestCase):
                     deadline=10.0,
                     budget_seconds=5.0,
                 )
+
+    def test_training_metrics_include_terminal_step_between_log_intervals(self) -> None:
+        model = torch.nn.Linear(1, 1)
+        bundle = OptimizerBundle(torch.optim.SGD(model.parameters(), lr=0.01))
+        manifest = SimpleNamespace(
+            runtime=SimpleNamespace(grad_clip=None, log_every=100),
+            model_state=object(),
+        )
+        recorder = MetricRecorder()
+
+        def loss_and_accuracy(*args, **kwargs):
+            return model.weight.sum(), 0.5, 1, 1
+
+        with (
+            patch("benchmark.runner._loss_and_accuracy", side_effect=loss_and_accuracy),
+            patch("benchmark.runner.validate_model_state"),
+            patch("benchmark.runner.validate_optimizer", return_value=0),
+            patch("benchmark.runner.time.monotonic", return_value=1.0),
+        ):
+            _, completed_steps, _, _ = _train(
+                raw_model=model,
+                train_model=model,
+                training_loss=None,
+                bundle=bundle,
+                dataloader=[object()],
+                manifest=manifest,
+                device=torch.device("cpu"),
+                started_at=0.0,
+                deadline=2.0,
+                budget_seconds=2.0,
+                max_steps=37,
+                seed=74,
+                metric_recorder=recorder,
+            )
+
+        self.assertEqual(completed_steps, 37)
+        self.assertEqual(
+            [record["step"] for record in recorder.snapshot()],
+            [1, 37],
+        )
 
     def test_seed_receives_half_its_training_allowance_for_evaluation(self) -> None:
         manifest = load_manifest(ROOT / "benchmark" / "manifests" / "smoke_cpu.json")

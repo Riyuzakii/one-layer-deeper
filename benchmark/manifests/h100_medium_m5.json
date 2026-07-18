@@ -2,7 +2,7 @@
   "name": "squaring-mod-medium-m5",
   "data": {
     "kind": "squaring_mod",
-    "data_root": "data/generated/squaring_mod_new11_medium_causal_variable_b121416_t248",
+    "data_root": "data/generated/squaring_mod_new11_medium_bidirectional_variable_b121416_t248",
     "batch_size": 512,
     "eval_batch_size": 512,
     "shuffle_train": true,
