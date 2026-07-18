@@ -83,7 +83,7 @@ participant `batch_size` applies to both training and evaluation, while particip
 step ceiling always remain enforced. An optional scheduler returned in
 `OptimizerBundle` is stepped after every completed optimizer update.
 
-The website offers one basic, non-recurrent Transformer using `torch.optim.AdamW`. Advanced standalone fixtures used to verify recurrence, custom optimizers, and Muon live under `submissions/`; every fixture directory contains only its own `submission.py`.
+The website offers one basic, non-recurrent Transformer using `torch.optim.AdamW`. Its standalone `submission.py` lives under `submissions/baseline_adamw`.
 
 ### Compute tiers
 

@@ -18,28 +18,7 @@ jobs:
         with:
           python-version: "3.13.5"
           enable-cache: true
-      - run: uv sync --locked
-      - run: uv run python -m unittest tests.test_cli tests.test_scores tests.test_release
-      - run: uv run one-layer --help
-      - run: uv run one-layer validate submissions/baseline_adamw/submission.py
-      - run: uv build --out-dir /tmp/one-layer-dist
-      - name: Verify wheel contents
-        run: |
-          uv run python - <<'PY'
-          from pathlib import Path
-          from zipfile import ZipFile
-
-          wheel = next(Path("/tmp/one-layer-dist").glob("*.whl"))
-          with ZipFile(wheel) as archive:
-              names = set(archive.namelist())
-          assert "client/cli.py" in names
-          assert "client/catalog.py" in names
-          assert "benchmark/manifests/smoke_cpu.json" in names
-          assert any(name.endswith(".dist-info/licenses/LICENSE") for name in names)
-          assert "service/app.py" in names
-          assert "service/static/style.css" in names
-          assert "service/static/favicon.svg" in names
-          PY
+      - run: scripts/ci.sh cli-and-package
 
   benchmark:
     runs-on: ubuntu-latest
@@ -51,10 +30,4 @@ jobs:
         with:
           python-version: "3.13.5"
           enable-cache: true
-      - run: uv sync --locked
-      - run: uv run python -m unittest discover -s tests
-      - name: Run CPU smoke evaluation
-        run: |
-          uv run python -m benchmark.runner \
-            --manifest benchmark/manifests/smoke_cpu.json \
-            --submission-file submissions/baseline_adamw/submission.py
+      - run: scripts/ci.sh benchmark
