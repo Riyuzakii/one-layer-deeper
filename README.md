@@ -1,62 +1,40 @@
 # One Layer Deeper
-
 An architecture-and-optimizer competition from **Core Automation × Tilde Research**.
 
 Build the best function-composition model under a fixed persistent-state ceiling and H100 training-time budget. Participants control architecture, depth, optimizer, learning-rate schedule, and training loss. The evaluator controls data, the outer loop, and final evaluation.
 
 For competition updates, join [discord.gg/gpumode](https://discord.gg/gpumode) and follow the `#one-layer-deeper` channel.
 
-## Acknowledgements
-
 We are grateful to [Modal](https://modal.com/) for supporting the GPU evaluation infrastructure and to [Northflank](https://northflank.com/) for supporting the competition service and leaderboard. Thank you both for helping make this research competition possible.
 
-## Install the CLI
 
-This installs the lightweight submission CLI only. To run evaluations locally, see [Local development](#local-development).
+## Install
 
-Install [uv](https://docs.astral.sh/uv/) and then install the command directly from GitHub:
+#### CLI only for remote GPU use
 
 ```bash
 uv tool install git+https://github.com/tilde-research/one-layer-deeper.git
 one-layer --help
 ```
 
-The CLI does not install PyTorch or the local evaluator. Upgrade it with:
+[See the full CLI instructions.](#cli)
+
+
+#### CLI and local and remote GPU use
 
 ```bash
-uv tool upgrade one-layer-benchmark
+git clone https://github.com/tilde-research/one-layer-deeper.git
+cd one-layer-deeper
+uv venv .venv
+source .venv/bin/activate
+uv sync
+python -m unittest discover -s tests
 ```
 
-## Participant flow
+[See the full CLI](#cli) and [local development](#local-development) instructions.
 
-```bash
-one-layer login
-one-layer validate submission.py
-one-layer submit submission.py --tier easy --dataset e1 --wait
-one-layer jobs
-one-layer status <submission-id>
-one-layer metrics <submission-id> --output metrics.jsonl
-one-layer leaderboard
-```
 
-`one-layer login` opens GitHub authentication, receives a generated `old_…` API key through a temporary localhost callback, and saves it to `~/.config/one-layer/config.json` with user-only permissions. Signing in again rotates a lost key. The service stores the GitHub identity plus only the key's SHA-256 digest and short support prefix. By default, one evaluation may be queued or running per GitHub account.
-
-`one-layer jobs` lists the signed-in participant's queued and running submissions,
-including the submission IDs accepted by `one-layer status <submission-id>`. Use
-`one-layer jobs --all` to include completed and failed submissions, or `--json`
-for machine-readable output.
-
-After a successful evaluation, `one-layer metrics <submission-id>` downloads a
-bounded JSONL history containing evaluator-selected training, evaluation, and
-summary metrics. Raw submission stdout, stderr, and exception text are not
-included in participant-facing status responses or metric downloads, and are
-deleted from the service database 24 hours after the run finishes.
-
-The GitHub OAuth app requests only access to the participant's verified email in addition to their public profile; it does not request repository access.
-
-The CLI defaults to the [hosted leaderboard](https://onelayerdeeper.ai). Set `ONE_LAYER_URL` or pass `--server` for another compatible endpoint. Set `ONE_LAYER_API_KEY` or pass `--api-key` instead of saving a key locally.
-
-## Official rules
+## Rules
 
 1. Submit exactly one UTF-8 file named `submission.py`. It exports one `benchmark.Submission` with model and optimizer factories and an optional training loss.
 2. The submission must be self-contained. It may import the public `benchmark` API and pinned evaluator dependencies, but it may not depend on repository `model` or `optim` modules, extra files, package installation, or external services.
@@ -72,7 +50,7 @@ The CLI defaults to the [hosted leaderboard](https://onelayerdeeper.ai). Set `ON
 
 Depth is deliberately unconstrained. Fixed stacks, tied recurrence, iterative refinement, routing, adaptive halting, memory tokens, and parameter-free work are all valid if the model-state ceiling is respected. A deeper forward completes fewer optimizer updates under the same clock.
 
-## Submission contract
+### Submission contract
 
 The file is limited to 256 KiB. `build_model(spec)` receives `vocab_size`, `max_seq_len`, and `maximum_model_state_elements`. It returns a `torch.nn.Module` whose `config` exposes the first two matching fields. The model accepts evaluator tensor arguments and returns `(logits, auxiliary_value)`.
 
@@ -107,7 +85,7 @@ step ceiling always remain enforced. An optional scheduler returned in
 
 The website offers one basic, non-recurrent Transformer using `torch.optim.AdamW`. Advanced standalone fixtures used to verify recurrence, custom optimizers, and Muon live under `submissions/`; every fixture directory contains only its own `submission.py`.
 
-## Compute tiers
+### Compute tiers
 
 The public Easy and Medium datasets provide separate prompt and output tensors.
 The evaluator supplies a padding mask, not a causal mask, so models can attend
@@ -120,7 +98,48 @@ private hidden evaluator.
 
 Easy and Medium are practice tiers. The public leaderboard ranks only each participant's best successful Hard submission. Failed evaluations count after acceptance; authentication and validation rejections do not. Source and detailed results remain private.
 
+## CLI
+
+### Install the CLI
+
+This installs the lightweight submission CLI only. To run evaluations locally, see [Local development](#local-development).
+
+Install [uv](https://docs.astral.sh/uv/) and then install the command directly from GitHub:
+
+```bash
+uv tool install git+https://github.com/tilde-research/one-layer-deeper.git
+one-layer --help
+```
+
+### Example workflow
+
+```bash
+one-layer login
+one-layer validate submissions/baseline_adamw/submission.py
+one-layer submit submissions/baseline_adamw/submission.py --tier easy --dataset e1 --wait
+one-layer jobs
+one-layer status <submission-id>
+one-layer metrics <submission-id> --output metrics.jsonl
+one-layer leaderboard
+```
+
+`one-layer login` opens GitHub authentication, receives a generated `old_…` API key through a temporary localhost callback, and saves it to `~/.config/one-layer/config.json` with user-only permissions. Signing in again rotates a lost key. The service stores the GitHub identity plus only the key's SHA-256 digest and short support prefix. By default, one evaluation may be queued or running per GitHub account.
+
+`one-layer jobs` lists the signed-in participant's queued and running submissions,
+including the submission IDs accepted by `one-layer status <submission-id>`. Use
+`one-layer jobs --all` to include completed and failed submissions, or `--json`
+for machine-readable output.
+
+After a successful evaluation, `one-layer metrics <submission-id>` downloads a
+bounded JSONL history containing evaluator-selected training, evaluation, and
+summary metrics. Raw submission stdout, stderr, and exception text are not
+included in participant-facing status responses or metric downloads, and are
+deleted from the service database 24 hours after the run finishes.
+
+
 ## Local development
+
+### Install locally
 
 Clone the repository and install its dependencies:
 
@@ -133,7 +152,7 @@ uv sync
 python -m unittest discover -s tests
 ```
 
-### Run a submission locally
+### Example of running a submission locally
 
 Modal is not required for local evaluation. The runner takes an evaluator-owned
 manifest and one standalone submission file. Start with the short CPU smoke test:
@@ -141,11 +160,8 @@ manifest and one standalone submission file. Start with the short CPU smoke test
 ```bash
 python -m benchmark.runner \
   --manifest benchmark/manifests/smoke_cpu.json \
-  --submission-file submission.py
+  --submission-file submissions/baseline_adamw/submission.py
 ```
-
-The repository fixtures can be used in place of your own file, for example
-`submissions/recurrent_muon/submission.py`.
 
 For a tier-faithful run on a local H100, first find an idle GPU and expose only
 that device. The manifest's `cuda:0` will then refer to the selected physical
@@ -157,7 +173,7 @@ CUDA_VISIBLE_DEVICES=0 python -m benchmark.runner \
   --submission-file submissions/baseline_adamw/submission.py
 ```
 
-Hard evaluation is available only through hosted submission. The final `RESULT_JSON=...` line contains aggregate and split metrics. Local results never update the hosted leaderboard.
+Hard evaluation is available only through hosted submission. The final `RESULT_JSON=...` line contains aggregate and split metrics.
 
 ## License
 
