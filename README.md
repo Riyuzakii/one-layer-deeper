@@ -16,7 +16,7 @@ Note, this is the submission CLI only go to [Local development](#local-developme
 Install [uv](https://docs.astral.sh/uv/) and then install the command directly from GitHub:
 
 ```bash
-uv tool install git+https://github.com/tilde-research/one-layer-benchmark.git
+uv tool install git+https://github.com/tilde-research/one-layer-deeper.git
 one-layer --help
 ```
 
