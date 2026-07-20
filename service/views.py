@@ -260,7 +260,8 @@ SUBMISSION = Submission(
     build_model=build_model,
     build_optimizer=build_optimizer,
     training_loss=training_loss,  # optional
-    batch_size=512,  # optional
+    batch_size=512,  # optional; training
+    eval_batch_size=1024,  # optional; evaluation
     max_steps=20_000,  # optional
 )</code></pre></section>
     <section class="depth-guide panel">

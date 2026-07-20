@@ -28,7 +28,7 @@ def validate_submission(submission: Submission) -> None:
         raise TypeError("submission factories must be callable")
     if submission.training_loss is not None and not callable(submission.training_loss):
         raise TypeError("submission training_loss must be callable when provided")
-    for name in ("batch_size", "max_steps"):
+    for name in ("batch_size", "eval_batch_size", "max_steps"):
         value = getattr(submission, name)
         if value is not None and (type(value) is not int or value < 1):
             raise ValueError(f"submission {name} must be a positive integer when provided")

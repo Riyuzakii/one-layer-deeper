@@ -83,6 +83,7 @@ def _with_batch_size(
     dataloaders,
     manifest: BenchmarkManifest,
     batch_size: int,
+    eval_batch_size: int,
     seed: int,
 ):
     """Rebatch already-loaded datasets without reopening evaluator data files."""
@@ -95,7 +96,7 @@ def _with_batch_size(
         )
         loader = DataLoader(
             original.dataset,
-            batch_size=batch_size,
+            batch_size=batch_size if is_train else eval_batch_size,
             shuffle=(
                 manifest.data.shuffle_train
                 if is_train
@@ -113,6 +114,20 @@ def _with_batch_size(
             )
         resized[split_name] = loader
     return resized
+
+
+def _resolve_batch_sizes(
+    submission: Submission,
+    manifest: BenchmarkManifest,
+) -> tuple[int, int]:
+    batch_size = submission.batch_size or manifest.data.batch_size
+    eval_batch_size = (
+        submission.eval_batch_size
+        or submission.batch_size
+        or manifest.data.eval_batch_size
+        or manifest.data.batch_size
+    )
+    return batch_size, eval_batch_size
 
 
 def _resolve_device(manifest: BenchmarkManifest) -> torch.device:
@@ -398,12 +413,7 @@ def _run_seed(
     metric_recorder: MetricRecorder | None = None,
 ) -> dict:
     _configure_seed(seed, device)
-    batch_size = submission.batch_size or manifest.data.batch_size
-    eval_batch_size = (
-        submission.batch_size
-        or manifest.data.eval_batch_size
-        or manifest.data.batch_size
-    )
+    batch_size, eval_batch_size = _resolve_batch_sizes(submission, manifest)
     if dataloaders is None:
         dataloaders = make_dataloaders(
             replace(
@@ -414,11 +424,16 @@ def _run_seed(
             ),
             device=device,
         )
-    elif submission.batch_size is not None:
+    elif (
+        batch_size != manifest.data.batch_size
+        or eval_batch_size
+        != (manifest.data.eval_batch_size or manifest.data.batch_size)
+    ):
         dataloaders = _with_batch_size(
             dataloaders,
             manifest,
             batch_size,
+            eval_batch_size,
             seed,
         )
     max_steps = min(
@@ -564,17 +579,15 @@ def run_submission_file(
     )
     evaluation_budget_per_seed = budget_per_seed * EVALUATION_TIME_FRACTION
     metric_recorder = MetricRecorder() if include_structured_metrics else None
+    batch_size, eval_batch_size = _resolve_batch_sizes(submission, manifest)
 
     print(
         json.dumps(
             {
                 "manifest": manifest.name,
                 "model_spec": asdict(model_spec),
-                "training_batch_size": submission.batch_size
-                or manifest.data.batch_size,
-                "evaluation_batch_size": submission.batch_size
-                or manifest.data.eval_batch_size
-                or manifest.data.batch_size,
+                "training_batch_size": batch_size,
+                "evaluation_batch_size": eval_batch_size,
                 "max_training_steps": min(
                     manifest.runtime.max_steps,
                     submission.max_steps or manifest.runtime.max_steps,

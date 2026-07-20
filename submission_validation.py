@@ -5,7 +5,7 @@ from __future__ import annotations
 import ast
 
 
-FORBIDDEN_SUBMISSION_IMPORTS = {"model", "optim"}
+FORBIDDEN_SUBMISSION_IMPORTS = {"data", "model", "optim"}
 
 
 def validate_submission_source(

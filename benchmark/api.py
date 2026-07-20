@@ -92,3 +92,4 @@ class Submission:
     ) = None
     batch_size: int | None = None
     max_steps: int | None = None
+    eval_batch_size: int | None = None

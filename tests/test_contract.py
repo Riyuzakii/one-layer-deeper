@@ -71,7 +71,11 @@ class ContractTests(unittest.TestCase):
         valid = "SUBMISSION = object()\n"
         with self.assertRaisesRegex(ValueError, "must be named submission.py"):
             validate_submission_source("architecture.py", valid, 256 * 1024)
-        for source in ("import model\n", "from optim.muon import Muon\n"):
+        for source in (
+            "import data.squaring_mod\n",
+            "import model\n",
+            "from optim.muon import Muon\n",
+        ):
             with self.assertRaisesRegex(ValueError, "self-contained"):
                 validate_submission_source("submission.py", source, 256 * 1024)
 
@@ -152,11 +156,15 @@ class ContractTests(unittest.TestCase):
             build_optimizer=lambda model, spec: None,
             batch_size=128,
             max_steps=500,
+            eval_batch_size=256,
         )
         validate_submission(valid)
         for field, value in (
             ("batch_size", 0),
             ("batch_size", True),
+            ("eval_batch_size", 0),
+            ("eval_batch_size", True),
+            ("eval_batch_size", 1.5),
             ("max_steps", -1),
             ("max_steps", 1.5),
         ):
@@ -169,6 +177,18 @@ class ContractTests(unittest.TestCase):
                 ValueError, f"{field} must be a positive integer"
             ):
                 validate_submission(submission)
+
+    def test_eval_batch_size_does_not_reorder_existing_positional_fields(self) -> None:
+        submission = Submission(
+            lambda spec: None,
+            lambda model, spec: None,
+            None,
+            128,
+            500,
+        )
+        self.assertEqual(submission.batch_size, 128)
+        self.assertEqual(submission.max_steps, 500)
+        self.assertIsNone(submission.eval_batch_size)
 
     def test_removed_packages_and_harness_are_absent(self) -> None:
         self.assertFalse((ROOT / "model").exists())

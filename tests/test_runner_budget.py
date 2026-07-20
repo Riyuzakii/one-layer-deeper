@@ -18,6 +18,7 @@ from data.squaring_mod import generate_squaring_mod_smoke_dataset
 
 from benchmark.runner import (
     _evaluate,
+    _resolve_batch_sizes,
     _run_seed,
     _scoring_split_names,
     _train,
@@ -75,10 +76,16 @@ class RunnerBudgetTests(unittest.TestCase):
             "train": torch.utils.data.DataLoader(dataset, batch_size=8),
             "test": torch.utils.data.DataLoader(dataset, batch_size=16),
         }
-        resized = _with_batch_size(dataloaders, manifest, 4, seed=74)
+        resized = _with_batch_size(
+            dataloaders,
+            manifest,
+            batch_size=4,
+            eval_batch_size=10,
+            seed=74,
+        )
         self.assertEqual(resized["train"].batch_size, 4)
         self.assertIs(resized["train"].dataset, dataset)
-        self.assertEqual(resized["test"].batch_size, 4)
+        self.assertEqual(resized["test"].batch_size, 10)
         self.assertIs(resized["test"].dataset, dataset)
 
     def test_submission_import_time_is_charged_before_model_construction(self) -> None:
@@ -95,8 +102,18 @@ class RunnerBudgetTests(unittest.TestCase):
             batch_size=7,
         )
         manifest = load_manifest(ROOT / "benchmark" / "manifests" / "smoke_cpu.json")
-        manifest = replace(
-            manifest, data=replace(manifest.data, eval_batch_size=None)
+        defaults = Submission(
+            build_model=build_model,
+            build_optimizer=lambda model, spec: None,
+        )
+        self.assertEqual(
+            _resolve_batch_sizes(defaults, manifest),
+            (manifest.data.batch_size, manifest.data.eval_batch_size),
+        )
+        explicit_eval = replace(defaults, eval_batch_size=11)
+        self.assertEqual(
+            _resolve_batch_sizes(explicit_eval, manifest),
+            (manifest.data.batch_size, 11),
         )
         model_spec = ModelSpec(1, 1, 1)
 
@@ -193,6 +210,11 @@ class RunnerBudgetTests(unittest.TestCase):
             max_steps=manifest.runtime.max_steps + 1,
         )
         evaluation = {"loss": 0.0, "exact_accuracy": 1.0}
+        dataset = torch.utils.data.TensorDataset(torch.arange(64))
+        dataloaders = {
+            "train": torch.utils.data.DataLoader(dataset, batch_size=32),
+            "test": torch.utils.data.DataLoader(dataset, batch_size=64),
+        }
 
         with (
             patch(
@@ -209,16 +231,18 @@ class RunnerBudgetTests(unittest.TestCase):
                 seed=74,
                 budget_seconds=10.0,
                 submission_load_seconds=0.0,
-                dataloaders={
-                    "train": object(),
-                    "test": object(),
-                },
+                dataloaders=dataloaders,
             )
 
         self.assertEqual(train.call_args.kwargs["max_steps"], manifest.runtime.max_steps)
         self.assertEqual(evaluate.call_count, 1)
         self.assertEqual(evaluate.call_args.kwargs["budget_seconds"], 5.0)
         self.assertEqual(result["evaluation_budget_seconds"], 5.0)
+        self.assertEqual(result["training_batch_size"], manifest.data.batch_size)
+        self.assertEqual(
+            result["evaluation_batch_size"],
+            manifest.data.eval_batch_size,
+        )
         self.assertEqual(result["evaluation"], {"test": evaluation})
 
     def test_dataset_files_cannot_be_reopened_after_preload(self) -> None:

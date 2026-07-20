@@ -38,7 +38,7 @@ python -m unittest discover -s tests
 
 1. Submit exactly one UTF-8 file named `submission.py`. It exports one `benchmark.Submission` with model and optimizer factories and an optional training loss.
 2. The submission must be self-contained. It may import the public `benchmark` API and pinned evaluator dependencies, but it may not depend on repository `model` or `optim` modules, extra files, package installation, or external services.
-3. Participant code defines the model, optimizer bundle, optional learning-rate scheduler, optional loss, batch size, and maximum training steps. Recurrence, adaptive computation, and depth curricula are allowed.
+3. Participant code defines the model, optimizer bundle, optional learning-rate scheduler, optional loss, training and evaluation batch sizes, and maximum training steps. Recurrence, adaptive computation, and depth curricula are allowed.
 4. The evaluator fixes data, sampling, the one-forward/one-backward loop, gradient clipping, optimizer cadence, seeds, deadline, final evaluation, and aggregation. Participants may choose the training and evaluation batch size and a lower maximum step count; evaluator ceilings still apply.
 5. The model may contain at most 500,000,000 scalar parameters and persistent buffers. Shared state counts once; frozen state still counts.
 6. Optimizer state, activations, and temporary workspace may use remaining VRAM. OOM or timeout fails the run.
@@ -72,16 +72,19 @@ def build_optimizer(model, spec: OptimizerSpec) -> OptimizerBundle:
 SUBMISSION = Submission(
     build_model=build_model,
     build_optimizer=build_optimizer,
-    batch_size=512,       # optional; applies to training and evaluation
+    batch_size=512,       # optional; training
+    eval_batch_size=1024, # optional; evaluation
     max_steps=20_000,     # optional; cannot exceed the evaluator ceiling
 )
 ```
 
-If omitted, `batch_size` and `max_steps` use the evaluator manifest defaults. A
-participant `batch_size` applies to both training and evaluation, while participant
-`max_steps` can end training early. The evaluator's wall-clock deadline and absolute
-step ceiling always remain enforced. An optional scheduler returned in
-`OptimizerBundle` is stepped after every completed optimizer update.
+If omitted, `batch_size` and `max_steps` use the evaluator manifest defaults.
+Evaluation uses `eval_batch_size` when provided, then an explicit participant
+`batch_size`, then the evaluator manifest's evaluation batch size, and finally
+the manifest's training batch size. A participant `max_steps` can end training
+early. The evaluator's wall-clock deadline and absolute step ceiling always remain
+enforced. An optional scheduler returned in `OptimizerBundle` is stepped after
+every completed optimizer update.
 
 The website offers one basic, non-recurrent Transformer using `torch.optim.AdamW`. Its standalone `submission.py` lives under `submissions/baseline_adamw`.
 
