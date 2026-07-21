@@ -166,9 +166,18 @@ python -m benchmark.runner \
   --submission-file submissions/baseline_adamw/submission.py
 ```
 
-For a tier-faithful run on a local H100, first find an idle GPU and expose only
-that device. The manifest's `cuda:0` will then refer to the selected physical
-GPU:
+The smoke manifest creates its small dataset automatically. Before running a
+public Easy or Medium manifest, generate the full datasets referenced by those
+manifests:
+
+```bash
+bash scripts/generate_datasets.sh
+```
+
+The script writes the datasets under `data/generated/`. You only need to run it
+again if those generated files are removed. For a tier-faithful run on a local
+H100, first find an idle GPU and expose only that device. The manifest's
+`cuda:0` will then refer to the selected physical GPU:
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python -m benchmark.runner \
