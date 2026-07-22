@@ -1,0 +1,313 @@
+#!/usr/bin/env python
+"""Generate recurrent submissions with configurable optimizer (adamw|muon) and
+loss (ce|focal). Supersedes make_recurrent.py for Phase 2 axes C (optimizer) and
+E (loss). Everything baked into a standalone submission.py (torch+benchmark only).
+
+Muon = orthogonalized-momentum on 2D hidden matrices (Block linears), AdamW on
+embeddings/norms — one combined optimizer so it covers every param exactly once
+(the evaluator validates coverage). Hardware-independent: measures per-step
+learning efficiency, which transfers B300 -> H100.
+
+Usage:
+  python lab/make_submission.py --loops 8 --opt muon --loss focal --lr 0.02
+"""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+
+HEAD = '''"""Recurrent transformer L={num_loops} opt={opt} loss={loss} (generated)."""
+
+from __future__ import annotations
+
+import torch
+import torch.nn.functional as F
+from torch import Tensor, nn
+
+from benchmark import (
+    ModelSpec,
+    OptimizerBundle,
+    OptimizerSpec,
+    Submission,
+    assert_model_state,
+)
+
+D_MODEL = {dmodel}
+NUM_HEADS = {num_heads}
+NUM_LOOPS = {num_loops}
+FF_MULT = 4
+_LR = {lr}
+_MAX_STEPS = {max_steps}
+_BATCH_SIZE = {batch_size}
+_FOCAL_GAMMA = {focal_gamma}
+_SCHED = {sched}  # None or "cosine"
+
+
+class Config:
+    def __init__(self, vocab_size: int, max_seq_len: int) -> None:
+        self.vocab_size = vocab_size
+        self.max_seq_len = max_seq_len
+
+
+class RMSNorm(nn.Module):
+    def __init__(self, width: int) -> None:
+        super().__init__()
+        self.weight = nn.Parameter(torch.ones(width))
+
+    def forward(self, x: Tensor) -> Tensor:
+        return F.rms_norm(x, (x.shape[-1],), self.weight)
+
+
+class Block(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.attention_norm = RMSNorm(D_MODEL)
+        self.qkv = nn.Linear(D_MODEL, 3 * D_MODEL)
+        self.out = nn.Linear(D_MODEL, D_MODEL)
+        self.mixer_norm = RMSNorm(D_MODEL)
+        self.up = nn.Linear(D_MODEL, FF_MULT * D_MODEL)
+        self.down = nn.Linear(FF_MULT * D_MODEL, D_MODEL)
+
+    def forward(self, x: Tensor, attention_mask: Tensor | None) -> Tensor:
+        residual = x
+        x = self.attention_norm(x)
+        batch, length, _ = x.shape
+        q, k, v = self.qkv(x).chunk(3, dim=-1)
+        q = q.view(batch, length, NUM_HEADS, -1).transpose(1, 2)
+        k = k.view(batch, length, NUM_HEADS, -1).transpose(1, 2)
+        v = v.view(batch, length, NUM_HEADS, -1).transpose(1, 2)
+        mask = None
+        if attention_mask is not None:
+            if attention_mask.shape == (batch, length):
+                mask = attention_mask[:, None, None, :]
+            elif attention_mask.shape == (batch, length, length):
+                mask = attention_mask[:, None, :, :]
+            else:
+                raise ValueError("invalid attention_mask shape")
+            mask = mask.to(device=x.device, dtype=torch.bool)
+        x = F.scaled_dot_product_attention(q, k, v, attn_mask=mask)
+        x = x.transpose(1, 2).contiguous().view(batch, length, D_MODEL)
+        x = residual + self.out(x)
+        return x + self.down(F.gelu(self.up(self.mixer_norm(x))))
+
+
+class Model(nn.Module):
+    num_loops = NUM_LOOPS
+
+    def __init__(self, spec: ModelSpec) -> None:
+        super().__init__()
+        self.config = Config(spec.vocab_size, spec.max_seq_len)
+        self.token_embedding = nn.Embedding(spec.vocab_size, D_MODEL)
+        self.position_embedding = nn.Embedding(spec.max_seq_len, D_MODEL)
+        self.block = Block()
+        self.final_norm = RMSNorm(D_MODEL)
+        self.head = nn.Linear(D_MODEL, spec.vocab_size, bias=False)
+        self.head.weight = self.token_embedding.weight
+
+    def forward(self, input_ids: Tensor, attention_mask: Tensor | None = None):
+        positions = torch.arange(input_ids.shape[1], device=input_ids.device)
+        x = self.token_embedding(input_ids) + self.position_embedding(positions)
+        for _ in range(NUM_LOOPS):
+            x = self.block(x, attention_mask)
+        return self.head(self.final_norm(x)), None
+
+
+def build_model(spec: ModelSpec) -> Model:
+    model = Model(spec)
+    assert_model_state(model, spec)
+    return model
+
+
+import math as _math
+
+
+def _make_scheduler(optimizer):
+    # cosine decay with linear warmup over _MAX_STEPS; stepped every update.
+    total = _MAX_STEPS or 2000
+    warmup = max(1, int(0.05 * total))
+
+    def lr_lambda(step):
+        if step < warmup:
+            return (step + 1) / warmup
+        p = (step - warmup) / max(1, total - warmup)
+        return 0.5 * (1.0 + _math.cos(_math.pi * min(1.0, p)))
+
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+'''
+
+FOCAL_LOSS = '''
+
+def training_loss(logits: Tensor, labels: Tensor, aux: object) -> Tensor:
+    # focal CE on flattened valid tokens: (1-p_true)^gamma * CE. Emphasizes hard
+    # tokens -> pushes toward getting ALL tokens right, which is what exact-match
+    # (the scoring metric) rewards. token-averaged CE is misaligned with all-or-none.
+    logp = F.log_softmax(logits.float(), dim=-1)
+    tgt_logp = logp.gather(-1, labels[:, None]).squeeze(-1)
+    p = tgt_logp.exp()
+    return (-((1.0 - p) ** _FOCAL_GAMMA) * tgt_logp).mean()
+'''
+
+MUON = '''
+
+def _newtonschulz5(G: Tensor, steps: int = 5, eps: float = 1e-7) -> Tensor:
+    a, b, c = 3.4445, -4.7750, 2.0315
+    X = G.bfloat16()
+    transposed = X.size(0) > X.size(1)
+    if transposed:
+        X = X.mT
+    X = X / (X.norm() + eps)
+    for _ in range(steps):
+        A = X @ X.mT
+        B = b * A + c * (A @ A)
+        X = a * X + B @ X
+    if transposed:
+        X = X.mT
+    return X.to(G.dtype)
+
+
+class MuonWithAuxAdam(torch.optim.Optimizer):
+    """Muon (orthogonalized momentum) on 2D hidden matrices; AdamW on the rest.
+    One optimizer, two kinds of param groups (use_muon flag)."""
+
+    def __init__(self, param_groups):
+        for g in param_groups:
+            if g["use_muon"]:
+                g.setdefault("lr", 0.02)
+                g.setdefault("momentum", 0.95)
+                g.setdefault("weight_decay", 0.0)
+                g.setdefault("ns_steps", 5)
+            else:
+                g.setdefault("lr", 3e-3)
+                g.setdefault("betas", (0.9, 0.95))
+                g.setdefault("eps", 1e-10)
+                g.setdefault("weight_decay", 0.1)
+        super().__init__(param_groups, {})
+
+    @torch.no_grad()
+    def step(self, closure=None):
+        loss = closure() if closure is not None else None
+        for g in self.param_groups:
+            if g["use_muon"]:
+                mom = g["momentum"]
+                for p in g["params"]:
+                    if p.grad is None:
+                        continue
+                    st = self.state[p]
+                    if "mom" not in st:
+                        st["mom"] = torch.zeros_like(p.grad)
+                    buf = st["mom"]
+                    buf.mul_(mom).add_(p.grad)
+                    upd = p.grad.add(buf, alpha=mom)  # nesterov
+                    upd = _newtonschulz5(upd, steps=g["ns_steps"])
+                    scale = max(upd.size(0), upd.size(1)) ** 0.5
+                    p.add_(upd, alpha=-g["lr"] * 0.2 * scale)
+            else:
+                b1, b2 = g["betas"]
+                for p in g["params"]:
+                    if p.grad is None:
+                        continue
+                    st = self.state[p]
+                    if "step" not in st:
+                        st["step"] = 0
+                        st["m"] = torch.zeros_like(p.grad)
+                        st["v"] = torch.zeros_like(p.grad)
+                    st["step"] += 1
+                    t = st["step"]
+                    m, v = st["m"], st["v"]
+                    m.mul_(b1).add_(p.grad, alpha=1 - b1)
+                    v.mul_(b2).addcmul_(p.grad, p.grad, value=1 - b2)
+                    mhat = m / (1 - b1 ** t)
+                    vhat = v / (1 - b2 ** t)
+                    if g["weight_decay"]:
+                        p.mul_(1 - g["lr"] * g["weight_decay"])
+                    p.addcdiv_(mhat, vhat.sqrt().add_(g["eps"]), value=-g["lr"])
+        return loss
+
+
+def build_optimizer(model: nn.Module, spec: OptimizerSpec) -> OptimizerBundle:
+    muon_params, adam_params = [], []
+    for name, p in model.named_parameters():
+        if not p.requires_grad:
+            continue
+        # 2D hidden matrices in the block -> Muon; embeddings/head/norms -> Adam
+        if p.ndim == 2 and "embedding" not in name and "head" not in name:
+            muon_params.append(p)
+        else:
+            adam_params.append(p)
+    groups = [
+        dict(params=muon_params, use_muon=True, lr=_LR),
+        dict(params=adam_params, use_muon=False, lr=3e-3),
+    ]
+    opt = MuonWithAuxAdam(groups)
+    sched = _make_scheduler(opt) if _SCHED == "cosine" else None
+    return OptimizerBundle(opt, sched)
+'''
+
+ADAMW = '''
+
+def build_optimizer(model: nn.Module, spec: OptimizerSpec) -> OptimizerBundle:
+    opt = torch.optim.AdamW(
+        model.parameters(),
+        lr=_LR,
+        betas=(0.9, 0.95),
+        weight_decay=0.1,
+        capturable=spec.device_type == "cuda",
+    )
+    sched = _make_scheduler(opt) if _SCHED == "cosine" else None
+    return OptimizerBundle(opt, sched)
+'''
+
+TAIL = '''
+
+SUBMISSION = Submission(
+    build_model=build_model,
+    build_optimizer=build_optimizer,
+    training_loss={loss_ref},
+    batch_size=_BATCH_SIZE,
+    max_steps=_MAX_STEPS,
+)
+'''
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--loops", type=int, required=True)
+    ap.add_argument("--dmodel", type=int, default=128)
+    ap.add_argument("--num-heads", type=int, default=4)
+    ap.add_argument("--opt", choices=["adamw", "muon"], default="adamw")
+    ap.add_argument("--loss", choices=["ce", "focal"], default="ce")
+    ap.add_argument("--lr", type=float, default=1e-3)
+    ap.add_argument("--focal-gamma", type=float, default=2.0)
+    ap.add_argument("--sched", choices=["none", "cosine"], default="none")
+    ap.add_argument("--max-steps", type=int, default=None)
+    ap.add_argument("--batch-size", type=int, default=None)
+    args = ap.parse_args()
+
+    code = HEAD.format(
+        num_loops=args.loops, dmodel=args.dmodel, num_heads=args.num_heads,
+        opt=args.opt, loss=args.loss, lr=repr(args.lr),
+        max_steps=repr(args.max_steps), batch_size=repr(args.batch_size),
+        focal_gamma=repr(args.focal_gamma),
+        sched=repr(None if args.sched == "none" else args.sched),
+    )
+    if args.loss == "focal":
+        code += FOCAL_LOSS
+    code += MUON if args.opt == "muon" else ADAMW
+    loss_ref = "training_loss" if args.loss == "focal" else "None"
+    code += TAIL.format(loss_ref=loss_ref)
+
+    tag = f"L{args.loops}_d{args.dmodel}_{args.opt}_{args.loss}_lr{args.lr:g}"
+    if args.sched != "none":
+        tag += f"_{args.sched}"
+    d = REPO / "submissions" / "exp_axis" / tag
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "submission.py").write_text(code)
+    print((d / "submission.py").relative_to(REPO))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
