@@ -339,7 +339,29 @@ Same shape as everywhere else — 93–94 % of the training set memorised, ~0.5 
 held-out prompts right, no representation difference. This is the finest grid in
 the study (1/256 = 0.004) and it still shows nothing.
 
-### 3.7 The grokking regime — does place alignment change *when* it groks?
+### 3.7 Capacity *downward* (flagged: outside my family, run because §3.2 demands it)
+
+The previous session's width sweep only went up (128 → 768). For a memorisation
+problem the interesting direction is down. `--dmodel 32`, everything else
+identical, e1, 2000 steps:
+
+| config | params | train acc @800 | @1400 | @2000 | `test` | rung T=1 |
+|--------|-------:|---------------:|------:|------:|-------:|---------:|
+| flat, D=128 | 204 416 | 1.00 | 1.00 | 0.99 | 0.020 | 0.026 |
+| flat, D=32 | **14 240** | 0.50 | 0.85 | 0.99 | 0.020 | 0.000 |
+| slots_sep, D=32 | **14 784** | 0.88 | 1.00 | 1.00 | 0.040 | 0.000 |
+
+A **14× smaller** model still memorises e1 completely; shrinking only delays the
+memorisation, it does not prevent it. So "reduce capacity" is not the quick fix
+either — the memorisation threshold for 600 rows is below 14 k parameters. Worth
+handing to whoever owns capacity: the *useful* range to explore is below this,
+and it should be screened on a 256-example rung, not on e1.
+
+(Note this run also reproduces the §3.3 fitting-speed effect in a second, very
+different setting: at D=32 the place-aligned layout is at 0.88 train accuracy
+when the flat one is at 0.50.)
+
+### 3.8 The grokking regime — does place alignment change *when* it groks?
 
 The sharpened version of the hypothesis: if the model memorises because
 memorisation is the cheapest solution, then under strong weight decay and long
