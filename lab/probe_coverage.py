@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import random
 
 import torch
 
@@ -40,8 +41,23 @@ def digits_le(value: int, slots: int) -> list[int]:
     return out
 
 
-def split(modulus: int, train_x: int, seed: int) -> tuple[list[int], list[int]]:
-    """Identical split to lab/probe_step.py so the numbers are comparable."""
+def split(modulus: int, train_x: int, seed: int,
+          held_sample: int = 0) -> tuple[list[int], list[int]]:
+    """Identical split to lab/probe_step.py so the numbers are comparable.
+
+    Above ~1e6 the unit group cannot be enumerated, so `held_sample` draws the
+    held-out cohort by rejection instead.  Coverage is a per-example question,
+    so a sample estimates it unbiasedly."""
+    rng = random.Random(seed)
+    if held_sample:
+        seen: set[int] = set()
+        while len(seen) < train_x + held_sample:
+            v = rng.randrange(1, modulus)
+            if math.gcd(v, modulus) == 1:
+                seen.add(v)
+        allx = sorted(seen)
+        rng.shuffle(allx)
+        return allx[:train_x], allx[train_x:]
     units = [x for x in range(1, modulus) if math.gcd(x, modulus) == 1]
     g = torch.Generator().manual_seed(seed)
     perm = torch.randperm(len(units), generator=g).tolist()
@@ -134,6 +150,9 @@ def main() -> int:
                     default=["323:3", "899:3", "2021:4", "10403:5"])
     ap.add_argument("--train-x", type=int, default=250)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--held-sample", type=int, default=0,
+                    help="sample the held-out cohort instead of enumerating "
+                         "(needed above ~1e6 units)")
     args = ap.parse_args()
 
     print(f"train_x={args.train_x} seed={args.seed}\n")
@@ -144,7 +163,8 @@ def main() -> int:
 
     for cfg in args.configs:
         modulus, slots = (int(v) for v in cfg.split(":"))
-        train_x, held_x = split(modulus, args.train_x, args.seed)
+        train_x, held_x = split(modulus, args.train_x, args.seed,
+                                args.held_sample)
 
         # ---- family 1: readout = arbitrary function of the residue (§7)
         seen_res = {(x * x) % modulus for x in train_x}
@@ -168,7 +188,8 @@ def main() -> int:
         detail = " ".join(
             f"{k}={len(seen[k])}/{len(seen[k] | needed[k])}" for k in
             ("pair", "add", "mul", "sub", "cmp"))
-        print(f"{modulus:>7} {slots:>2} {len(train_x)+len(held_x):>6} "
+        units_n = len(train_x) + len(held_x) if not args.held_sample else -1
+        print(f"{modulus:>7} {slots:>2} {units_n:>6} "
               f"{len(held_x):>5} {res_cov:>15.3f} {dig_cov:>13.3f}   {detail}")
     return 0
 

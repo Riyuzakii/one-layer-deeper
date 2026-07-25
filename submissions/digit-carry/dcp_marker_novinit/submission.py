@@ -49,9 +49,19 @@ ANNEAL_STEPS = 2000
 RAND_LOOPS = 1
 LR = 0.01
 WD = 0.1
+DIGIT_TAU = 0.2
+VINIT_SCALE = 4.0
 _MAX_STEPS = None
 _BATCH_SIZE = None
 O_LO, O_HI = -2, 9
+# a finite mask value: torch.finfo(float32).min overflows bf16 under amp
+NEG = -1e4
+
+
+class Config:
+    def __init__(self, vocab_size: int, max_seq_len: int) -> None:
+        self.vocab_size = vocab_size
+        self.max_seq_len = max_seq_len
 
 
 class MarkerPointer(nn.Module):
@@ -64,7 +74,7 @@ class MarkerPointer(nn.Module):
 
     def forward(self, emb: Tensor, mask: Tensor) -> Tensor:
         b, L, _ = emb.shape
-        neg = torch.finfo(emb.dtype).min
+        neg = NEG
         sc = self.probe(emb).transpose(1, 2)
         sc = sc.masked_fill(~mask[:, None, :], neg)
         a = F.softmax(sc, dim=-1)
@@ -93,7 +103,7 @@ class PosPointer(nn.Module):
 
     def forward(self, emb: Tensor, mask: Tensor) -> Tensor:
         b, L, _ = emb.shape
-        neg = torch.finfo(emb.dtype).min
+        neg = NEG
         if self.rev:
             last = mask.long().sum(-1) - 1
             pos = torch.arange(L, device=emb.device)[None, :]
@@ -191,6 +201,7 @@ class DigitStep(nn.Module):
 class Model(nn.Module):
     def __init__(self, spec: ModelSpec) -> None:
         super().__init__()
+        self.config = Config(spec.vocab_size, spec.max_seq_len)
         self.vocab = spec.vocab_size
         self.S = max(3, (spec.max_seq_len - 3) // 2)
         self.emb = nn.Embedding(spec.vocab_size, D_MODEL)
@@ -210,9 +221,9 @@ class Model(nn.Module):
                             (self.S + p, (1, 1 + p, 0)),
                             (2 * self.S + p, (3, p, 2)),
                         ):
-                            self.ptr.R[s, a, o - O_LO] = 4.0
-                            self.ptr.R[s, opn, -O_LO] = 2.0
-                            self.ptr.G[s, opn] = 4.0
+                            self.ptr.R[s, a, o - O_LO] = VINIT_SCALE
+                            self.ptr.R[s, opn, -O_LO] = 0.5 * VINIT_SCALE
+                            self.ptr.G[s, opn] = VINIT_SCALE
         else:
             self.ptr = PosPointer(D_MODEL, n_slot, spec.max_seq_len,
                                   FRONT == "rev")
@@ -234,7 +245,11 @@ class Model(nn.Module):
                 mask = mask[:, 0]
         e = self.emb(input_ids)
         slots = self.ptr(e, mask)
-        dg = F.softmax(self.digit(slots), dim=-1)
+        # A slot must carry a DIGIT, not an arbitrary 10-dim code.  Left
+        # unsharpened the projection is a continuous side-channel: the step
+        # table can then index a value rather than a digit pair, which is
+        # exactly the memorisation route the parse was meant to remove.
+        dg = F.softmax(self.digit(slots) / DIGIT_TAU, dim=-1)
         sx, sn, st = dg[:, : self.S], dg[:, self.S: 2 * self.S], dg[:, 2 * self.S:]
 
         loops = LOOPS

@@ -14,7 +14,8 @@ learned tensor is indexed by a *digit tuple*:
 | e2 | 899 | **0.614** | **1.000** | 6,817 |
 | — | 2021 | **0.337** | **1.000** | 6,817 |
 | m1 | 10403 | **0.031** | **1.000** | 6,817 |
-| e5 regime | 12 *unseen* sampled 10/11-bit moduli | (needs a new table per `N`) | **1.000** (4800 operands) | 6,818, *one* vector for all 12 |
+| e5 regime | 12 *unseen* sampled 10/11-bit moduli | needs a new `Z_N`-sized table per `N` | **1.000** (4800 operands) | 6,818, *one* vector for all 12 |
+| hp3 regime | 6 *unseen* 20/24-bit moduli | closed form gives **0.001 / 0.000** | **1.000** (1200 operands) | 6,818, the same vector |
 
 **The coverage ceiling does not apply to a digit-compositional readout, and the
 escape is total, not marginal.** The parameter count is *identical at every
@@ -115,21 +116,30 @@ comparator states), then ask what fraction of held-out `x` need only entries
 already exercised. This is the strictest possible reading — a pure lookup
 learner that cannot interpolate at all.
 
-| N | residue: `P[x² already seen]` | digit: `P[every table entry already exercised]` |
-|---|---|---|
-| 323 | 1.000 | 0.947 |
-| 899 | 0.614 | 0.966 |
-| 2021 | 0.337 | 0.956 |
-| 10403 | **0.072** | **0.977** |
+| N | bits | residue: `P[x² already seen]` | digit: `P[every table entry already exercised]` |
+|---|---|---|---|
+| 323 | 9 | 1.000 | 0.947 |
+| 899 | 10 | 0.614 | 0.966 |
+| 2021 | 11 | 0.337 | 0.956 |
+| 10403 | 14 | **0.072** | **0.977** |
+| 761269 | 20 | **0.001** | **0.959** |
+| 9519091 | 24 | **0.000** | **0.990** |
+| 883340903 | 30 | **0.000** | **0.981** |
 
-Two things to read here. First, the digit quantity **rises with `N`** (0.947 →
-0.977) where the residue quantity falls by 14×, because a bigger modulus means
-more digit places per example and therefore *more* coverage of a fixed
-alphabet. Second, 0.95–0.98 is a *lower* bound for anything that interpolates:
-the alphabet is nearly saturated (e.g. at N=323, 110 of 111 needed add entries
-and 100 of 100 pair entries are already seen), and the constructed model — which
-does generalise across table entries — measures 1.000. Seeds 1 and 2 reproduce
-the ordering (digit 0.79–0.99 vs residue 1.000/0.63/0.35/0.07).
+(The last three sample 2000 held-out `x` rather than enumerating the unit group,
+which is intractable there; coverage is a per-example question so a sample
+estimates it without bias.)
+
+Two things to read here. First, the digit quantity **does not degrade with `N`**
+— it sits at 0.95–0.99 from 9 bits to 30 bits — while the residue quantity goes
+to *exactly zero* by 24 bits. A bigger modulus means more digit places per
+example and therefore *more* coverage of a fixed alphabet, so the two curves move
+in opposite directions. Second, 0.95–0.99 is a *lower* bound for anything that
+interpolates: the alphabet is nearly saturated (at N=9519091, 200 of 200 needed
+subtract entries and 100 of 100 pair entries are already exercised), and the
+constructed model — which does generalise across table entries — measures 1.000
+at every one of these moduli. Seeds 1 and 2 reproduce the ordering (digit
+0.79–0.99 vs residue 1.000/0.63/0.35/0.07).
 
 **Consequence for the team's plan.** group-rotation's conclusion that "e1 is the
 only public dataset where a readout can certify even T=1" is correct *for
@@ -145,12 +155,13 @@ Medium/Hard look hopeless is removed.
 | variant | train_exact | held_exact |
 |---|---|---|
 | constructed (diagnostic ceiling) | **1.000** | **1.000** |
-| learned, default | 0.196 (plateau by ~800 steps) | 0.000 |
+| learned, default (1000 steps) | 0.196 (plateau by ~800 steps) | 0.000 |
 | learned, freeze `zero` at truth | 0.296 | 0.000 |
 | learned, freeze `zero`+`gate` | 0.016 | 0.000 |
 | learned, freeze `zero`+`gate`+`sub` | 0.000 (loss 18.7) | 0.000 |
 | learned, freeze all but `mul` | 0.000 (loss 15.6) | 0.000 |
 | learned, straight-through discrete states | 0.012 | 0.000 |
+| learned, identity/copy-through init (2500 steps) | 0.140 | 0.000 |
 
 **Freezing sub-modules at the truth makes it monotonically worse** — a correct
 `Tsub` applied to a register that a random `Tmul`/`Tadd` has scrambled amplifies
@@ -158,6 +169,21 @@ the error rather than correcting it (loss 18.7 against `ln(10)=2.30`). The
 modules are only individually useful once they are *jointly* nearly right, so
 there is no partial-credit gradient path into the solution. Straight-through
 discretisation, which closes the continuous side-channel, does not help either.
+
+**And the obstruction is measurably depth.** Shrinking the chain by shrinking the
+operand — N=91, S=2, so 3 Horner places over 3 slots, ~117 sequential soft table
+lookups instead of ~280 — with everything else identical:
+
+| chain length | modulus | train_exact | held_exact |
+|---|---|---|---|
+| ~280 soft steps (S=3, N=323) | 323 | 0.196 | 0.000 |
+| **~117 soft steps (S=2, N=91)** | 91 | **0.780** | 0.045 (1/22) |
+
+A 2.4× shorter chain takes train_exact from 0.20 to 0.78 at the same step count.
+The constructed ceiling is 1.000 in both cases, so nothing about the target
+changed — only the number of sequential soft steps the gradient has to cross.
+That makes "shorten the chain" a measured direction rather than a guess, and it
+is why it heads the recommendation list in §6.
 
 This is the same *shape* as group-rotation §5.5b ("the hypothesis class that
 excludes memorisation also excludes anything the optimizer can descend into")
@@ -259,8 +285,17 @@ real prompts (3 seeds, e1 modulus, 250/38, 2000 steps):
 | front end | train_exact | **held-out T=1** |
 |---|---|---|
 | marker-relative (parse verified 1.000) | 1.000 / 1.000 / 1.000 | 0.026 / 0.026 / 0.026 |
+| marker-relative, **no structured init** (pointer learned from random) | 1.000 / 1.000 / 1.000 | 0.000 / 0.000 / 0.053 |
 | distance-from-end (control) | 0.993 / 1.000 / 1.000 | 0.053 / 0.000 / 0.000 |
+| absolute position (control) | — | see §4 |
 | clean one-hot slots (group-rotation `probe_sel`) | 1.000 | 0.237 – 0.263 |
+
+and at group-rotation's own optimiser setting (lr 3e-3, wd 0.1, 6000 steps),
+which is the setting that produced 0.237–0.263 on clean slots:
+
+| front end | train_exact | **held-out T=1** |
+|---|---|---|
+| marker-relative | 1.000 / 1.000 / 1.000 | 0.000 / 0.053 / 0.000 |
 
 **The marker front-end and the broken control are indistinguishable, and both are
 at the one-example floor.** So the §9 gap was not caused by parsing alone.
