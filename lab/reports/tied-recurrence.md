@@ -293,6 +293,23 @@ monotone decay; a model with a bad step map shows exactly this — noise at ever
 rung. That shape is the diagnostic, and it says the step map carries no signal
 on unseen `x` at all.
 
+### 4.4 m1 and the hp1 Hard proxy
+
+`lab_m1_fs3000_s74`, tied K=4, `sinbil`, `rev`, `wd=1.0`, `batch_size=64`:
+
+| dataset | config | T=1 | T=2 | T=4 | T=8 | T=16 | T=32 | T=64 | test | test loss |
+|---|---|---|---|---|---|---|---|---|---|---|
+| m1 (N=10403) | K=4 fixed | 0.000 | 0.000 | 0.005 | 0.000 | 0.000 | 0.000 | 0.000 | 0.001 | 2.277 |
+
+Two readings. First, the arithmetic wall gets worse with modulus size exactly as
+the prior session found: with a 5-digit N the per-token cross-entropy on held-out
+prompts is 2.277 against a uniform-over-vocab reference of ln(17) = 2.833, i.e.
+barely better than guessing, and exact accuracy is zero everywhere. Second, note
+*which* rung is non-zero: **T=4, which is a trained T.** Rungs 1 and 2 — the ones
+certification actually requires first — are zero, which is what §2.1 predicts:
+they are below the trained range and nothing in the architecture reaches them
+unless the model genuinely iterates.
+
 ## 5. What was falsified / what is not the constraint
 
 Stated plainly, because each of these was a candidate explanation before the runs:
@@ -350,6 +367,7 @@ iterations. Command: `bash lab/tied_e1_extrap.sh`.
 | 1  | 0.079 | 0.026 | 0.026 | 0.053 | 0.000 | 0.053 | 0.026 | 0.020 |
 | 2  | 0.026 | 0.053 | 0.079 | 0.053 | 0.000 | 0.079 | 0.026 | 0.013 |
 | 4 (as trained) | 0.026 | 0.026 | 0.079 | 0.053 | 0.000 | 0.079 | 0.026 | 0.020 |
+| 8  | 0.000 | 0.026 | 0.053 | 0.000 | 0.000 | 0.079 | 0.053 | 0.020 |
 
 Two things to read off, both negative and both informative:
 
@@ -365,6 +383,29 @@ Two things to read off, both negative and both informative:
   numerically stable — no NaNs or divergence at 64 applications of a block
   trained with 4 (the submission in `submissions/tied-recurrence/` trains at 8
   and evaluates at 64 without incident).
+
+### 6.1 Why it collapses — and it is an architecture bug, not bad luck
+
+The standard looped-transformer recipe used here (and in the prior session's
+depth sweep) is `h ← core(h + base)` with a pre-norm read-out `head(RMSNorm(h))`.
+If `core` drifts toward the identity, then `h_K = (K+1)·base` — and RMSNorm
+divides the scale out, so **`head(RMSNorm(h_K))` is bit-identical for every K**:
+
+```
+K= 1  ||h||= 18.9   rms_norm(h)[0,0,:3] = [-1.0846, -1.1102, -0.2414]
+K= 2  ||h||= 28.4   rms_norm(h)[0,0,:3] = [-1.0846, -1.1102, -0.2414]
+K= 4  ||h||= 47.4   rms_norm(h)[0,0,:3] = [-1.0846, -1.1102, -0.2414]
+K=64  ||h||=615.7   rms_norm(h)[0,0,:3] = [-1.0846, -1.1102, -0.2414]
+```
+
+So "identity core" is not merely a degenerate solution, it is a solution the
+loss cannot see the depth of: **additive input injection into an unnormalized
+residual stream, read out through a norm, makes the iteration count a gauge
+freedom.** Gradient descent takes the shortest path to fitting the training set
+and lands there. Anyone continuing the depth line should break that degeneracy
+explicitly — randomize K per training batch, normalize the state each iteration,
+or force the state to decode to a valid residue every iteration
+(`--state-mode reembed_st`) — before concluding anything about depth.
 
 ## 7. Eval-budget feasibility for deep configs
 
