@@ -217,14 +217,21 @@ starts; the curve is memorisation all the way up.
 
 The one measurable representation effect in the whole study appears here, and it
 is about **fitting**, not generalising — the place-aligned layout memorises
-faster:
+faster. Replicated over **3 seeds each** (tag `repr-fit`, raw per-seed values
+shown; the two configs' ranges do not overlap at any of steps 800/1200/1600):
 
-| step | flat train acc | slots_sep train acc |
-|-----:|---------------:|--------------------:|
-| 800 | 0.08 | 0.12 |
-| 1200 | 0.43 | 0.62 |
-| 1600 | 0.72 | 0.83 |
-| 2000 | 0.76 | 0.81 |
+| step | flat train acc (3 seeds) | slots_sep train acc (3 seeds) |
+|-----:|--------------------------|-------------------------------|
+| 800 | 0.069 — {0.084, 0.062, 0.061} | **0.115** — {0.125, 0.107, 0.113} |
+| 1200 | 0.426 — {0.428, 0.418, 0.432} | **0.587** — {0.617, 0.551, 0.594} |
+| 1600 | 0.719 — {0.717, 0.748, 0.693} | **0.823** — {0.832, 0.824, 0.812} |
+| 2000 | 0.793 — {0.762, 0.801, 0.816} | 0.814 — {0.807, 0.812, 0.824} |
+
+That is ~35 % fewer steps to a given train accuracy, and it is the only claim in
+this report that clears its own variance floor. Held-out accuracy over the same
+six runs: flat `test` {0.0006, 0.0011, 0.000}, slots `test` {0.0011, 0.0011,
+0.0006}; rung T=1 flat {0, 0, 0}, slots {1/256, 1/256, 0}. **The fitting speedup
+does not convert into any generalisation.**
 
 ### 3.4 The Hard proxy `hp1` — both representations are at the floor
 
