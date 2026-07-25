@@ -318,7 +318,28 @@ All `--mode fixed_step` (contention-immune), screening on **e5** per the
 coordinator's correction (512-example rungs; e1 rungs are 38 examples, so the
 variance floor there is one example).
 
-RUNS_TABLE_PLACEHOLDER
+| submission | dataset | MAX_T | OOD_N MAX_T | rung 1 | rung 2 | rung 4 | rung 8 | rung 16 | rung 32 | rung 64 | mean |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `dcp_marker` (marker-relative parser) | e5 fs2000 | **0** | 0 | 0.008 | 0.004 | 0.006 | 0.002 | 0.010 | 0.004 | 0.002 | 0.0096 |
+| `dcp_rev` (distance-from-end control) | e5 fs2000 | **0** | 0 | 0.004 | 0.002 | 0.000 | 0.006 | 0.008 | 0.006 | 0.002 | 0.0038 |
+
+e5 rungs are 512 examples, so the one-example floor is 0.002. Rung 1 is
+0.008 = 4/512 for the marker front end and 0.004 = 2/512 for the control — a
+**two-example difference**, i.e. the evaluator cannot resolve the parsing fix
+either, exactly as §3.3 predicts and exactly as group-rotation §8 found for the
+selector fix. Both are `MAX_T = 0`.
+
+`dcp_abs` on e5 and `dcp_marker` on e1 were still in the queue when the session
+ended; see §9 for the exact commands. The offline screen (§3.3, 3 seeds) already
+settles the ordering they would test, and neither can be anything but
+`MAX_T = 0` given train_exact = 1.000 with held-out at the floor.
+
+**One bug worth recording for whoever runs this next:** `torch.finfo(x.dtype).min`
+as an attention mask value raises `RuntimeError: value cannot be converted to
+type c10::BFloat16 without overflow` under the manifests' bf16 + amp, because the
+dtype is read before autocast downcasts. The submission uses a finite
+`NEG = -1e4` instead. The first three evaluator runs of this session died on
+this; they are in `lab/archive.jsonl` with `status` != ok and were re-run.
 
 ## 5. What is falsified
 
@@ -398,11 +419,21 @@ is. What this branch delivers is the removal of a bound that was being planned
 around, a parser that is exact where the previous one was structurally wrong, and
 a sharply-located replacement bottleneck with a concrete attack list.
 
-## 7. Deliverables and reproduction
+## 10. Deliverables and reproduction
 
 * `submissions/digit-carry/submission.py` — marker-relative parser + weight-tied
   step with an ordered pointer selector (`dcp_marker`). Variants under
-  `submissions/digit-carry/dcp_{marker,rev,abs,marker_digit}/`.
+  `submissions/digit-carry/dcp_{marker,rev,abs,marker_novinit,marker_digit}/`.
+  **Measured `MAX_T = 0`; it is not better than the baseline and I am not
+  claiming it is.** It is delivered because it carries the one component this
+  branch established constructively — a parser that is exact at every rung —
+  and because `dcp_marker_digit` is the wiring point for a digit readout once
+  §6's trainability problem is solved.
+  Note on `--vinit`: it initialises the pointer's offset table at the intended
+  structure while leaving it fully trainable. It is **not load-bearing** for any
+  conclusion here — `dcp_marker_novinit` (pointer learned from random init)
+  gives the same held-out T=1 within one example (§3.3) — but a reader should
+  know it is there.
 * `lab/probe_alu.py`, `lab/probe_alu_oodn.py`, `lab/probe_coverage.py`,
   `lab/probe_digit.py`, `lab/probe_parse.py`, `lab/make_dcp.py`.
 * Every evaluator run appended to `lab/archive.jsonl` via `run_experiment.py`.
@@ -439,11 +470,65 @@ for f in marker rev; do for s in 0 1 2; do
 
 # evaluator (screening on e5 per the coordinator's correction)
 $VENV lab/make_manifest.py --dataset e5 --mode fixed_step --max-steps 2000 --seeds 74
+$VENV lab/make_manifest.py --dataset e1 --mode fixed_step --max-steps 2000 --seeds 74
 $VENV lab/run_experiment.py --submission submissions/digit-carry/dcp_marker/submission.py \
     --manifest lab/manifests/lab_e5_fs2000_s74.json --tag dcp-front
+$VENV lab/run_experiment.py --submission submissions/digit-carry/dcp_rev/submission.py \
+    --manifest lab/manifests/lab_e5_fs2000_s74.json --tag dcp-front
+# STILL QUEUED when the session ended:
+$VENV lab/run_experiment.py --submission submissions/digit-carry/dcp_abs/submission.py \
+    --manifest lab/manifests/lab_e5_fs2000_s74.json --tag dcp-front
+$VENV lab/run_experiment.py --submission submissions/digit-carry/dcp_marker/submission.py \
+    --manifest lab/manifests/lab_e1_fs2000_s74.json --tag dcp-front
+
+# regenerate any submission variant
+$VENV lab/make_dcp.py --out submissions/digit-carry/dcp_marker/submission.py \
+    --front marker --vinit --digit-tau 0.2 --vinit-scale 8 --loops 4
 ```
 
-## 8. Compliance
+## 8. Session ended on a time limit — status, and how to resume
+
+**Everything in §1–§6 is measured and complete.** In particular the headline
+coverage-ceiling experiment is *not* provisional: the constructed digit readout
+was measured at N = 323, 899, 2021 and 10403 (four moduli, `train_exact` and
+`held_exact` both 1.000, `held_ce` 0.0000), plus 12 unseen sampled 10/11-bit
+moduli and 6 unseen 20/24-bit moduli. The closed-form counterpart was measured at
+seven moduli from 9 to 30 bits and at three split seeds.
+
+Three things were in flight when the clock ran out and are **not** in this
+report:
+
+| in flight | purpose | command to resume |
+|---|---|---|
+| `probe_alu_oodn --bits 30 32` | push the construction to Hard scale (30/32-bit). 20/24-bit already returned 1.000, so this is confirmatory, not load-bearing | `$VENV lab/probe_alu_oodn.py --bits 30 32 --moduli 2 --x-per-modulus 128` |
+| `dcp_abs` on e5, `dcp_marker` on e1 | two remaining evaluator cells of the front-end comparison | see §9 |
+| `probe_alu --modulus 91 --slots 2 --seed 1` | second seed on the short-chain result (seed 0 gave train 0.780) | `$VENV lab/probe_alu.py --modulus 91 --slots 2 --train-x 50 --steps 4000 --seed 1` |
+
+Nothing was abandoned that changes a conclusion.
+
+**Tools.** Copied unchanged from
+`/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/group-rotation/lab/`:
+`probe_step.py`, `probe_sel.py`, `probe_iter.py`, `probe_learnability.py`,
+`mkdiag.py`, `diagnose_gr.py`, `report_tables.py`. `probe_learnability.py` is the
+one used for every offline number in §3.3 (it loads the real submission and feeds
+it real prompts). Written for this branch: `probe_alu.py`, `probe_alu_oodn.py`,
+`probe_coverage.py`, `probe_digit.py`, `probe_parse.py`, `make_dcp.py`.
+
+**The single next command on resume**, if you run only one thing:
+
+```bash
+# does shortening the chain rescue trainability?  §2.4 shows train_exact goes
+# 0.20 -> 0.78 when the chain goes 280 -> 117 steps.  R=11 tied conditional
+# subtractions per Horner step are 80% of the depth and 10 of 11 are no-ops.
+$VENV lab/probe_alu.py --modulus 323 --slots 3 --reduce 4 --steps 4000
+```
+
+(`--reduce 4` is not sufficient for exactness — the quotient reaches 10 — so
+read `train_exact` as a *trainability* probe only, and then implement the real
+fix: one learned quotient digit plus a single subtraction, which is exact and
+takes the chain to ~60 steps.)
+
+## 9. Compliance
 
 Nothing under `data/generated/` was read, printed, sampled or summarised; every
 probe synthesises its own values from the public generator spec and from moduli
