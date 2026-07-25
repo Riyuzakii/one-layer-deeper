@@ -311,6 +311,7 @@ on unseen `x` at all.
 |---|---|---|---|---|---|---|---|---|---|---|
 | m1 (N=10403) | K=4 fixed | 0.000 | 0.000 | 0.005 | 0.000 | 0.000 | 0.000 | 0.000 | 0.001 | 2.277 |
 | m1 (N=10403) | K=16 **tgather** (*diagnostic only*) | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 2.277 |
+| hp1 (N=4028033) | K=4 fixed | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 2.173 |
 
 Two readings. First, the arithmetic wall gets worse with modulus size exactly as
 the prior session found: with a 5-digit N the per-token cross-entropy on held-out
