@@ -675,8 +675,17 @@ above.
 
 ## 14. Deliverable submission
 
-`submissions/group-rotation/submission.py` is GRIter (§4.3). It is delivered because it
-is the architecture that embodies this branch's one positive finding — iterating a single
-shared block, with composition depth learned from the prompt — **not** because it beats
-anything: like every other variant here it scores `MAX_T = 0` on e1, the same as the
-baseline. Per-variant copies live in `submissions/group-rotation/<name>/submission.py`.
+`submissions/group-rotation/submission.py` is **GRIter with the repaired depth selector**
+(`--selector pointer --rand-loops 1`, §8): learned slot queries read the prompt into soft
+digit slots, ONE shared pairwise-phase block is applied up to `LOOPS` times with a
+soft-digit round trip between steps, and an *ordered* pointer selector — a learned scalar
+location on the step axis with a window that anneals from wide to sharp — routes the
+prompt's `T` field to a step count. The depth budget is randomised per training step
+(data-independent, like dropout) so the selector has pressure to be sharp.
+
+It is delivered because it embodies the two things this branch established constructively
+— iterate one shared block, and treat composition depth as an ordered quantity — **not**
+because it beats anything. Measured: `MAX_T = 0`, every rung at 1/38, identical to the
+baseline and to every other variant here. Per-variant copies are in
+`submissions/group-rotation/<name>/submission.py`; `gi_ptr_rev` additionally adds
+reverse-position slot indexing and is the best candidate under `probe_learnability`.
