@@ -29,6 +29,20 @@ from pathlib import Path
 
 # runner logs e.g. "step=100 loss=1.234567 accuracy=0.250000 elapsed=..s budget=..s"
 _STEP_RE = re.compile(r"step=(\d+)\s+loss=([\d.eE+-]+)\s+accuracy=([\d.eE+-]+)")
+# lab-only telemetry emitted by submissions/exp_closure/*: purely model-internal
+# scalars (see lab/make_closure.py).  Absent for every other submission.
+_DIAG_RE = re.compile(
+    r"CLOSURE_DIAG call=(\d+) kl_c=([\d.eE+-]+) kl_r=([\d.eE+-]+) "
+    r"ent=([\d.eE+-]+) idm=([\d.eE+-]+) agr=([\d.eE+-]+) mode=([\d.eE+-]+)"
+    r"(?: idx=([\d.eE+-]+))?"
+)
+
+
+def _downsample(pts: list, max_points: int) -> list:
+    if len(pts) <= max_points:
+        return pts
+    stride = len(pts) // max_points
+    return pts[::stride][:max_points] + [pts[-1]]
 
 
 def parse_training_curve(stdout: str, max_points: int = 40) -> list:
@@ -37,10 +51,19 @@ def parse_training_curve(stdout: str, max_points: int = 40) -> list:
         m = _STEP_RE.search(ln)
         if m:
             pts.append([int(m.group(1)), float(m.group(2)), float(m.group(3))])
-    if len(pts) <= max_points:
-        return pts
-    stride = len(pts) // max_points
-    return pts[::stride][:max_points] + [pts[-1]]
+    return _downsample(pts, max_points)
+
+
+def parse_diag_curve(stdout: str, max_points: int = 25) -> list:
+    """[call, kl_compose, kl_rand, entropy, id_rate_rand, agree_12, mode, id_rate_x]"""
+    pts = []
+    for ln in stdout.splitlines():
+        m = _DIAG_RE.search(ln)
+        if m:
+            row = [int(m.group(1))] + [float(m.group(i)) for i in range(2, 8)]
+            row.append(float(m.group(8)) if m.group(8) is not None else None)
+            pts.append(row)
+    return _downsample(pts, max_points)
 
 REPO = Path(__file__).resolve().parent.parent
 MANIFEST_DIR = REPO / "benchmark" / "manifests"
@@ -86,6 +109,7 @@ def flatten(result: dict) -> dict:
     seeds = result.get("seeds", [])
     # one seed per manifest in this competition, but stay general
     splits: dict[str, float] = {}
+    split_losses: dict[str, list] = {}
     completed = []
     tsec = []
     esec = []
@@ -102,8 +126,11 @@ def flatten(result: dict) -> dict:
         for split, m in s.get("evaluation", {}).items():
             splits.setdefault(split, [])
             splits[split].append(m.get("exact_accuracy"))
+            split_losses.setdefault(split, [])
+            split_losses[split].append(m.get("loss"))
     # mean per split across seeds
     split_acc = {k: (sum(v) / len(v) if v else None) for k, v in splits.items()}
+    split_loss = {k: (sum(v) / len(v) if v else None) for k, v in split_losses.items()}
 
     profile = result.get("depth_profile") or {}
     rung_acc: dict[str, dict[int, float]] = {"seen_n": {}, "ood_n": {}}
@@ -133,6 +160,7 @@ def flatten(result: dict) -> dict:
         # --- diagnostics ---
         "mean_exact_accuracy": score.get("mean_exact_accuracy"),
         "split_exact_accuracy": split_acc,
+        "split_loss": split_loss,
         "completed_training_steps": completed,
         "training_seconds": tsec,
         "evaluation_seconds": esec,
@@ -199,6 +227,9 @@ def main() -> int:
     if result is not None:
         row.update(flatten(result))
         row["train_curve"] = parse_training_curve(stdout)  # [step, loss, acc] downsampled
+        diag = parse_diag_curve(stdout)
+        if diag:
+            row["diag_curve"] = diag
     else:
         row["stderr_tail"] = "\n".join((stderr or "").splitlines()[-25:])
 
@@ -225,6 +256,19 @@ def main() -> int:
         print(
             f"      splits={ {k: round(v,3) for k,v in row['split_exact_accuracy'].items()} }"
         )
+        print(
+            f"      split_ce={ {k: round(v,3) for k,v in row['split_loss'].items() if v is not None} }"
+        )
+        curve = row.get("train_curve") or []
+        if curve:
+            print(f"      train_acc first/last = {curve[0][2]:.3f} / {curve[-1][2]:.3f}")
+        if row.get("diag_curve"):
+            d = row["diag_curve"][-1]
+            idx = "n/a" if len(d) < 8 or d[7] is None else f"{d[7]:.3f}"
+            print(
+                f"      diag(last) kl_c={d[1]:.4f} kl_r={d[2]:.4f} ent={d[3]:.3f} "
+                f"idm={d[4]:.3f} agr={d[5]:.3f} mode={d[6]:.3f} idx={idx}"
+            )
     else:
         print(f"[FAIL rc={rc}] {manifest.stem} sha={row['submission_sha8']}")
         print("--- stderr tail ---")
