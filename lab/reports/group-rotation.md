@@ -261,6 +261,17 @@ applied `T` times, trained on `T in {1,2,3}` exactly as e1 supplies:
 | `{1,2,3}` | 1.000 | **0.237 – 0.289** | 1.000 | 0.263 |
 | `{1,2,3}`, K=64 | 1.000 | **0.237 – 0.342** | 1.000 | 0.342 |
 
+**3 seeds each**, held-out T=1 at 4000 steps:
+
+| | seed 0 | seed 1 | seed 2 | mean |
+|---|---|---|---|---|
+| single step (`T={1}`) | 0.000 | 0.000 | 0.000 | **0.000** |
+| iterated (`T={1,2,3}`) | 0.237 | 0.263 | 0.263 | **0.254** |
+
+and the label-free mod-`N` symmetry check moves with it (0.750 / 0.750 / 0.764 for the
+single step — exactly the memorisation baseline — vs 0.826 / 0.806 / 0.812 iterated). The
+effect is far outside seed noise, which is 0 for the control.
+
 Two things happen the moment there is more than one composed step:
 
 * **Held-out accuracy goes from 0.000 to ~0.24–0.34** — an 8-10x jump over the best
