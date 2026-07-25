@@ -484,6 +484,15 @@ read `T`) so variants cost ~2 minutes instead of a 10-minute evaluator run. e1 m
   that `MAX_T=1` needs. An unconstrained (sign-free) location parameterisation is the
   obvious next fix.
 
+**In the evaluator.** The selector fix was ported into GRIter (`--selector pointer
+--rand-loops 1`, `lab/make_griter.py`) and queued on e1 at 20 000 fixed steps against two
+controls (`pointer` without `rand-loops`, and `soft` with it), tag `griter-sel`. Those runs
+had not returned when this was written — the GPU is shared with two other branches — so no
+number is claimed for them here. **What is already measured is that they cannot help:** §9
+shows the same architecture loses the entire gain in prompt parsing (0.25 -> 0.00) *before*
+the selector is reached, and that `probe_learnability` — which does parse the prompt —
+tracked the evaluator to within one example on every candidate tried.
+
 **But note what this does and does not buy.** A perfect selector recovers exactly the
 §5.6 number and no more: **0.254, against the 1.000 that certification requires.** The
 selector was never the ceiling — the per-step arithmetic is. This is a mechanism repaired,
