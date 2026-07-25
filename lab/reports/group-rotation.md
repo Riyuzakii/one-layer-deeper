@@ -484,14 +484,19 @@ read `T`) so variants cost ~2 minutes instead of a 10-minute evaluator run. e1 m
   that `MAX_T=1` needs. An unconstrained (sign-free) location parameterisation is the
   obvious next fix.
 
-**In the evaluator.** The selector fix was ported into GRIter (`--selector pointer
---rand-loops 1`, `lab/make_griter.py`) and queued on e1 at 20 000 fixed steps against two
-controls (`pointer` without `rand-loops`, and `soft` with it), tag `griter-sel`. Those runs
-had not returned when this was written — the GPU is shared with two other branches — so no
-number is claimed for them here. **What is already measured is that they cannot help:** §9
-shows the same architecture loses the entire gain in prompt parsing (0.25 -> 0.00) *before*
-the selector is reached, and that `probe_learnability` — which does parse the prompt —
-tracked the evaluator to within one example on every candidate tried.
+**In the evaluator the fix changes nothing, exactly as predicted.** The selector fix was
+ported into GRIter (`--selector pointer --rand-loops 1`) and run on e1 at 20 000 fixed
+steps (tag `griter-sel`):
+
+| variant | MAX_T | T=1 | T=2 | T=4 | T=8 | T=16 | T=32 | T=64 | mean acc |
+|---|---|---|---|---|---|---|---|---|---|
+| GRIter selector=pointer rand_loops=1 LOOPS=4 e1 20k | **0** | 0.026 | 0.026 | 0.026 | 0.026 | 0.026 | 0.026 | 0.026 | 0.0167 |
+
+Rung-1 is 0.026 = 1/38, and *every* rung is 1/38 — the trivial-predictor floor on the
+held-out cohort. `lab/probe_learnability.py`, which trains this same submission on
+synthetic prompts, had predicted 0.000–0.026 before the run; the evaluator agrees. The
+reason the repaired selector buys nothing is §9: this architecture loses the entire offline
+gain in **prompt parsing**, upstream of the selector.
 
 **But note what this does and does not buy.** A perfect selector recovers exactly the
 §5.6 number and no more: **0.254, against the 1.000 that certification requires.** The
