@@ -130,15 +130,15 @@ All branch from `lab/base`. Worktrees live in `.worktrees/<name>` (gitignored).
 | `explore/group-rotation` | 30 | 49 | `lab/reports/group-rotation.md` | closed — rotation route falsified; produced the coverage ceiling, the parsing bottleneck, and the screening discipline |
 | `explore/tied-recurrence` | 34 | 47 | `lab/reports/tied-recurrence.md` | closed — per-step exactness binds, not propagation; found the gauge-freedom trap |
 | `explore/algebraic-closure` | 4 | 47 | `lab/reports/algebraic-closure.md` | closed — semigroup law adds no information at unlabelled operands |
-| `explore/grok-optimization` | 3+ | 101 | `lab/reports/grok-optimization.md` | **IN FLIGHT** |
-| `explore/digit-carry` | 5+ | 50 | `lab/reports/digit-carry.md` | **IN FLIGHT** |
+| `explore/grok-optimization` | 5 | 57 | `lab/reports/grok-optimization.md` | closed — no transition at any recipe up to 2e5 steps; Hard's ceiling is below that |
+| `explore/digit-carry` | 8 | 9 | `lab/reports/digit-carry.md` | closed — digit readout escapes the coverage ceiling; parsing solved |
 
 Each branch also carries `submissions/<branch>/submission.py`. All lint clean; all
 score MAX_T = 0. None beats the baseline on the metric.
 
 ---
 
-## 3. What was running when the session ended
+## 3. The two branches that ran to the cutoff
 
 ### `explore/grok-optimization` — steps-to-exactness
 
@@ -153,21 +153,54 @@ an inductive bias making the true solution the shortest description.
 steps, Hard is winnable and the team should optimise step throughput; if it needs
 10M, no architecture search fits in 3600s.
 
-**Committed state at cutoff.** Its last commit message reads *"no transition at any
-recipe or step budget up to 2e5"* — treat as the branch's provisional headline, not a
-confirmed final result; the report and archive had uncommitted edits in flight.
+**COMPLETE — 57 runs, all MAX_T = 0. THE NUMBER: steps-to-exactness on rung 1 is
+`> 2 × 10⁵` optimizer steps — a lower bound, not an observed transition.** Three
+200,000-step runs on e1 (wd = 0.01 / 0.1 / 1.0, bs 128, lr 1e-3, constant, AdamW) gave
+rung-1 = 2/38, 1/38, 0/38 — statistically identical to the same recipe at 2,000 steps.
 
-**In flight at cutoff** (from `lab/manifests/`, all fixed-step unless noted):
+**Which knobs moved it: none.** Weight decay 0→3.0 (3.0 destroys training), lr
+3e-4→1e-2, schedule const/cosine/linear, optimizer AdamW/Muon/Schedule-Free, Grokfast
+(λ=2,5 at 50k), ⊥Grad, StableMax, ⊥Grad+StableMax, small/orthogonal init,
+embedding-norm projection, batch 16→512 (512 ≈ full batch on 600 rows), width 32→256,
+loss CE/focal/hardest-token/label-smoothing. **Every one moves rung-1 by less than one
+example out of 38.** Seed spread is zero: 50,000 steps × 3 seeds → 0/38, 0/38, 0/38.
+Across all 50 successful e1 runs the rung-1 histogram is 0/38 (37×), 1/38 (12×), 2/38
+(2×).
+
+**Mechanism — why it is not a pre-grok plateau.** Train exact accuracy hits 1.00 by
+~2,000 steps and *holds it for the next 198,000* while held-out never leaves the
+floor. A grokking plateau creeps before it jumps; this does not. Two purpose-built
+control datasets (N=77, 40 facts, 2-digit; N=1147, 800 facts, 4-digit) fail
+identically, ruling out both "too few facts" and "arithmetic too wide". Rung 1 on e1
+is a *unary* map with only 288 facts in the universe presented as ≤3 shared decimal
+digit tokens — there is no shared-embedding structure for weight decay to reorganise
+into the Fourier solution grokking normally finds.
+
+**Per-tier feasibility (throughput assumption stated: host-bound workload, ~0.8M
+params, seq ≤10, so H100 ≈ this box within ±2×).** At the improved bs=32 rate
+(52 steps/s, quiet machine): Easy ≈ 2,900 steps, Medium ≈ 31,000, **Hard ≈ 187,000 —
+below the 2×10⁵ already shown empty.** Conclusion: **rung-1 certification is not
+reachable at any tier by a recipe change.**
+
+> **Scope caveat, important.** This was measured on a *dense* architecture that
+> **can** memorise, and the mechanism above is a lookup table. `digit-carry`'s
+> `DigitALU` cannot memorise (6,817 digit-indexed parameters, no `Z_N` index), so this
+> conclusion does **not** automatically transfer to it. Re-test rather than inherit.
+
+**Transferable win — free steps at every tier.** The evaluator's DataLoader uses
+`num_workers=2` with **no `persistent_workers`**, and e1's 600 rows at the manifest's
+`batch_size=512` is *one batch per epoch* — a worker respawn every step. Measured on a
+quiet GPU: **111 ms/step at bs 512 → 19 ms/step at bs 32 (5.8×)**, still 1.5× on
+Medium-sized data. Setting `SUBMISSION.batch_size = 128` is free steps everywhere.
+
+**Abandoned at cutoff** (killed deliberately when GPU time ran out; ~2h15m elapsed,
+no checkpointing, nothing salvageable): two 5×10⁵-step runs. Report §15 has exact
+resume commands. Single next command, with the branch's recorded prediction of
+rung-1 = 0/38 or 1/38:
 ```
-lab/run_experiment.py --submission submissions/grok-optimization/L_500k_bs16_wd0.1/submission.py \
-  --manifest lab/manifests/lab_e1_fs500000_s74.json
-lab/run_experiment.py --submission submissions/grok-optimization/L_500k_bs16_wd1.0/submission.py \
-  --manifest lab/manifests/lab_e1_fs500000_s74.json
-lab/run_experiment.py --submission submissions/grok-optimization/wc_bs32/submission.py \
-  --manifest lab/manifests/lab_e1_wc60_s74.json          # wall-clock throughput check
+TMO=25200 TAG=B-steps lab/grok.sh L_500k_bs16_wd0.1 500000 74 "500k step probe" \
+  --batch-size 16 --wd 0.1 --wd-emb 0.1 --lr 0.001
 ```
-The two 500k-step runs will not have finished. **Resume by relaunching them**; they
-are the tail of the steps-to-exactness curve.
 
 ### `explore/digit-carry` — COMPLETE (HEAD `ed804e0`), and it changes the target
 
@@ -274,10 +307,9 @@ certified T transfer; absolute wall clock, steps-in-budget and compile payoff do
 2. **Keep the state alphabet small.** The falsification that matters: a continuous
    carry vector re-encodes the value and restores memorisation. Any variant must keep
    the inter-step state discrete or near-discrete.
-3. **Finish the steps-to-exactness curve** (`grok-optimization`). Relaunch the two
-   500k-step runs. Even a lower bound is actionable — and note its conclusion was
-   drawn on a *dense* architecture, so it may not transfer to `DigitALU`, whose
-   parameterisation cannot memorise in the first place.
+3. **Set `SUBMISSION.batch_size = 128`.** Free steps at every tier (5.8x on Easy,
+   1.5x on Medium) from the evaluator's non-persistent DataLoader workers. Costs
+   nothing, applies to every candidate.
 4. **Then combine**: weight-tied recurrent step (bottleneck 1, solved) + trained
    digit readout (2) + marker-relative slots (3). Target **MAX_T = 1 on e1** — rung 1
    at 38/38, against a field best of 3/38 — then check e5/m1, which the digit readout
