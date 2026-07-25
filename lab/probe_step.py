@@ -21,6 +21,8 @@ import math
 
 import torch
 import torch.nn.functional as F
+
+INIT_NOISE = 0.0
 from torch import nn
 
 
@@ -98,6 +100,52 @@ class FactoredPhaseStep(nn.Module):
         return torch.einsum("bf,ifd->bid", feats, self.readout) + self.bias
 
 
+class ModFreePhaseStep(nn.Module):
+    """Scale-free additive characters, with the modulus read from the prompt.
+
+    A learned linear digit code  code(v) = sum_i c_i e[d_i]  equals  s*v  for an
+    unknown learned scale s.  Then
+
+        code(x)^2 / (code(N) * code(1))  =  (s x)^2 / (s N * s)  =  x^2 / N
+
+    -- the scale cancels exactly.  Wrapping that in cos/sin of INTEGER multiples
+    of 2*pi makes periodicity mod N structural rather than something the
+    optimiser has to discover to 1 part in 1e5.  No modulus, no mod operation and
+    no exponent appears; c, e and the readout are all learned.
+    """
+
+    def __init__(self, slots: int, n_slots_mod: int, n_harm: int):
+        super().__init__()
+        self.digit = nn.Parameter(torch.arange(10.0) / 10.0 + torch.randn(10) * INIT_NOISE)
+        self.place = nn.Parameter(
+            torch.tensor([10.0**i for i in range(max(slots, n_slots_mod))]) / 10.0
+            * (1.0 + torch.randn(max(slots, n_slots_mod)) * INIT_NOISE)
+        )
+        self.slots = slots
+        self.n_harm = n_harm
+        feat = 2 * n_harm
+        self.readout = nn.Parameter(torch.randn(slots, feat, 10) * feat**-0.5)
+        self.bias = nn.Parameter(torch.zeros(slots, 10))
+
+    def code(self, s):
+        n = s.shape[1]
+        return torch.einsum("bia,a,i->b", s, self.digit, self.place[:n])
+
+    def forward(self, s, s_mod):
+        ux = self.code(s)
+        un = self.code(s_mod)
+        u1 = self.place[0] * self.digit[1]
+        denom = un * u1
+        base = ux * ux / torch.sign(denom).detach().clamp(min=-1) / denom.abs().clamp_min(1e-3)
+        parts = []
+        for h in range(1, self.n_harm + 1):
+            ang = 2 * math.pi * h * base
+            parts.append(torch.cos(ang))
+            parts.append(torch.sin(ang))
+        feats = torch.stack(parts, dim=-1)
+        return torch.einsum("bf,ifd->bid", feats, self.readout) + self.bias
+
+
 def digits_of(value: int, slots: int) -> list[int]:
     out = []
     for _ in range(slots):
@@ -115,6 +163,10 @@ def main() -> int:
     ap.add_argument("--harm", type=int, default=8)
     ap.add_argument("--linear-only", action="store_true")
     ap.add_argument("--factored", action="store_true")
+    ap.add_argument("--modfree", action="store_true")
+    ap.add_argument("--init-noise", type=float, default=0.0)
+    ap.add_argument("--code-lr", type=float, default=None,
+                    help="separate (much smaller) lr for the digit/place code")
     ap.add_argument("--vinit", action="store_true",
                     help="structured init: monotone digit ramp, geometric place code,\nlog-uniform frequencies. All parameters stay trainable.")
     ap.add_argument(
@@ -135,6 +187,7 @@ def main() -> int:
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)
+    globals()['INIT_NOISE'] = args.init_noise
     modulus = args.modulus
     units = [x for x in range(1, modulus) if math.gcd(x, modulus) == 1]
     g = torch.Generator().manual_seed(args.seed)
@@ -157,7 +210,16 @@ def main() -> int:
     xin, xt = tensors(train_x)
     hin, ht = tensors(held_x)
 
-    if args.factored:
+    if args.modfree:
+        nslots = len(str(modulus))
+        smod = torch.zeros(1, nslots, 10)
+        for i, d in enumerate(digits_of(modulus, nslots)):
+            smod[0, i, d] = 1.0
+        smod = smod.to(device)
+        model = ModFreePhaseStep(args.slots, nslots, args.harm).to(device)
+        _fwd = model.forward
+        model.forward = lambda s: _fwd(s, smod.expand(s.shape[0], -1, -1))
+    elif args.factored:
         model = FactoredPhaseStep(args.slots, args.freqs, args.harm).to(device)
         if args.vinit:
             with torch.no_grad():
@@ -189,7 +251,16 @@ def main() -> int:
         f"params={sum(p.numel() for p in model.parameters()):,} "
         f"linear_only={args.linear_only}"
     )
-    opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=args.lr, weight_decay=args.wd,
+    if args.code_lr is not None:
+        code_names = {"digit", "place", "omega", "nu"}
+        code = [p_ for n_, p_ in model.named_parameters() if n_ in code_names]
+        rest = [p_ for n_, p_ in model.named_parameters() if n_ not in code_names]
+        opt = torch.optim.AdamW(
+            [{"params": code, "lr": args.code_lr, "weight_decay": 0.0},
+             {"params": rest, "lr": args.lr, "weight_decay": args.wd}],
+            betas=(0.9, 0.95))
+    else:
+        opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=args.lr, weight_decay=args.wd,
                             betas=(0.9, 0.95))
 
     def acc(inp, tgt):
