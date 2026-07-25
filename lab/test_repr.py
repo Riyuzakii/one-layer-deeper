@@ -105,11 +105,16 @@ def main() -> int:
     check_target_alignment()
     import importlib.util
 
-    for tag, layout in (("flat", "flat"), ("sep", "slots_sep"), ("sum", "slots_sum")):
-        path = REPO / "submissions" / "exp_repr" / f"_selftest_{tag}" / "submission.py"
+    candidates = [
+        ("flat", REPO / "submissions" / "exp_repr" / "r4_all" / "submission.py"),
+        ("sep", REPO / "submissions" / "exact-arithmetic" / "submission.py"),
+        ("sum", REPO / "submissions" / "exp_repr" / "r7_slotsum" / "submission.py"),
+    ]
+    for tag, path in candidates:
         if not path.exists():
-            print(f"skip {layout}: {path} missing (generate it first)")
+            print(f"skip {tag}: {path} missing (generate it first)")
             continue
+        layout = "flat" if tag == "flat" else f"slots_{tag}"
         spec = importlib.util.spec_from_file_location(f"_repr_{tag}", path)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
