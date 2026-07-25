@@ -190,7 +190,32 @@ rather than implementations of the arithmetic:
 
 ## 4. Results
 
-_(filled in as runs complete; see `lab/archive.jsonl` for the raw rows)_
+Every number is exact-example accuracy on the 38-prompt seen-N rungs. A rung is
+"certified" only at 1.000; the trivial floor is 0–3 correct, i.e. 0.000–0.079.
+
+### 4.1 Capability probe — the model memorizes perfectly and generalizes not at all
+
+e1, tied K=4, d=128, `res`, `batch_size=128`, `lab_e1_fs4000_s74`:
+
+| lr | wd | train accuracy at step 4000 | `test` | rung T=1 |
+|---|---|---|---|---|
+| 1e-3 | 0.1 | 0.992 | 0.020 | 0.000 |
+| 3e-3 | 0.1 | 0.961 | 0.040 | 0.026 |
+
+Training accuracy passes 0.9 by step 1500 and saturates near 1.0; held-out
+accuracy never leaves the floor. So the failure is **not** undertraining and not
+error compounding — the tied step simply does not generalize to unseen `x`.
+
+### 4.2 Long-horizon probe — no grokking transition at 20,000 steps
+
+`lab_e1_fs20000_s74`, `batch_size=64`, tied K=4, `res`:
+
+| wd | steps | rung T=1 | rung T=2 | `test` | mean |
+|---|---|---|---|---|---|
+| 0.1 | 20,000 | 0.026 | 0.000 | 0.027 | 0.033 |
+
+5× the training of §4.1 changes nothing. (See `lab/archive.jsonl`, tag
+`T1-grok`.)
 
 ## 5. What was falsified
 

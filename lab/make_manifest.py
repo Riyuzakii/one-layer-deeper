@@ -42,6 +42,10 @@ DATA_ROOTS = {
     "hp1": "data/generated/proxy_hard_fixed_n_p2003_q2011_t4816",
     "hp2": "data/generated/proxy_hard_sampled_b3032_t4816",
     "hp3": "data/generated/proxy_hard_sampled_b202428_t8",
+    # tiny fixed-N proxy (N=143=11x13, 120 units, train T in {1,2,3}, full
+    # 1..64 ladder).  Same SHAPE as e1 but with two-digit arithmetic, so the
+    # depth/iteration mechanism can be measured without the arithmetic wall.
+    "tp1": "data/generated/proxy_tiny_fixed_n_143_t123",
 }
 
 TIER_SECONDS = {"e": 60.0, "m": 600.0, "h": 3600.0}
