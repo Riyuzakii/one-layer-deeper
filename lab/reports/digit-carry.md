@@ -334,6 +334,7 @@ variance floor there is one example).
 | `dcp_marker` (marker-relative parser) | e5 fs2000 | **0** | 0 | 0.008 | 0.004 | 0.006 | 0.002 | 0.010 | 0.004 | 0.002 | 0.0096 |
 | `dcp_abs` (absolute-position control) | e5 fs2000 | **0** | 0 | 0.006 | 0.004 | 0.004 | 0.010 | 0.002 | 0.008 | 0.010 | 0.0088 |
 | `dcp_rev` (distance-from-end control) | e5 fs2000 | **0** | 0 | 0.004 | 0.002 | 0.000 | 0.006 | 0.008 | 0.006 | 0.002 | 0.0038 |
+| `dcp_marker` (marker-relative parser) | e1 fs2000 | **0** | 0 | **0.000** | 0.026 | 0.026 | 0.000 | 0.026 | 0.026 | 0.000 | 0.0283 |
 
 e5 rungs are 512 examples, so the one-example floor is 0.002. Rung 1 is
 0.008 = 4/512 for the marker front end against 0.006 = 3/512 (absolute) and
@@ -344,9 +345,15 @@ predicts and exactly as group-rotation §8 found for the selector fix. All three
 are `MAX_T = 0`, and every rung of all three sits within a few examples of the
 trivial floor.
 
-`dcp_marker` on e1 was still in the queue when the session ended; see §7 for the
-command. Given train_exact = 1.000 with held-out at the floor across 3 seeds
-offline (§3.3), it cannot be anything but `MAX_T = 0`.
+**On e1 the marker front end scores rung-1 = 0.000, i.e. 0/38.** Its mean
+accuracy, 0.0283, is indistinguishable from group-rotation's matched control
+(0.0278). This is worse than the 1/38 the offline probe reported for the same
+architecture (§3.3) and worse than the field best of 2/38 — the difference is one
+to two examples on a 38-example rung, which is the variance floor, so the honest
+reading is "at the floor, not distinguishable from any other null result", not
+"regressed". It does mean **this branch's best evaluator rung-1 on e1 is 0/38**.
+Recording this because it contradicts the more favourable offline number, and the
+evaluator is the one that counts.
 
 **One bug worth recording for whoever runs this next:** `torch.finfo(x.dtype).min`
 as an attention mask value raises `RuntimeError: value cannot be converted to
@@ -427,7 +434,12 @@ Why this and not something else:
 
 ### Honest expected value
 
-`MAX_T = 1` was not reached; best rung-1 is 1/38, level with the field. The
+`MAX_T = 1` was not reached. Best rung-1 **on the evaluator** is 0/38 on e1 and
+4/512 on e5 — at the floor, and below the field best of 2/38. (The offline probe
+gave 1/38 for the same architecture; the evaluator gave 0/38, a one-example
+disagreement, which is the variance floor on a 38-example rung and is also the
+fourth-consecutive confirmation that `probe_learnability` tracks the evaluator to
+within one example.) The
 deliverable submission is not better than the baseline and I am not claiming it
 is. What this branch delivers is the removal of a bound that was being planned
 around, a parser that is exact where the previous one was structurally wrong, and
