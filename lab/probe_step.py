@@ -234,15 +234,17 @@ def main() -> int:
     if args.oracle:
         with torch.no_grad():
             table = torch.zeros_like(model.table)
+            ab = torch.outer(torch.arange(10.0), torch.arange(10.0))  # a*b
+            ks = torch.arange(1.0, args.freqs + 1.0)
             for n, (i, j) in enumerate(model.pairs):
                 mult = 1.0 if i == j else 2.0
-                for a in range(10):
-                    for b in range(10):
-                        place = mult * (10**i) * (10**j) * a * b
-                        for k in range(args.freqs):
-                            table[n, a, b, k] = (
-                                2 * math.pi * (k + 1) * place / modulus
-                            )
+                place = mult * (10**i) * (10**j)
+                table[n] = (
+                    (2 * math.pi / modulus)
+                    * place
+                    * ab[:, :, None]
+                    * ks[None, None, :]
+                ).to(table.device)
             model.table.copy_(table * (1.0 + args.freq_jitter))
         model.table.requires_grad_(False)
         print("[oracle] pair table frozen at the exact additive-character phases of v^2")

@@ -140,10 +140,12 @@ control that removes the round-trip constraint.
 | GRIter LOOPS=2 | **0** | 0.026 | 0.026 | 0.026 | 0.132 | 0.000 | 0.026 | 0.079 | 0.0433 |
 | GRIter LOOPS=2 slots=4 e1 20k | **0** | 0.026 | 0.026 | 0.026 | 0.132 | 0.000 | 0.026 | 0.079 | 0.0433 |
 | GRIter LOOPS=4 | **0** | 0.026 | 0.000 | 0.026 | 0.079 | 0.026 | 0.053 | 0.000 | 0.0333 |
+| GRIter LOOPS=4 slots=4 e1 20k | **0** | 0.026 | 0.000 | 0.026 | 0.079 | 0.026 | 0.053 | 0.000 | 0.0333 |
+| GRIter LOOPS=8 | **0** | 0.000 | 0.026 | 0.053 | 0.053 | 0.053 | 0.053 | 0.026 | 0.0400 |
 
-(A `LOOPS=8` cell was still running when this was written; it is not needed for the
-conclusion — the `LOOPS` axis is already flat from 1 to 4, and §4.3's selector diagnostic
-below explains why deeper loops cannot help as the architecture stands.)
+(`LOOPS=2` and `LOOPS=4` each appear twice: the first sweep was interrupted and re-run.
+The duplicate rows are *identical to three decimals* — a free reproducibility check on the
+fixed-step protocol.)
 
 **It does not reproduce the offline gain, and the selector diagnostic says why.** Dumping
 the weights of a GRIter LOOPS=4 run and reading the selector's output on synthetic prompts
@@ -394,6 +396,98 @@ Two things worsen with `N`: the learned model is *even more* purely memorising, 
 oracle ceiling itself drops to 0.61, because 250 training `x` no longer cover all the
 distinct squares, so the readout is genuinely underdetermined.  **On e2 and above, the
 group representation alone would not be enough even if it were found.**
+
+
+## 6A. THE COVERAGE CEILING — a hard bound on any value-indexed readout
+
+This is the most transferable number in the report and it is not specific to my
+architecture. Take the **oracle** setup of §5.2 (phases frozen at the exact additive
+characters of `v^2`, so the representation is perfect) and vary only the modulus, keeping
+the generator's `examples_per_setting = 250` training `x`:
+
+| dataset | modulus | digits | units | distinct squares | **oracle held-out exact** | predicted `P[x^2 already seen]` |
+|---|---|---|---|---|---|---|
+| e1 | 323 = 17·19 | 3 | 288 | 72 | **1.000** | 1.000 |
+| e2 | 899 = 29·31 | 3 | 840 | 210 | **0.614** | 0.614 |
+| — | 2021 = 43·47 | 4 | 1932 | 483 | **0.337** | 0.337 |
+| m1 | 10403 = 101·103 | 5 | 10200 | 2550 | **0.031** | 0.072 |
+
+The last column is pure combinatorics — the fraction of held-out `x` whose square
+`x^2 mod N` already occurs as the square of some training `x` — computed with no model at
+all. **It predicts the measured oracle ceiling exactly at 323, 899 and 2021.**
+
+Why: the readout maps a complete encoding of `v^2 mod N` to the digits of `v^2 mod N`, so
+it is an *arbitrary function on `Z_N`*. Trained on the residues that appear in training, it
+is unconstrained on any residue that does not. e1 is saved only by squaring being 4-to-1 on
+`Z*_N` — 250 `x` cover all 72 squares. Nothing bigger is.
+
+**Consequences the team should plan around:**
+
+1. **e1 is the only public dataset where a value-indexed readout can certify even T=1.**
+   At e2 the ceiling is 0.614 and certification needs 1.000, so *no* amount of
+   architecture search or training on a Fourier/lookup readout can certify e2, let alone
+   m1 or Hard.
+2. The bound applies to **any** method whose final step is "learn a function of the
+   residue" — a Fourier readout, a softmax over `Z_N`, an embedding table, a learned
+   permutation. It is not a statement about my family only.
+3. The escape is a readout that is **compositional in the digits** (per-digit prediction
+   with carries), because that generalises across residues it has never seen. This is an
+   independent, quantitative argument for the exact-arithmetic route — and it is the
+   reason the ceiling problem gets *worse*, not better, at Medium and Hard.
+4. It also explains the shape of §6.3: at N=899 even a perfect group representation is at
+   0.61, so a 0.003 learned result there is not "the architecture is close and needs
+   tuning" — the whole approach is capped well below certification.
+
+Reproduce:
+
+```bash
+for cfg in "323 3 161" "899 3 449" "2021 4 1010" "10403 5 5201"; do
+  set -- $cfg
+  $VENV lab/probe_step.py --oracle --modulus $1 --slots $2 --freqs $3 \
+      --harm 1 --train-x 250 --steps 1200 --wd 0.01 --lr 0.01
+done
+```
+
+## 6B. Making `T` applications actually happen (the selector fix)
+
+§4.3 showed GRIter's learned soft selector never learns `T -> step count`. `lab/probe_sel.py`
+reproduces GRIter's *training setting* offline (one target per row, a selector that must
+read `T`) so variants cost ~2 minutes instead of a 10-minute evaluator run. e1 modulus,
+250 training `x`, `T in {1,2,3}`, LOOPS=4, held-out exact at T=1 unless noted:
+
+| selector | fits train? | **held-out T=1** | learned `T -> step` mapping |
+|---|---|---|---|
+| `soft` (what GRIter shipped) | no (0.72) | **0.000** | collapses onto the last step for every `T` |
+| `entropy` penalty | no (0.08) | **0.000** | sharp but **`T`-independent** — same step for all `T` |
+| `gumbel` straight-through | no (0.26) | 0.053 | sharp, wrong mapping (T=1→1, T=2→1, T=3→2) |
+| `pointer` (ordered location) | partly (0.73) | 0.079 | **monotone and correct**, but blurred |
+| `pointer` + `rand-loops` | yes (0.98) | 0.158 | monotone, sharper |
+| `pointer` + `rand-loops` + annealed window | yes (1.00) | **0.237 – 0.263** | monotone, sharp |
+| `oracle` one-hot at `T-1` *(diagnostic)* | yes (1.00) | **0.237 – 0.289** | — the ceiling |
+
+**Findings:**
+
+* **Sharpness is not the problem; `T`-dependence is.** An entropy penalty — the obvious
+  fix, and the one I proposed in the first draft of this report — makes the selector
+  one-hot on *the same step for every `T`*, and makes fitting worse. Recording that
+  because it is the intuitive fix and it is wrong.
+* Composition depth is an **ordered** quantity. Parameterising the selector as a learned
+  scalar *location* on the step axis plus a window (instead of an unstructured L-way
+  classifier) is what makes the correct mapping findable.
+* **Randomising the depth budget per training step helps materially** (0.079 → 0.158),
+  which is the lever `explore/tied-recurrence` had identified but not tested. Combined
+  with an annealed window it closes the gap to the oracle entirely
+  (**0.000 → 0.237–0.263 vs an oracle ceiling of 0.237–0.289**).
+* Residual defect: across seeds the `T=1` cell is unstable (0.000 / 0.132 / 0.263) while
+  `T=2,3` are consistently 0.21–0.26. `softplus` biases the pointer location away from
+  index 0, so the *first* step is the hardest to point at — and T=1 is precisely the rung
+  that `MAX_T=1` needs. An unconstrained (sign-free) location parameterisation is the
+  obvious next fix.
+
+**But note what this does and does not buy.** A perfect selector recovers exactly the
+§5.6 number and no more: **0.254, against the 1.000 that certification requires.** The
+selector was never the ceiling — the per-step arithmetic is. This is a mechanism repaired,
+not a score moved.
 
 ## 7. What is falsified
 
