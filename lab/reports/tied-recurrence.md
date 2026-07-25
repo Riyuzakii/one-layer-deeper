@@ -215,9 +215,53 @@ error compounding — the tied step simply does not generalize to unseen `x`.
 | 0.1 | 20,000 | 0.026 | 0.000 | 0.027 | 0.033 |
 
 5× the training of §4.1 changes nothing. (See `lab/archive.jsonl`, tag
-`T1-grok`.)
+`T1-grok`. The remaining three configurations of `lab/tied_e1_grok.sh` were
+cancelled after this result to free GPU for the tiny-proxy grid — a deliberate
+cancellation, recorded here, not a dropped negative.)
 
-## 5. What was falsified
+### 4.3 Iteration count — axis A
+
+e1, `lab_e1_fs8000_s74`, `batch_size=64`, `wd=1.0`, d=128, `res` state.
+`tgather` is the **diagnostic-only, compliance-uncertain** upper bound in which
+the iteration count equals T exactly.
+
+| config | rung 1 | rung 2 | rung 4 | rung 8 | rung 16 | rung 32 | rung 64 | test | mean |
+|---|---|---|---|---|---|---|---|---|---|
+| K=1 fixed (no composition) | 0.000 | 0.000 | 0.000 | 0.053 | 0.079 | 0.026 | 0.053 | 0.027 | 0.048 |
+| K=4 fixed | 0.026 | 0.026 | 0.026 | 0.079 | 0.026 | 0.026 | 0.053 | 0.027 | 0.038 |
+
+## 5. What was falsified / what is not the constraint
+
+Stated plainly, because each of these was a candidate explanation before the runs:
+
+1. **Error compounding is NOT the binding constraint on any dataset tested.**
+   The premise of the brief was that a 99%-correct step decays to 0.99⁶⁴ ≈ 53%.
+   There is no 99% step. Held-out rung accuracy is 0–3 correct out of 38 at
+   *every* rung including T=1, for every variant. Compounding never gets a
+   chance to act. Any work on propagation is premature.
+2. **Iteration count is not the constraint on e1.** K=1 (no composition at all)
+   and K=4 give the same floor, and so does the `tgather` upper bound in which
+   the iteration count equals T exactly (§4.3). If perfect halting does not move
+   rung 1, halting is not what is missing.
+3. **Training length is not the constraint.** Training accuracy is ~1.0 by step
+   1500–3000; 4,000 → 20,000 steps changes nothing (§4.1, §4.2).
+4. **Eval budget is not the constraint.** 4 → 64 internal iterations costs +2%
+   of eval time on e1 and +17% on hp1; margins are ~5× (Easy) to ~200× (Hard)
+   (§7). The "deep model times out at eval" hazard is real in principle and does
+   not bind at this model size.
+5. **Model capacity is not the constraint.** 0.40 M state elements against a
+   500 M ceiling.
+6. **The prior session's PonderNet failure mode was mis-attributed, and fixing
+   it does not help.** `lab/make_adaptive.py` collapsed to minimum depth because
+   the halting head was trained only against a ponder penalty while the readout
+   mixed *hidden states*. The implementation here mixes in probability space —
+   `logits = log Σ_k p_k softmax(z_k)`, the true PonderNet marginal likelihood —
+   so every iteration gets deep supervision weighted by p_k and halting is
+   trained by the data. That removes the collapse mechanism, and it still does
+   not move rung 1, because of (1).
+
+**What remains:** per-step exactness on unseen operands. That is the whole
+problem, and it is upstream of every axis this branch owns.
 
 ## 6. Iteration extrapolation
 
@@ -254,4 +298,43 @@ model size; it would only bind for a much wider model or a much longer sequence.
 Model state is 0.40 M elements against the 500 M ceiling (0.08%), so width is
 free if anything ever needs it.
 
-## 8. Recommendation
+## 8. Recommendation — one thing
+
+**Get one squaring step exact on held-out operands, on the smallest fixed-N
+dataset available, and treat everything else as blocked behind it.**
+
+The evidence for prioritising that above all else is in §5: depth, iteration
+count (including the perfect-halting upper bound), on-manifold state, training
+length, weight decay, model capacity and eval budget have all been measured and
+none of them is the binding constraint. Held-out rung accuracy is at the trivial
+floor at **T=1**, which is the first rung and therefore gates the entire ladder.
+Concretely the milestone is 38/38 exact on `depth_t_1` for e1 (or 20/20 on the
+`tp1` proxy); nothing above that rung can score until it exists.
+
+Two secondary items worth acting on immediately because they are free:
+
+* **`batch_size=64` instead of the manifest's 512 gives 5.4× more optimizer
+  steps in the same wall clock** on Easy (§3). e1 has ~600 training rows, so
+  `drop_last` + `batch_size=512` means one batch per epoch and `num_workers=2`
+  without `persistent_workers` respawns the workers every step. Whatever
+  optimisation recipe wins, this multiplies its step count. Verify it on the
+  target tier before relying on the exact factor.
+* **Do not tune against e1's high rungs.** `2^T mod 288` cycles with period 6
+  from T=5, so e1's rungs 8 and 32 are the same function and 16 and 64 are the
+  same function, and only rungs 1 and 2 use an exponent that appears in e1
+  training. e1's ceiling is MAX_T = 2 for any architecture (§2.1). Non-zero
+  accuracy at e1 rung 16 or 64 in anyone's results is noise, not progress.
+
+And the structural claim this branch was built to test, which survives as an
+*argument* even though the arithmetic wall prevented it from being demonstrated:
+
+* **On every tier above Easy, certification requires generalizing DOWN to T=1
+  and T=2**, because the ladder must be certified as a consecutive prefix from
+  T=1 while m1/hp1 train on T∈{4,8,16} (and the hidden Hard set is stated to sit
+  above Medium on the same knob). A model that treats T as a conditioning token
+  has no mechanism for a T it never saw. A tied block that runs T times answers
+  T=1 by construction. So once per-step exactness exists, the read-out should be
+  a **learned scalar pointer over iterations** (`--iter-mode tsoft` here:
+  `p_k = softmax(-(k-µ)²/2σ²)` with µ regressed from the prompt) rather than a
+  T-conditioned dense readout — a scalar can leave the trained range, a lookup
+  cannot.
