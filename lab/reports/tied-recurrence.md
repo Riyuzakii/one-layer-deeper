@@ -353,6 +353,7 @@ e1's 69%.
 | K=4 fixed, `sinbil` | 0.100 | 0.017 | 0.083 | 0.083 | 0.050 | 0.133 | 0.100 | 0.039 | 0.05, 0.10, 0.15 |
 | K=4 **tgather** (*diagnostic only*) | 0.017 | 0.133 | 0.100 | 0.100 | 0.083 | 0.183 | 0.117 | 0.061 | 0.05, 0.00, 0.00 |
 | K=4 `reembed_st` | 0.017 | 0.067 | 0.100 | 0.100 | 0.050 | 0.117 | 0.050 | 0.061 | 0.00, 0.05, 0.00 |
+| K=4 `tsoft` (learned scalar pointer — the submitted architecture) | 0.100 | 0.050 | 0.150 | 0.050 | 0.067 | 0.150 | 0.050 | 0.039 | 0.05, 0.20, 0.05 |
 
 A rung is 20 examples, so 0.050 = 1/20. **Halving the digit count and the group
 order does not move rung 1 off the floor.** The gelu step map gets exactly 1/20
@@ -378,6 +379,23 @@ now the fourth independent dataset — e1, m1, hp1, tp1 — on which giving the 
 the correct iteration count for free fails to move rung 1. (Its `test` accuracy
 is nominally the highest at 0.061 vs 0.039, but on a 60-example split that is
 ~1.3 examples and I am not reading anything into it.)
+
+With all five configurations in, the honest way to read this grid is as a
+single noise distribution. Per-seed rung-1 **correct counts out of 20**:
+
+| config | seeds | mean |
+|---|---|---|
+| K=4 gelu | 1, 1, 1 | 1.00 |
+| K=4 `sinbil` | 1, 2, 3 | 2.00 |
+| K=4 `tgather` (*diagnostic*) | 1, 0, 0 | 0.33 |
+| K=4 `reembed_st` | 0, 1, 0 | 0.33 |
+| K=4 `tsoft` | 1, 4, 1 | 2.00 |
+
+Pooled over all 15 seed-runs: min 0, max 4, mean 1.13 of 20. The single best run
+anywhere in the grid is **16 examples short** of certifying T=1. No configuration
+separates from any other, and the `tsoft` spread (1, 4, 1) shows the per-seed
+variance is comparable to the entire between-config range. Nothing here is a
+signal.
 
 Held-out per-token CE across the tiny grid is worth one line, because it
 separates *what the model knows* from *how loudly it says it*: `sinbil` 5.881,
@@ -579,7 +597,7 @@ model size; it would only bind for a much wider model or a much longer sequence.
 Model state is 0.40 M elements against the 500 M ceiling (0.08%), so width is
 free if anything ever needs it.
 
-## 7.1 Scope / what did not finish
+## 7.1 Scope / coverage
 
 The GPU was shared by four agents for the whole session (peaks of ~50 concurrent
 runner processes), so wall clock per run was roughly 2–3× the idle-machine
@@ -591,9 +609,9 @@ were started, archived where they completed, and left running:
   20 k steps) — **cancelled** after run 1 answered the grokking question.
 * `lab/tied_phase2.sh` (step-map nonlinearity on e1, 3 seeds) — **cancelled**
   after the e1 floor was established by five independent single-seed runs.
-* `lab/tied_tiny.sh` configs 2–5 and `lab/tied_e1_extrap.sh`'s last
-  `reembed_st` point — still running at write-up time; they append to `lab/archive.jsonl`
-  via `run_experiment.py` as they land and can be read with
+* `lab/tied_tiny.sh` (5 configs x 3 seeds) and `lab/tied_e1_extrap.sh`
+  (8 configs) — **both completed** after the first draft; their results are
+  folded into §4.5 and §6 above. Re-render with
   `python lab/tied_table.py T7-tiny T3-extrap`.
 
 None of the cancelled work would change §5: the constraint identified there is
