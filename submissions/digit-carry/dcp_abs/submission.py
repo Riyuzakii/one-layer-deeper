@@ -54,6 +54,14 @@ VINIT_SCALE = 8.0
 _MAX_STEPS = None
 _BATCH_SIZE = None
 O_LO, O_HI = -2, 9
+# a finite mask value: torch.finfo(float32).min overflows bf16 under amp
+NEG = -1e4
+
+
+class Config:
+    def __init__(self, vocab_size: int, max_seq_len: int) -> None:
+        self.vocab_size = vocab_size
+        self.max_seq_len = max_seq_len
 
 
 class MarkerPointer(nn.Module):
@@ -66,7 +74,7 @@ class MarkerPointer(nn.Module):
 
     def forward(self, emb: Tensor, mask: Tensor) -> Tensor:
         b, L, _ = emb.shape
-        neg = torch.finfo(emb.dtype).min
+        neg = NEG
         sc = self.probe(emb).transpose(1, 2)
         sc = sc.masked_fill(~mask[:, None, :], neg)
         a = F.softmax(sc, dim=-1)
@@ -95,7 +103,7 @@ class PosPointer(nn.Module):
 
     def forward(self, emb: Tensor, mask: Tensor) -> Tensor:
         b, L, _ = emb.shape
-        neg = torch.finfo(emb.dtype).min
+        neg = NEG
         if self.rev:
             last = mask.long().sum(-1) - 1
             pos = torch.arange(L, device=emb.device)[None, :]
@@ -193,6 +201,7 @@ class DigitStep(nn.Module):
 class Model(nn.Module):
     def __init__(self, spec: ModelSpec) -> None:
         super().__init__()
+        self.config = Config(spec.vocab_size, spec.max_seq_len)
         self.vocab = spec.vocab_size
         self.S = max(3, (spec.max_seq_len - 3) // 2)
         self.emb = nn.Embedding(spec.vocab_size, D_MODEL)
