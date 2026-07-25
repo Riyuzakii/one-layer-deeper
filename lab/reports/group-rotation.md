@@ -414,7 +414,14 @@ the generator's `examples_per_setting = 250` training `x`:
 
 The last column is pure combinatorics — the fraction of held-out `x` whose square
 `x^2 mod N` already occurs as the square of some training `x` — computed with no model at
-all. **It predicts the measured oracle ceiling exactly at 323, 899 and 2021.**
+all. **It predicts the measured oracle ceiling exactly at 323, 899 and 2021.** At e2, for
+instance, the 590 held-out `x` split into 362 whose square was already seen and 228 whose
+square was not; 362/590 = 0.6136, and the oracle measures 0.614. Three independent exact
+matches is not a coincidence — the ceiling *is* the coverage.
+
+(At m1 the model comes in *below* the bound, 0.031 vs 0.072, because a 5201-frequency
+readout is also harder to fit from 250 rows. The bound is an upper bound; m1 is worse than
+it, not better.)
 
 Why: the readout maps a complete encoding of `v^2 mod N` to the digits of `v^2 mod N`, so
 it is an *arbitrary function on `Z_N`*. Trained on the residues that appear in training, it
