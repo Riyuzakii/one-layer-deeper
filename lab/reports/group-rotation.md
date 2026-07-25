@@ -412,17 +412,25 @@ group representation alone would not be enough even if it were found.**
 
 ## 8. What survives, and the single highest-value recommendation
 
-**Recommendation: stop trying to make `T` free, and put the whole budget on a
-weight-tied recurrent block whose single step is exact digit arithmetic. Judge candidate
-architectures by the offline crux test in `lab/probe_step.py` before spending an evaluator
-run on them.**
+**Recommendation: stop trying to make `T` free. Put the budget on a weight-tied recurrent
+block whose single step is *discrete* digit arithmetic (per-digit classification with
+carries, not a continuous phase), make a row with time-step `T` actually pass through `T`
+applications rather than a soft blend, and screen every candidate architecture with
+`lab/probe_step.py` — 90 seconds, self-generated data — before spending an evaluator run
+on it.**
 
 Reasons, in order of evidential weight:
 
-1. The only lever that moved held-out accuracy at all (0.00 -> 0.30) was **composing one
-   shared block**, and composition extrapolates in `T` perfectly on values the model can
-   handle. The bottleneck is entirely the per-step map, exactly as `findings.md` concluded
-   under the old metric — this branch now supplies the mechanism.
+1. The only lever that moved held-out accuracy at all (0.000 -> 0.254 over 3 seeds) was
+   **composing one shared block**, and composition extrapolates in `T` perfectly on values
+   the model can handle (`T<=3` training -> `T=8` at 1.000 on seen `x`). The iteration
+   half of "one layer deeper" is *solved*; the bottleneck is entirely the per-step map,
+   exactly as `findings.md` concluded under the old metric — this branch now supplies the
+   mechanism.
+   *Immediate, cheap follow-up:* GRIter already implements the iterated block but its soft
+   depth selector dissolves the constraint (§4.3). Annealing that selector to one-hot, or
+   penalising its entropy via `training_loss`/`aux`, is a few lines and is the single most
+   likely way to port the 0.254 offline gain into the evaluator.
 2. Certification needs 38/38. Anything that carries a value in a *continuous* phase needs
    the phase commensurate with `N` to 1e-5, and nothing in the training signal supplies
    that. A representation that is **discrete in the value** (per-digit classification with
