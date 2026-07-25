@@ -42,9 +42,13 @@ DATA_ROOTS = {
     "hp1": "data/generated/proxy_hard_fixed_n_p2003_q2011_t4816",
     "hp2": "data/generated/proxy_hard_sampled_b3032_t4816",
     "hp3": "data/generated/proxy_hard_sampled_b202428_t8",
+    # representation data-volume probe (lab/gen_repr_probe.sh): same fixed
+    # N=10403 and same T=1,2,3; only the number of training prompts differs.
+    "rps": "data/generated/repr_probe_rp_small_n10403_t123",
+    "rpb": "data/generated/repr_probe_rp_big_n10403_t123",
 }
 
-TIER_SECONDS = {"e": 60.0, "m": 600.0, "h": 3600.0}
+TIER_SECONDS = {"e": 60.0, "m": 600.0, "h": 3600.0, "r": 60.0}
 
 
 def build(

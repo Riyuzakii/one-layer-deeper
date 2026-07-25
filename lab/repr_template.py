@@ -56,6 +56,8 @@ USE_ABS = True
 USE_FIELD = False
 USE_PLACE = False
 USE_RPOS = False
+ANS_SLOTS = False
+HEAD_PER_PLACE = False
 # --- CONFIG END ---
 
 # public prompt-format token ids (data/squaring_mod.py TOKEN_IDS)
@@ -164,9 +166,23 @@ class Model(nn.Module):
             else:
                 self.digit_embedding = nn.Embedding(11, D_MODEL)
                 self.field_embedding = nn.Embedding(8, D_MODEL)
+            if ANS_SLOTS:
+                self.answer_query = nn.Parameter(torch.zeros(D_MODEL))
         self.block = Block()
         self.final_norm = RMSNorm(D_MODEL)
-        self.head = nn.Linear(D_MODEL, spec.vocab_size, bias=False)
+        if HEAD_PER_PLACE and LAYOUT != "flat":
+            # one output projection per place value instead of one shared head
+            self.place_head = nn.Parameter(
+                torch.randn(table, D_MODEL, spec.vocab_size) * (D_MODEL ** -0.5)
+            )
+        else:
+            self.head = nn.Linear(D_MODEL, spec.vocab_size, bias=False)
+
+    def _readout(self, hidden: Tensor) -> Tensor:
+        hidden = self.final_norm(hidden)
+        if HEAD_PER_PLACE and LAYOUT != "flat":
+            return torch.einsum("bpd,pdv->bpv", hidden, self.place_head[: hidden.shape[1]])
+        return self.head(hidden)
 
     # -- flat layout -------------------------------------------------------
     def _embed_flat(self, input_ids: Tensor, mask: Tensor) -> Tensor:
@@ -219,17 +235,25 @@ class Model(nn.Module):
                 + place_vec
             )
             tail = self.t_digit_embedding(d_t) + self.t_place_embedding(t_idx)
-            x = torch.cat([body, tail], dim=1)
-            return x, n_places, 0
-        n_tok = self.digit_embedding(d_n) + place_vec + self.field_embedding.weight[1]
-        x_tok = self.digit_embedding(d_x) + place_vec + self.field_embedding.weight[2]
-        t_tok = (
-            self.digit_embedding(d_t)
-            + self.t_place_embedding(t_idx)
-            + self.field_embedding.weight[3]
-        )
-        x = torch.cat([n_tok, x_tok, t_tok], dim=1)
-        return x, n_places, n_places  # read the answer off the x-aligned slots
+            parts = [body, tail]
+            read_offset = 0
+        else:
+            parts = [
+                self.digit_embedding(d_n) + place_vec + self.field_embedding.weight[1],
+                self.digit_embedding(d_x) + place_vec + self.field_embedding.weight[2],
+                self.digit_embedding(d_t)
+                + self.t_place_embedding(t_idx)
+                + self.field_embedding.weight[3],
+            ]
+            read_offset = n_places  # read the answer off the x-aligned slots
+        if ANS_SLOTS:
+            read_offset = sum(p.shape[1] for p in parts)
+            parts.append(
+                (self.answer_query + place_vec).unsqueeze(0).expand(
+                    input_ids.shape[0], n_places, D_MODEL
+                )
+            )
+        return torch.cat(parts, dim=1), n_places, read_offset
 
     def forward(self, input_ids: Tensor, attention_mask: Tensor | None = None):
         if attention_mask is None:
@@ -241,14 +265,12 @@ class Model(nn.Module):
             x = self._embed_flat(input_ids, mask)
             for _ in range(NUM_LOOPS):
                 x = self.block(x, mask)
-            return self.head(self.final_norm(x)), None
+            return self._readout(x), None
 
         x, n_places, read_offset = self._embed_slots(input_ids, mask)
         for _ in range(NUM_LOOPS):
             x = self.block(x, None)
-        slot_logits = self.head(
-            self.final_norm(x[:, read_offset : read_offset + n_places])
-        )
+        slot_logits = self._readout(x[:, read_offset : read_offset + n_places])
         seq_len = mask.sum(dim=1, keepdim=True)
         places = torch.arange(n_places, device=input_ids.device).unsqueeze(0)
         target = (seq_len - 1 - places).clamp(0, length - 1)
