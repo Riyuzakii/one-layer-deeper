@@ -499,6 +499,11 @@ steps (tag `griter-sel`):
 |---|---|---|---|---|---|---|---|---|---|
 | GRIter selector=pointer rand_loops=1 LOOPS=4 e1 20k | **0** | 0.026 | 0.026 | 0.026 | 0.026 | 0.026 | 0.026 | 0.026 | 0.0167 |
 
+(Two further evaluator cells — `pointer` *without* `rand-loops`, and `soft` *with* it —
+were still queued behind other branches' jobs when this was written; no number is claimed
+for them. They are controls on an ordering that the offline screen above already
+establishes, and they cannot change the conclusion below, which rests on §9.)
+
 Rung-1 is 0.026 = 1/38, and *every* rung is 1/38 — the trivial-predictor floor on the
 held-out cohort. `lab/probe_learnability.py`, which trains this same submission on
 synthetic prompts, had predicted 0.000–0.026 before the run; the evaluator agrees. The
