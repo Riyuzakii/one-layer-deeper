@@ -167,3 +167,43 @@ in the flat one.
 That is the single most important number in this report, and it should change
 what the rest of the team optimises.
 
+### 3.3 Is it the *modulus* or the *data*? A purpose-built probe
+
+e1 cannot separate "the representation cannot express the algorithm" from
+"there is not enough data to identify the algorithm", because fixed N=323 has
+only φ(323)=288 input/output pairs in total. `lab/gen_repr_probe.sh` therefore
+generates two datasets that hold the modulus fixed at **N = 101·103 = 10403**
+(5 digits) with the same training `T ∈ {1,2,3}` and 256-example rungs, varying
+**only** the number of prompts per setting:
+
+```bash
+bash lab/gen_repr_probe.sh          # writes rp_small (250/setting) and rp_big (3000/setting)
+$V lab/make_manifest.py --dataset rps --mode fixed_step --max-steps 2000 --seeds 74
+$V lab/make_manifest.py --dataset rpb --mode fixed_step --max-steps 2000 --seeds 74
+bash lab/repr_par.sh lab_rps_fs2000_s74 repr-data r0_base r6_slotsep
+bash lab/repr_par.sh lab_rpb_fs2000_s74 repr-data r0_base r6_slotsep
+```
+
+| dataset | train rows | config | train acc @2000 | `test` split | rung T=1 |
+|---------|-----------:|--------|----------------:|-------------:|---------:|
+| rp_small | 600 | flat | **1.00** | 0.000 | 0.000 |
+| rp_small | 600 | slots_sep | **0.98** | 0.000 | 0.000 |
+| rp_big | 7 200 | flat | 0.76 | 0.0006 | 0.000 |
+| rp_big | 7 200 | slots_sep | 0.81 | 0.0011 | 0.000 |
+
+Twelve times the data of exactly the same arithmetic buys **nothing**: held-out
+accuracy is 0.0–0.1 % either way. What changes is only that the model can no
+longer finish memorising 7 200 rows inside 2 000 steps. Generalisation never
+starts; the curve is memorisation all the way up.
+
+The one measurable representation effect in the whole study appears here, and it
+is about **fitting**, not generalising — the place-aligned layout memorises
+faster:
+
+| step | flat train acc | slots_sep train acc |
+|-----:|---------------:|--------------------:|
+| 800 | 0.08 | 0.12 |
+| 1200 | 0.43 | 0.62 |
+| 1600 | 0.72 | 0.83 |
+| 2000 | 0.76 | 0.81 |
+
