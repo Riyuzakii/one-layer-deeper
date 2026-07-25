@@ -189,7 +189,17 @@ ranging over `Z_N`**. N enters only as input digits.
    the truth makes it monotonically *worse* (loss 2.3 → 18.7); straight-through and
    identity-init do not help.
 
-Best rung-1: 1/38 on e1, 4/512 on e5 — level with the field, `MAX_T = 0`.
+Best **evaluator** rung-1: **0/38 on e1**, 4/512 on e5, `MAX_T = 0` — at the floor and
+below the 3/38 field best. (An earlier draft reported 1/38 for e1; that was the
+offline probe figure, not the evaluator's. The one-example gap is the variance floor
+on a 38-example rung, so the honest reading is "indistinguishable from every other
+null result" — and it is the fourth consecutive confirmation that
+`probe_learnability` tracks the evaluator to within one example.)
+
+All three front ends measured on e5: marker 0.008 / abs 0.006 / rev 0.004 rung-1 — a
+one-to-two example spread with controls not consistently ordered, so **the evaluator
+cannot resolve the parsing fix**. Parsing is verified by the direct slot-accuracy
+measurement above, not by any evaluator score.
 
 **The diagnostic inversion — cheap screening from here on.** `DigitALU` *cannot*
 memorise 250 residues in 6,817 digit-indexed parameters, so for this architecture
