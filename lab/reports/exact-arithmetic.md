@@ -164,12 +164,15 @@ training set perfectly**
 | r2_fieldplace | 0.00 | 0.99 | 1.00 | 1.00 | 0.0000 |
 | r3_rpos | 0.02 | 1.00 | 1.00 | 1.00 | 0.0000 |
 | r4_all | 0.00 | 1.00 | 1.00 | 1.00 | 0.0000 |
+| r5_norel | 0.01 | 0.97 | 1.00 | 1.00 | 0.0000 |
 | r6_slotsep | 0.00 | 0.99 | 1.00 | 0.98 | 0.0010 |
 | r7_slotsum | 0.00 | 0.99 | 1.00 | 1.00 | 0.0060 |
 
 **Every configuration reaches 100 % exact-match on the training data by ~step
 300 and drives the loss to zero, while held-out rung-1 stays at 0–5 %.** A
-0.25 M-parameter model memorises e1's ~600 training rows almost immediately.
+**205 000-parameter** model memorises e1's ~600 training rows almost immediately
+(all eight configs are within 2 % of that count, so this is not a capacity
+difference between them either).
 
 This falsifies the framing that both my brief and `lab/findings.md` were working
 from. The plateau is **not** a capacity wall, **not** an optimisation wall, and
@@ -333,7 +336,7 @@ The one thing that *is* real and replicated: **place-aligned slots memorise
 H100, and it is worth keeping — but it is not the bottleneck.
 
 **Also falsified: "the plateau is a capacity/architecture wall"**
-(`lab/findings.md`'s headline). It is not. Capacity is *excessive*: 0.25 M
+(`lab/findings.md`'s headline). It is not. Capacity is *excessive*: 205 k
 parameters memorise e1's 600 rows in 300 steps. The previous session's width
 sweep only went **up** (128 → 768, all worse), which is the wrong direction for
 a memorisation problem.
