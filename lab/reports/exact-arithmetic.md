@@ -5,6 +5,41 @@ every lower rung's exact accuracy is 100%). Everything below reports **per-rung
 exact accuracy**, because MAX_T is 0 almost everywhere and rung-1 is the real
 progress signal.
 
+## 0. Summary
+
+**The hypothesis is falsified, and the reason matters more than the result.**
+
+Eight input/output representations — field-aware embeddings, place-value indices
+within each field, distance-from-end (which I verified *is* the answer's place
+value), abacus-style shared place indices, two LSD-first place-aligned slot
+layouts, per-place output heads, dedicated answer slots — produce rung-1
+accuracies of 0, 1 or 2 correct out of 38 on `e1`, against a seed-only variance
+floor of 1 example. MAX_T = 0 everywhere, matching the baseline.
+
+The diagnostic that explains it: **every configuration reaches 100 % exact-match
+on the *training* set by step 300 with zero loss, while held-out accuracy stays
+at chance.** The plateau the previous session called a "capacity/architecture
+wall" is a **pure memorisation/generalisation gap**. There is no representation
+fix for a model that has already solved its training objective.
+
+Three further results that outlast this branch:
+
+* **More data does not help and cannot help**: a purpose-built pair of datasets
+  (same fixed N=10403, same T, 600 vs 7 200 training rows) gives 0.0–0.1 %
+  held-out accuracy at both sizes; on the 81 000-row Hard proxy `hp1` the model
+  sits at the uniform-digit prior. The curve runs from "memorises everything" to
+  "fits nothing", never through "generalises".
+* **Memorisation provably cannot certify T=1** on a fixed-N Easy set: squaring is
+  4-to-1 on `Z*_pq`, so ~3/4 of the held-out cohort can never appear as an
+  intermediate of any training row (§3.5).
+* **Rung T=1 is out of distribution in T on every Medium dataset and on e3/e4**
+  (§1.2, from the public `scripts/generate_datasets.sh`). Since certification is
+  a prefix from T=1, those tiers are unreachable without genuine T-iteration.
+
+Only one measured effect clears its variance floor: place-aligned slots
+**memorise ~35 % faster in steps** (3 seeds, non-overlapping ranges). It buys no
+generalisation.
+
 ## 1. Hypothesis
 
 A plain transformer over the flat digit string cannot align digit *places*
