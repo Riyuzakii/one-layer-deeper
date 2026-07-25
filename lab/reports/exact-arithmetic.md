@@ -36,9 +36,17 @@ Three further results that outlast this branch:
   (§1.2, from the public `scripts/generate_datasets.sh`). Since certification is
   a prefix from T=1, those tiers are unreachable without genuine T-iteration.
 
+* **The grokking escape hatch did not open either** (§3.8): 20 000 steps at
+  wd = 1.0 on e1 holds train accuracy at 0.98–1.00 from step 2 000 onward with
+  held-out accuracy stuck at 1–3 %, for all four representations. One operating
+  point, one seed each — but it is the obvious next thing to try and it did not
+  work.
+
 Only one measured effect clears its variance floor: place-aligned slots
 **memorise ~35 % faster in steps** (3 seeds, non-overlapping ranges). It buys no
 generalisation.
+
+33 runs, all in `lab/archive.jsonl` under `repr-*` tags.
 
 ## 1. Hypothesis
 
@@ -363,10 +371,41 @@ when the flat one is at 0.50.)
 
 ### 3.8 The grokking regime — does place alignment change *when* it groks?
 
-The sharpened version of the hypothesis: if the model memorises because
-memorisation is the cheapest solution, then under strong weight decay and long
-training the representation that gives the *algorithm* the shortest description
-should transition first. e1, wd = 1.0, **20 000 steps** (10× the screen):
+The sharpened version of the hypothesis, and the last one worth testing: if the
+model memorises because memorisation is the cheapest solution, then under strong
+weight decay and long training the representation that gives the *algorithm* the
+shortest description should make the grokking transition first.
+
+```bash
+$V lab/make_repr_submission.py --tag g0_base_wd1 --layout flat                      --wd 1.0
+$V lab/make_repr_submission.py --tag g4_all_wd1  --layout flat --field --place --rpos --wd 1.0
+$V lab/make_repr_submission.py --tag g6_sep_wd1  --layout slots_sep --no-abs        --wd 1.0
+$V lab/make_repr_submission.py --tag g7_sum_wd1  --layout slots_sum --no-abs        --wd 1.0
+$V lab/make_manifest.py --dataset e1 --mode fixed_step --max-steps 20000 --seeds 74
+bash lab/repr_par.sh lab_e1_fs20000_s74 repr-grok g0_base_wd1 g4_all_wd1 g6_sep_wd1 g7_sum_wd1
+```
+
+e1, **wd = 1.0** (10× the screen), **20 000 steps** (10× the screen ≈ 20 000
+epochs over 600 rows):
+
+| config | train acc @2k → @20k | final train loss | `test` | rung T=1 | MAX_T |
+|--------|----------------------|-----------------:|-------:|---------:|------:|
+| flat | 0.98 → 1.00 | 0.0070 | 0.020 | 0.026 | 0 |
+| flat + field+place+rpos | 0.98 → 0.99 | 0.0128 | 0.027 | 0.000 | 0 |
+| slots_sep | 0.98 → 0.99 | 0.0135 | 0.033 | 0.000 | 0 |
+| slots_sum | 0.99 → 0.99 | 0.0048 | 0.013 | 0.000 | 0 |
+
+**No grokking transition, under any representation.** Train accuracy is pinned
+at 0.98–1.00 from step 2 000 all the way to step 20 000 while held-out accuracy
+never leaves the 1–3 % band. Weight decay is doing something — the loss settles
+at 0.005–0.014 rather than the 0.0000 of the wd=0.1 runs — but the network holds
+its memorised solution for 18 000 further steps rather than reorganising.
+
+This is a negative result for the grokking route *at this operating point*, not
+a general one: wd=1.0, D=128, batch 512, 20 000 steps, e1 only, one seed each. It
+is worth stating plainly for the `grok-optimization` agent, whose axis this is —
+10× the weight decay and 10× the steps did not start a transition here, and
+choice of representation did not change that.
 
 ## 4. What is falsified
 
@@ -418,7 +457,10 @@ depth, width, optimiser, loss shaping, and (as this report shows) every
 input/output representation. The variables that *can* move a memorisation gap
 are: capacity **downward**, regularisation strength, training far past
 convergence (grokking), and architectures in which a per-example lookup is not
-expressible.
+expressible. Of those, this branch already checked two and both held: capacity
+down 14× still memorises (§3.7), and wd=1.0 × 20 000 steps does not grok (§3.8).
+That leaves **architectures where the lookup is not expressible** as the least
+explored and, on this evidence, the most likely place a win is hiding.
 
 ### 5.2 Stop screening on e1
 
@@ -443,7 +485,23 @@ argues for the `tied-recurrence` agent's axis being the load-bearing one, with
 the caveat that it must be combined with something that fixes generalisation —
 iterating a step you cannot compute exactly T times still gives 0.
 
-### 5.4 Things I would *not* spend more time on
+### 5.4 The concrete experiment I would run next
+
+Make the per-example lookup **unrepresentable**, then check whether the training
+curve stops hitting 1.00. The cheapest version that stays inside the evaluator
+contract: keep the place-aligned slot layout, but force the per-place update to
+be a *shared, narrow* function of a small local window of places (a tied,
+low-width per-place cell with attention restricted to a few neighbouring places),
+so that the model has no channel wide enough to key on the identity of `x` as a
+whole. If the train curve then plateaus below 1.00 *and* held-out accuracy rises
+off the floor, that is the first real signal anyone has had. If the train curve
+still hits 1.00, the lookup is still reachable and the bottleneck is somewhere
+else again. Either outcome is informative, and the run is ~4 minutes on e5.
+
+Screen it on `e5` or `rp_big` (256-example rungs), 3 seeds, fixed-step, and
+report **train** and rung-1 accuracy side by side.
+
+### 5.5 Things I would *not* spend more time on
 
 Input/output representation for this task. Not because the ideas are wrong —
 place alignment is the correct way to encode the problem and it does measurably
