@@ -377,12 +377,15 @@ iterations. Command: `bash lab/tied_e1_extrap.sh`.
 | 2  | 0.026 | 0.053 | 0.079 | 0.053 | 0.000 | 0.079 | 0.026 | 0.013 |
 | 4 (as trained) | 0.026 | 0.026 | 0.079 | 0.053 | 0.000 | 0.079 | 0.026 | 0.020 |
 | 8  | 0.000 | 0.026 | 0.053 | 0.000 | 0.000 | 0.079 | 0.053 | 0.020 |
+| 16 | 0.000 | 0.026 | 0.053 | 0.000 | 0.000 | 0.079 | 0.053 | 0.020 |
 
 Two things to read off, both negative and both informative:
 
-* **The model is nearly invariant to how many times its own tied block is
-  applied.** Running the block once, twice or four times moves every rung by at
-  most one example. A block that actually implemented `y → y² mod N` would give
+* **The model is invariant to how many times its own tied block is applied.**
+  Running the block once, twice or four times moves every rung by at most one
+  example, and **8 and 16 iterations give bit-identical rung accuracies across
+  all seven rungs** — the model has reached a fixed point that the read-out
+  cannot distinguish. A block that actually implemented `y → y² mod N` would give
   wildly different answers at 1 vs 4 applications. So under ordinary training
   the tied core **collapses toward an absorbing/near-identity map** and the
   answer is effectively produced by the encoder and the read-out, not by the
