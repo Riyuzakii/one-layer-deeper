@@ -207,3 +207,33 @@ faster:
 | 1600 | 0.72 | 0.83 |
 | 2000 | 0.76 | 0.81 |
 
+### 3.4 The Hard proxy `hp1` — both representations are at the floor
+
+```bash
+$V lab/make_manifest.py --dataset hp1 --mode fixed_step --max-steps 2000 --seeds 74
+bash lab/repr_par.sh lab_hp1_fs2000_s74 repr-scale r0_base r6_slotsep
+```
+
+`hp1` is 22-bit fixed N (7 digits), 81 000 training rows, T ∈ {4,8,16}.
+
+| config | train acc (steps 1→1800) | final train loss | `test` | every rung |
+|--------|--------------------------|-----------------:|-------:|-----------:|
+| flat | 0.00 … 0.00 | 2.175 | 0.000 | 0.000 |
+| slots_sep | 0.00 … 0.00 | 2.173 | 0.000 | 0.000 |
+
+Train loss 2.17 against `ln 10 = 2.303` — the model is barely above a uniform
+digit prior and never gets a single 7-digit answer fully right, under either
+representation. Place alignment changes nothing here either.
+
+**The three regimes together:**
+
+| regime | train rows | fits training data? | generalises? |
+|--------|-----------:|--------------------|--------------|
+| e1 / rp_small | 600 | yes, 100 % by step 300 | no (0–5 %) |
+| rp_big | 7 200 | partly, 0.8 by step 2000 | no (0.1 %) |
+| hp1 | 81 000 | no, ~uniform prior | no (0 %) |
+
+There is no data volume at which this model class starts to generalise; it
+simply moves from "memorises everything" to "fits nothing". Representation
+shifts *where* on that curve you sit, never *whether* generalisation happens.
+
