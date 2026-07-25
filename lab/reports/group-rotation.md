@@ -489,6 +489,43 @@ read `T`) so variants cost ~2 minutes instead of a 10-minute evaluator run. e1 m
 selector was never the ceiling — the per-step arithmetic is. This is a mechanism repaired,
 not a score moved.
 
+
+## 6C. Probe validity — where the offline gain is actually lost
+
+The coordinator asked which candidates the probe passed and then failed in the evaluator.
+The answer is sharp, and it identifies a bottleneck nobody had isolated.
+
+Same architecture (GRIter, pointer selector, `rand-loops`), same modulus, same 250/38
+split, same optimiser — only the **input representation** differs:
+
+| what the model is given | train exact | **held-out T=1** | source |
+|---|---|---|---|
+| clean one-hot digit slots | 1.000 | **0.237 – 0.263** | `lab/probe_sel.py` |
+| the actual prompt, absolute-position slots | 0.975 | **0.000** | `lab/probe_learnability.py` |
+| the actual prompt, absolute + reverse-position slots | 1.000 | **0.000 – 0.026** | `lab/probe_learnability.py` |
+| the actual prompt, real evaluator | 1.000 | **0.000 – 0.026** | `lab/archive.jsonl`, tag `griter` |
+
+**The entire offline gain is lost in prompt parsing, not in the evaluator.** The probe and
+the evaluator agree with each other (0.00–0.03 both); what they disagree with is the probe
+that hands the model *parsed* input. So:
+
+* **The offline probes are valid about the evaluator, but only if they parse the prompt.**
+  `probe_step` / `probe_sel` measure the arithmetic core and systematically over-state what
+  a submission will do; `probe_learnability` (which loads the real submission and feeds it
+  real prompts) tracked the evaluator to within one example on every candidate tried. Use
+  `probe_step`/`probe_sel` to *kill* candidates cheaply, and `probe_learnability` to
+  *believe* one.
+* **There is a third bottleneck.** `findings.md` identified two (iteration count;
+  per-step arithmetic). This is a third, and it is worth ~0.25 of exact accuracy on its
+  own: **recovering place-valued digit slots from a left-aligned prompt whose fields have
+  variable length.** `x` occupies positions 5..4+len(x), so absolute position does not
+  determine place value; distance from the end does, but only while the `T` field has a
+  fixed digit count — and the ladder's T=16/32/64 are two digits where training's T=1,2,3
+  are one. Adding a reverse-position-indexed table recovers only 0.00 → 0.026.
+
+That last point is independently actionable and cheap to attack, and it is not specific to
+this hypothesis family: **any** recurrent digit-arithmetic model has to solve it first.
+
 ## 7. What is falsified
 
 1. **"Squaring is a rotation, so any `T` is free at constant depth."** Falsified for this
@@ -539,15 +576,20 @@ Reasons, in order of evidential weight:
    that. A representation that is **discrete in the value** (per-digit classification with
    carries, i.e. an exact-arithmetic step) has no such needle. The `exact-arithmetic`
    branch is where the remaining probability mass is.
-3. `lab/probe_step.py` costs ~90 seconds and answers "can this architecture generalise to
-   held-out `x` at all" far more sharply than a 20 000-step evaluator run. Every
-   architecture should be screened there first. `--oracle` gives the achievable ceiling.
-4. **Above e1, the representation alone stops being sufficient.** On e2's `N=899` even the
+3. **Screen in two stages** (§6C). `lab/probe_step.py` / `probe_sel.py` cost ~90 s and
+   kill a candidate's arithmetic core cheaply, but they hand the model parsed input and
+   so over-state it by ~0.25. `lab/probe_learnability.py` loads the *real submission* and
+   feeds it real prompts; it tracked the evaluator to within one example on every
+   candidate here. Kill with the first, believe only the second.
+4. **Solve prompt parsing as its own subproblem.** It costs 0.25 → 0.00 all by itself
+   (§6C) and it is architecture-independent, so it is worth someone's whole session
+   regardless of which arithmetic core wins.
+5. **Above e1, the representation alone stops being sufficient.** On e2's `N=899` even the
    *oracle* group representation tops out at 0.61 held-out from 250 training `x`, because
    the training set no longer covers the distinct squares (§6.3). Certification on the
    larger tiers therefore needs a readout that is itself structured in the value (digits +
    carries), not a table over `Z_N` — another argument for the exact-arithmetic route.
-5. If anyone does revisit Fourier features, the scale-free `code(x)^2/(code(N) code(1))`
+6. If anyone does revisit Fourier features, the scale-free `code(x)^2/(code(N) code(1))`
    construction in §5.5a is the right shape — it removes the flat direction and would
    transfer across sampled-`N` — but it needs the digit/place code supplied or trained
    with a ~1e-7 learning rate, and supplying it is hand-writing the value decoder.
