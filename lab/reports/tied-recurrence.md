@@ -291,13 +291,22 @@ the iteration count equals T exactly.
 | K=4 PonderNet (β=0.01, warmup 2000) | 0.026 | 0.000 | 0.026 | 0.026 | 0.000 | 0.000 | 0.000 | 0.020 | 0.020 |
 | K=4 **tgather** (iteration count = T exactly; *diagnostic only, compliance-uncertain*) | 0.000 | 0.000 | 0.026 | 0.000 | 0.026 | 0.000 | 0.053 | 0.007 | 0.018 |
 | K=4 fixed + `rev` positions | 0.000 | 0.026 | 0.000 | 0.079 | 0.000 | 0.026 | 0.000 | 0.033 | 0.032 |
+| K=4 **tgather** + `rev` positions (*diagnostic only*) | 0.000 | 0.000 | 0.000 | 0.053 | 0.000 | 0.000 | 0.000 | 0.040 | 0.035 |
 
-**The `tgather` row is the decisive one.** `tgather` is the ideal-halting upper bound: the
+**The two `tgather` rows are the decisive ones.** `tgather` is the ideal-halting upper bound: the
 iteration count is set to the true T, so the tied step map receives exactly the
 composition supervision the hypothesis is built on (for a training row with T=3
 the step must be right at `x`, `x²` and `x⁴`). It does **not** move rung 1.
 Since no halting scheme can beat the case where the count is already correct,
-**axis A — iteration count — is not the bottleneck on e1.**
+**axis A — iteration count — is not the bottleneck on e1.** The same holds with
+the reverse-position read-out, and the same holds on m1 and hp1 (§4.4), so the
+verdict is not an artefact of one dataset or one read-out alignment.
+
+Curiously the two `tgather` rows have the *lowest* `test` accuracy in the grid
+(0.007) and the *highest* (0.040) respectively — a 5× spread between two runs
+that differ only in the position encoding, both at the floor. That is the
+clearest possible statement of the noise level: on 38-example rungs and a
+~150-example `test` split, nothing in this table is measuring a real effect.
 
 One rung example is 1/38 = 0.026, so **every entry in this table is 0–3 correct
 out of 38, i.e. the trivial floor, and all differences are within one example.**
