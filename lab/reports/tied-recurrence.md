@@ -30,9 +30,13 @@ eval-budget feasibility checks in §7, which are labelled as such.
   divides the scale out — so the read-out is *bit-identical for every K*. The
   iteration count is a gauge freedom the loss cannot see, and training lands on
   the identity. Measured: changing eval iterations 1 → 2 → 4 moves every rung by
-  at most one example out of 38. **Every depth sweep in this repo, including the
-  prior session's "Axis A confirmed", has been measuring a model whose recurrence
-  is a no-op.**
+  at most one example out of 38, and 8 vs 64 changes one example in total.
+  **Every depth sweep in this repo, including the prior session's "Axis A
+  confirmed", has been measuring a model whose recurrence is a no-op.**
+  Forcing the state onto the token manifold each step (`reembed_st`) does *not*
+  fix this — it is equally K-invariant, because a discretized state is a map on
+  a finite set and acquires a fixed-point attractor instead (§6.1). The one
+  untested lever is randomizing K per training batch.
 * **Eval budget is not the constraint**: 4 → 64 internal iterations costs +2% of
   eval time on e1, +17% on hp1; margins ~5× (Easy) to ~200× (Hard).
 * **Two structural results that change how the ladder should be attacked**
