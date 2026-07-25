@@ -42,6 +42,8 @@ def main() -> int:
     ap.add_argument("--rpos", action="store_true")
     ap.add_argument("--ans-slots", action="store_true")
     ap.add_argument("--head-per-place", action="store_true")
+    ap.add_argument("--scratch", type=int, default=0,
+                    help="scratch slots as a multiple of the place count")
     args = ap.parse_args()
 
     config = "\n".join(
@@ -62,6 +64,7 @@ def main() -> int:
             f"USE_RPOS = {args.rpos!r}",
             f"ANS_SLOTS = {args.ans_slots!r}",
             f"HEAD_PER_PLACE = {args.head_per_place!r}",
+            f"SCRATCH_MULT = {args.scratch!r}",
             END,
         ]
     )

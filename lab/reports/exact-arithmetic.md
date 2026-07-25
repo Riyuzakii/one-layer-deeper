@@ -35,6 +35,41 @@ a single absolute-from-left position embedding:
 
 That is a concrete, verifiable misalignment, and it is what the axes below fix.
 
+### 1.2 What the public dataset recipes say about the T=1 rung
+
+`scripts/generate_datasets.sh` (public, checked in) is the exact command list for
+`e1`–`e5` / `m1`–`m5`. Two facts from it reframe the milestone, and neither is
+in `lab/findings.md`:
+
+| dataset | modulus | training T | depth cohort | is T=1 in training? |
+|---------|---------|-----------|--------------|---------------------|
+| e1 | fixed 323 | 1,2,3 | exhaustive held-out x → **38** | yes |
+| e2 | fixed 899 | 1,2,4 | exhaustive held-out x → **40** | yes |
+| e3 | sampled 10/11-bit | **2 only** | 256 | **no** |
+| e4 | sampled 11/12-bit | **2 only** | 256 | **no** |
+| e5 | sampled 10/11-bit | 1,2,3 | 256 | yes |
+| m1,m2 | fixed 10403 / 38021 | 4,8,16 | 192 / 768 | **no** |
+| m3,m4 | sampled | 2 / 8 only | 256 | m3 no, m4 no |
+| m5 | sampled 12/14/16-bit | 2,4,8 | 256 | **no** |
+
+1. **On every Medium dataset and on e3/e4, rung T=1 is out of distribution in
+   T.** `max_certified_time_steps` is a *prefix* from T=1 up, so on those tiers
+   MAX_T ≥ 1 is impossible for any model that memorises a T-conditioned map; it
+   requires a model that genuinely applies its squaring step T times. That is a
+   representation-independent structural constraint on the whole competition and
+   it is the strongest argument yet for weight-tied, T-conditioned iteration.
+2. **e1's rung is only 38 examples, and the accuracy scale there is 1/38 =
+   0.026.** Everything the previous session measured on e1 (0.013–0.079) is
+   0–3 correct examples. As a place to detect a representation effect, e1 has
+   almost no signal — which is why the runs below add `e2` (40), `e5` (256) and
+   two purpose-built probes with 256-example rungs.
+3. e1's `--depth_evaluation_exhaustive_x true` means the depth cohort is
+   *literally every unit of 323 not used elsewhere*: φ(323)=288, 250 go to
+   train/test/ood, **38 are held out**. Certifying T=1 on e1 therefore means
+   getting x² mod 323 right on 38 units whose value the training set never
+   constrains except through composition. This is exact algorithmic
+   generalisation with no partial credit, from 200 T=1 rows.
+
 ## 2. What was built
 
 `lab/repr_template.py` + `lab/make_repr_submission.py` generate one submission
