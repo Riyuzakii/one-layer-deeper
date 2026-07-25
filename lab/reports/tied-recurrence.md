@@ -357,8 +357,10 @@ A rung is 20 examples, so 0.050 = 1/20. **Halving the digit count and the group
 order does not move rung 1 off the floor.** The gelu step map gets exactly 1/20
 in all three seeds; the bilinear-sinusoidal step map gets 1, 2 and 3 of 20 — a
 nominal 2× on the mean, but that is **one extra example per seed** on a
-20-example cohort, and a 3-vs-3-seed permutation test cannot separate them
-(best one-sided p = 0.1). Both are ≥ 17 examples short of certifying T=1. I am
+20-example cohort. An exact 3-vs-3 permutation test over all C(6,3)=20
+arrangements puts 4 of them at or above the observed difference, i.e.
+**one-sided p = 0.200**. The best single seed reached 3/20 against the 20/20
+that certification requires. I am
 recording this as *not distinguishable from noise*, not as evidence that a
 multiplicative step map helps; if anyone wants to chase it, the experiment needs
 a far larger rung cohort than the generator gives at this modulus. The wall is therefore not "the modulus is too big" — it is that a
