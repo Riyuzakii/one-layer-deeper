@@ -13,9 +13,10 @@ two deliberate timing measurements are called out in §10 with their contention 
 
 ## 0. TL;DR
 
-* **No grokking transition was observed anywhere.** 43 archived runs, ~25 distinct
-  recipes, step budgets 2 × 10³ → 5 × 10⁵, 3 seeds at the key point. Rung-1 exact
-  accuracy never exceeded **2/38 = 0.053** and was 0/38 in the majority of runs.
+* **No grokking transition was observed anywhere.** 57 archived runs (52 on `e1`),
+  ~30 distinct configurations, step budgets 2 × 10² → 5 × 10⁵, 3 seeds at the key point.
+  Over the 50 successful `e1` runs the rung-1 exact accuracy histogram is
+  **0/38 (37 runs), 1/38 (12 runs), 2/38 (2 runs)** — i.e. the trivial floor, always.
   **`MAX_T = 0` in every single run.**
 * **Steps-to-exactness on rung 1 is > 2 × 10⁵ optimizer steps** (measured, three weight
   decays) — a lower bound, and the shape of the evidence says the true answer is "never
@@ -301,10 +302,17 @@ moves rung-1.
 
 **Zero spread on the thing that matters**: rung-1 is exactly 0/38 in all three seeds.
 This is the answer to "did a transition happen in *some* seed": no, not in any seed, at
-any budget, under any recipe. Across all 40 `e1` runs the rung-1 values observed are
-{0.000 (30×), 0.026 (8×), 0.053 (2×)} — i.e. 0, 1 or 2 correct out of 38, which is the
+any budget, under any recipe. Across all 50 successful `e1` runs the rung-1 values observed are
+{0.000 (37×), 0.026 (12×), 0.053 (2×)} — i.e. 0, 1 or 2 correct out of 38, which is the
 trivial-predictor floor (a model that emits a plausible digit string occasionally hits a
 short answer).
+
+**Positive control for the metric machinery.** A rung is `certified` only when
+`correct_examples == example_count`, computed by the same `_loss_and_accuracy` path
+(`exact_rows` = every supervised token in the row correct) that reports training
+accuracy. That path *does* return 1.0 in these runs — on the training batches, from
+~step 2 000 onwards. So exactness is reachable and observable through this code; it is
+specifically the held-out-`x` cohort that never gets there.
 
 ### Control datasets — it is not a fact-count or arithmetic-width problem
 
@@ -430,7 +438,7 @@ target quantity does not respond to steps at all.
 3. **"A grokking accelerator will surface it."** False for both published candidates:
    Grokfast (λ = 2 and 5, at 50 000 steps) and ⊥Grad + StableMax (at 50 000 steps).
 4. **"It is seed luck."** False. 0/38 in all three seeds at 50 000 steps; 0–2/38 across
-   all 40 `e1` runs.
+   all 50 successful `e1` runs.
 5. **"Muon / Schedule-Free give better updates here."** False at equal step count; and
    Muon is the *most* expensive per step in this regime, so it is a net loss.
 6. **"An LR schedule helps."** False, and it adds a real final-checkpoint hazard because
