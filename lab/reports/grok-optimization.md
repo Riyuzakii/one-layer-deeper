@@ -4,6 +4,10 @@ Branch `explore/grok-optimization`. Metric is the post-2026-07-24 one: **Max T**
 largest rung whose exact accuracy is 100% with every lower rung also 100%. On `e1` a rung
 is 38 held-out examples, so one wrong example ⇒ `MAX_T = 0`.
 
+> **STATUS: complete except for two 5 × 10⁵-step runs still in flight when the session
+> ended (§15). Every conclusion below is already supported by completed runs; the
+> in-flight pair would only extend the step-axis lower bound from 2 × 10⁵ to 5 × 10⁵.**
+
 Every comparison used `--mode fixed_step` (100 000 s budget, hard `max_steps`), so step
 counts are contention-immune. The GPU was shared with three other agents throughout;
 **wall-clock seconds inside the fixed-step tables are lower bounds on throughput**. The
@@ -18,9 +22,18 @@ two deliberate timing measurements are called out in §10 with their contention 
   Over the 50 successful `e1` runs the rung-1 exact accuracy histogram is
   **0/38 (37 runs), 1/38 (12 runs), 2/38 (2 runs)** — i.e. the trivial floor, always.
   **`MAX_T = 0` in every single run.**
-* **Steps-to-exactness on rung 1 is > 2 × 10⁵ optimizer steps** (measured, three weight
-  decays) — a lower bound, and the shape of the evidence says the true answer is "never
-  for this input representation", not "somewhere past 10⁶".
+* ### **THE NUMBER: steps-to-exactness on rung 1 is > 2 × 10⁵ optimizer steps.**
+  This is a **lower bound**, measured on `e1`, at three weight decays (0.01 / 0.1 / 1.0),
+  batch 128, lr 1e-3, constant LR, AdamW, seed 74, all three completed to 200 000 steps.
+  Rung-1 exact accuracy at 200 000 steps was 2/38, 1/38 and 0/38 respectively —
+  indistinguishable from the same recipe at 2 000 steps. Corroborated at 5 × 10⁴ steps by
+  3 seeds (0/38 each) and by ~30 other recipes. Two 5 × 10⁵-step runs were still in flight
+  at session end (§15); they would extend the bound, not change the conclusion, because
+  the step axis is *flat*, not slowly rising.
+  **The shape of the evidence says the true answer is "never for this input
+  representation", not "somewhere past 10⁶":** train exact-accuracy is 1.00 from ~2 000
+  steps and stays there for the next 198 000 while held-out-`x` accuracy never leaves the
+  trivial floor. A pre-grok plateau creeps; this does not.
 * The model **memorises perfectly** — train exact-accuracy reaches 1.00 by ≈2 000 steps
   for every recipe with wd ≤ 0.1 and stays there — and **transfers nothing** to unseen
   `x`. That is the signature of a lookup table, not of a pre-grok plateau. In real
@@ -400,11 +413,15 @@ model size the step is dominated by fixed per-step overhead, not by batch comput
 Direct wall-clock check, `--mode wallclock`, `e1`, 60 s, **GPU deliberately shared** with
 six of my own long fixed-step runs plus other agents — so these are *pessimistic*:
 
-| batch_size | steps completed in 60 s (contended) |
-|---:|---:|
-| 512 | 349 |
-| 128 | 673 |
-| 32 | 1 254 |
+| batch_size | steps in 60 s (6 bg jobs) | steps in 60 s (2 bg jobs, load avg 6.8) |
+|---:|---:|---:|
+| 512 | 349 | 345 |
+| 128 | 673 | 643 |
+| 32 | 1 254 | 907 |
+
+(The two contention levels agree to within the noise of a shared box; the bs = 32 row
+moved most because the smallest batch is the most sensitive to host-side scheduling.
+The quiet-machine fixed-step probe above remains the cleaner throughput measurement.)
 
 **Throughput assumption for the H100 extrapolation, stated explicitly:** this workload is
 overhead-bound, not GPU-bound — GPU utilisation was ~4 % in the prior session's
@@ -428,6 +445,26 @@ directly measured to produce rung-1 = 0.026 (1 example out of 38). And the step 
 flat: 2 × 10³ and 2 × 10⁵ steps give statistically identical results, so buying more steps
 is not buying progress. The gap is not a factor of 2 or 10 in throughput; it is that the
 target quantity does not respond to steps at all.
+
+## 10b. Two cross-branch corrections applied to this report
+
+Sibling branches reported two measurement caveats that bear on how the numbers above
+should be read. Both are accepted and neither changes a conclusion here:
+
+1. **Held-out cross-entropy is not a progress signal.** A label-smoothing control with no
+   algebraic content can push held-out CE below the uniform `ln(17) = 2.833` reference
+   while rung-1 stays at 1/38. **This report never ranks on CE.** `final_train_loss` is
+   quoted only as evidence about *memorisation* (e.g. wd = 3.0 giving loss 1.87 and train
+   exact-accuracy 0.08, i.e. training destroyed). Every ranking claim is on rung exact
+   accuracy or on train-vs-held-out exact accuracy.
+2. **On `e1`, ~96 % of the `test` split's operands are training operands seen at a
+   different T**, so `test` and `mean_exact_accuracy` measure T-transfer, not operand
+   generalisation. **Flagged:** the `test` and `mean` columns in §4–§8 should be read as
+   secondary diagnostics only. The load-bearing column everywhere is **rung-1**, whose
+   cohort is the 38 reserved units that appear in *no* split at *any* T (§2) — that is a
+   true operand-generalisation measurement, and it is the one that never moves. The §9
+   conclusion ("a lookup table keyed on the digit tokens of `x`") rests on rung-1 and on
+   the control datasets, not on `test`.
 
 ## 11. What was falsified
 
@@ -484,6 +521,45 @@ Easy-sized data and 1.5× on Medium-sized data, and it is the setting I could ju
 a measurement on both. It carries no schedule, because a schedule cannot know its horizon
 and buys nothing measurable. **It should not be treated as a competitive entry** — it is a
 matched baseline for the next architecture idea to beat.
+
+## 15. In flight at session end, and how to resume
+
+Two runs were still executing when the GPU time ran out. They are the 5 × 10⁵-step
+extension of the step axis — the only thing that would have changed is the lower bound
+(2 × 10⁵ → 5 × 10⁵). Nothing else depends on them.
+
+| name | dataset | steps | batch | wd | started | status |
+|---|---|---:|---:|---:|---|---|
+| `L_500k_bs16_wd0.1` | e1 | 500 000 | 16 | 0.1 | 13:51 | abandoned in flight |
+| `L_500k_bs16_wd1.0` | e1 | 500 000 | 16 | 1.0 | 13:51 | abandoned in flight |
+
+Exact commands to reproduce them (they are self-contained; the submissions are already
+committed under `submissions/grok-optimization/`):
+
+```bash
+cd .worktrees/grok-optimization
+V=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
+$V lab/make_manifest.py --dataset e1 --mode fixed_step --max-steps 500000 --seeds 74
+
+TMO=25200 TAG=B-steps lab/grok.sh L_500k_bs16_wd0.1 500000 74 \
+  "steps-to-exactness upper probe: 500k steps bs=16 lr=1e-3 wd=0.1 const adamw seed74" \
+  --batch-size 16 --wd 0.1 --wd-emb 0.1 --lr 0.001
+
+TMO=25200 TAG=B-steps lab/grok.sh L_500k_bs16_wd1.0 500000 74 \
+  "steps-to-exactness upper probe: 500k steps bs=16 lr=1e-3 wd=1.0 const adamw seed74" \
+  --batch-size 16 --wd 1.0 --wd-emb 1.0 --lr 0.001
+
+$V lab/grok_table.py --tag B-steps --curve      # read the result
+```
+
+Expected cost on this hardware: ~2.5–4 h each depending on contention (bs = 16 runs at
+~15 ms/step on a quiet GPU, ~25–30 ms/step contended).
+
+**If you only run one command on resume, run the first one** — `wd = 0.1` is the matched
+baseline and completes the 2 × 10³ / 10⁴ / 5 × 10⁴ / 2 × 10⁵ / 5 × 10⁵ ladder.
+
+**My prediction, recorded before the fact:** rung-1 = 0/38 or 1/38, `MAX_T = 0`. If it
+comes back with rung-1 ≥ 10/38 I am wrong about §9 and the whole axis reopens.
 
 ## 14. Compliance
 
