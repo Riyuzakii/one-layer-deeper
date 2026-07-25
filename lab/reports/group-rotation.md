@@ -1,7 +1,7 @@
 # group-rotation — make squaring a rotation
 
-**Branch:** `explore/group-rotation` · **Verdict: falsified as a learning route, with a
-precise mechanism.** The group/Fourier representation is *exactly right* and *fully
+**Branch:** `explore/group-rotation` · **Verdict: falsified as a learning route, with two
+quantitative bounds that outlive the hypothesis.** The group/Fourier representation is *exactly right* and *fully
 identifiable from e1-sized data* — but gradient descent cannot reach it or stay in it,
 for a reason that is measurable and that does not exist in classic modular-arithmetic
 grokking. Every architecture in this family scores `MAX_T = 0`, identical to the baseline.
@@ -293,12 +293,12 @@ applied `T` times, trained on `T in {1,2,3}` exactly as e1 supplies:
 | `{1,2,3}` | 1.000 | **0.237 – 0.289** | 1.000 | 0.263 |
 | `{1,2,3}`, K=64 | 1.000 | **0.237 – 0.342** | 1.000 | 0.342 |
 
-**3 seeds each**, held-out T=1 at 4000 steps:
+**5 seeds**, held-out T=1 at 4000 steps:
 
-| | seed 0 | seed 1 | seed 2 | mean |
-|---|---|---|---|---|
-| single step (`T={1}`) | 0.000 | 0.000 | 0.000 | **0.000** |
-| iterated (`T={1,2,3}`) | 0.237 | 0.263 | 0.263 | **0.254** |
+| | s0 | s1 | s2 | s3 | s4 | mean ± sd |
+|---|---|---|---|---|---|---|
+| single step (`T={1}`) | 0.000 | 0.000 | 0.000 | — | — | **0.000 ± 0.000** |
+| iterated (`T={1,2,3}`) | 0.237 | 0.263 | 0.263 | 0.289 | 0.316 | **0.274 ± 0.028** |
 
 and the label-free mod-`N` symmetry check moves with it (0.750 / 0.750 / 0.764 for the
 single step — exactly the memorisation baseline — vs 0.826 / 0.806 / 0.812 iterated). The
