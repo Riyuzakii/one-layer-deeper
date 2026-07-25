@@ -102,6 +102,21 @@ prediction comes from parameters trained from random init in the run.
 
 ## 3. Results
 
+### 3.0 Variance floor first (the previous session was burned by not doing this)
+
+Same submission bytes, same fixed-step manifest, three model-init seeds
+(74 / 175 / 276) on `e1`:
+
+| config | rung T=1 per seed | mean_exact_accuracy per seed | σ(mean) |
+|--------|-------------------|------------------------------|--------:|
+| r0_base (flat) | 0.026, 0.000, 0.000 | 0.0250, 0.0333, 0.0450 | 0.008 |
+| r6_slotsep (place-aligned) | 0.000, 0.000, 0.000 | 0.0433, 0.0100, 0.0300 | 0.014 |
+
+**The floor: rung-1 for a fixed configuration moves by 1 example (0.026) purely
+from the seed, and `mean_exact_accuracy` has σ ≈ 0.01.** The full spread of
+rung-1 across all eight representations at a fixed seed is 0.000–0.053, i.e.
+two examples. Nothing in §3.1 clears the floor, and I will not claim otherwise.
+
 ### 3.1 The e1 representation screen — every axis is inside the noise
 
 ```bash
@@ -236,4 +251,29 @@ representation. Place alignment changes nothing here either.
 There is no data volume at which this model class starts to generalise; it
 simply moves from "memorises everything" to "fits nothing". Representation
 shifts *where* on that curve you sit, never *whether* generalisation happens.
+
+### 3.5 Why memorisation provably cannot certify T=1 on a fixed-N Easy set
+
+Number theory on the *public* generator parameters only (`fixed_p 17,
+fixed_q 19` for e1; nothing under `data/generated/` is opened):
+
+```
+e1: N=323  phi=288  units used by train/test/ood=250  held out=38  |QR|=72 (25% of units)
+e2: N=899  phi=840  units used=800                    held out=40  |QR|=210 (25% of units)
+```
+
+Squaring is exactly 4-to-1 on `Z*_pq`, so **only a quarter of the units are
+quadratic residues**. A training row can only constrain the squaring map `S` at
+a point that is either an explicit `x` in the prompt or an *intermediate* of a
+higher-T row — and every intermediate is a square. The held-out cohort is a
+uniformly random subset of all units, so in expectation only 38·(72/288) ≈ **9.5
+of e1's 38 evaluation points are quadratic residues**; the other ≈ 28 can never
+occur as an intermediate of any training row.
+
+So for ~3/4 of the rung-1 cohort, *no* amount of memorisation plus compositional
+constraint-propagation determines the answer. Certifying T=1 on e1 or e2 requires
+a model that has actually learned "square the digits and reduce". Combined with
+§3.2 — the model reaches zero train loss in 300 steps by memorising — this says
+the gap is not going to be closed by a better embedding, and it puts a hard floor
+on what any purely-interpolating approach can score.
 
