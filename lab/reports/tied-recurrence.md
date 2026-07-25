@@ -351,10 +351,17 @@ e1's 69%.
 | config | T=1 | T=2 | T=4 | T=8 | T=16 | T=32 | T=64 | test | per-seed rung 1 |
 |---|---|---|---|---|---|---|---|---|---|
 | K=4 fixed, gelu | 0.050 | 0.067 | 0.067 | 0.067 | 0.100 | 0.167 | 0.050 | 0.039 | 0.05, 0.05, 0.05 |
+| K=4 fixed, `sinbil` | 0.100 | 0.017 | 0.083 | 0.083 | 0.050 | 0.133 | 0.100 | 0.039 | 0.05, 0.10, 0.15 |
 
 A rung is 20 examples, so 0.050 = 1/20. **Halving the digit count and the group
-order does not move rung 1 off the floor**, and all three seeds land on exactly
-1/20. The wall is therefore not "the modulus is too big" — it is that a
+order does not move rung 1 off the floor.** The gelu step map gets exactly 1/20
+in all three seeds; the bilinear-sinusoidal step map gets 1, 2 and 3 of 20 — a
+nominal 2× on the mean, but that is **one extra example per seed** on a
+20-example cohort, and a 3-vs-3-seed permutation test cannot separate them
+(best one-sided p = 0.1). Both are ≥ 17 examples short of certifying T=1. I am
+recording this as *not distinguishable from noise*, not as evidence that a
+multiplicative step map helps; if anyone wants to chase it, the experiment needs
+a far larger rung cohort than the generator gives at this modulus. The wall is therefore not "the modulus is too big" — it is that a
 transformer asked to learn a modular map from ~two-thirds of its domain
 memorizes the two-thirds and infers nothing about the rest. That is a
 representation problem, and it is the same problem at N=143, N=323 and N=10403.
