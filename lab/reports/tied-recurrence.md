@@ -312,6 +312,7 @@ on unseen `x` at all.
 | m1 (N=10403) | K=4 fixed | 0.000 | 0.000 | 0.005 | 0.000 | 0.000 | 0.000 | 0.000 | 0.001 | 2.277 |
 | m1 (N=10403) | K=16 **tgather** (*diagnostic only*) | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 2.277 |
 | hp1 (N=4028033) | K=4 fixed | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 2.173 |
+| hp1 (N=4028033) | K=16 **tgather** (*diagnostic only*) | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 2.222 |
 
 Two readings. First, the arithmetic wall gets worse with modulus size exactly as
 the prior session found: with a 5-digit N the per-token cross-entropy on held-out
@@ -505,8 +506,8 @@ were started, archived where they completed, and left running:
   20 k steps) — **cancelled** after run 1 answered the grokking question.
 * `lab/tied_phase2.sh` (step-map nonlinearity on e1, 3 seeds) — **cancelled**
   after the e1 floor was established by five independent single-seed runs.
-* `lab/tied_tiny.sh` configs 2–5 and `lab/tied_e1_extrap.sh`'s `reembed_st`
-  points — still running at write-up time; they append to `lab/archive.jsonl`
+* `lab/tied_tiny.sh` configs 2–5 and `lab/tied_e1_extrap.sh`'s last
+  `reembed_st` point — still running at write-up time; they append to `lab/archive.jsonl`
   via `run_experiment.py` as they land and can be read with
   `python lab/tied_table.py T7-tiny T3-extrap`.
 
