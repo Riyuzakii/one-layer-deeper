@@ -417,6 +417,10 @@ def main() -> int:
     ap.add_argument("--max-quot", type=int, default=10,
                     help="alphabet of the learned quotient digit / largest "
                          "multiple of N the reduction can remove")
+    ap.add_argument("--eval-hard", action="store_true",
+                    help="also report train_exact with every inter-step state "
+                         "snapped to argmax -- prices the continuous "
+                         "side-channel through the soft register")
     ap.add_argument("--depth-only", action="store_true",
                     help="print the sequential soft-step count and exit")
     ap.add_argument("--carry", type=int, default=2)
@@ -529,16 +533,32 @@ def main() -> int:
         return 0
 
     @torch.no_grad()
-    def evaluate(inp, tgt, chunk=4096):
+    def evaluate(inp, tgt, chunk=4096, discrete=False):
         model.eval()
+        was, model.hard = model.hard, (True if discrete else model.hard)
         ok, ce = 0, 0.0
         for i in range(0, inp.shape[0], chunk):
             lg = model(inp[i:i + chunk], ndig)
             ok += (lg.argmax(-1) == tgt[i:i + chunk]).all(dim=1).sum().item()
             ce += F.cross_entropy(lg.reshape(-1, 10), tgt[i:i + chunk].reshape(-1),
                                   reduction="sum").item()
+        model.hard = was
         model.train()
         return ok / inp.shape[0], ce / (inp.shape[0] * tgt.shape[1])
+
+    def extra(inp, tgt):
+        """Is the learned solution actually a DISCRETE transducer?
+
+        The register slots are 10-simplices, so a soft state is a continuous
+        side-channel that can carry value information the digit alphabet
+        cannot.  Re-running the SAME trained weights with every state snapped
+        to its argmax prices that channel: if train_exact survives, the
+        solution really is in the discrete family; if it collapses, the model
+        is riding the continuum."""
+        if not args.eval_hard:
+            return ""
+        h, _ = evaluate(inp, tgt, discrete=True)
+        return f" train_exact_hard={h:.3f}"
 
     if args.construct:
         tr, tr_ce = evaluate(xin, xt)
@@ -567,7 +587,8 @@ def main() -> int:
             he, he_ce = evaluate(hin, ht)
             print(f"[{args.tag}] step={step:>6} loss={loss.item():.5f} "
                   f"train_exact={tr:.3f} held_exact={he:.3f} "
-                  f"train_ce={tr_ce:.3f} held_ce={he_ce:.3f} "
+                  f"train_ce={tr_ce:.3f} held_ce={he_ce:.3f}"
+                  f"{extra(xin, xt)} "
                   f"({time.time()-t0:.0f}s)", flush=True)
     return 0
 
