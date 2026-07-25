@@ -265,8 +265,21 @@ Two things happen the moment there is more than one composed step:
 * **`T` extrapolation on seen `x` is perfect** — trained on `T<=3`, the model is at 1.000
   on `T=4`. Composition depth transfers exactly. This is the competition's premise working.
 
-It plateaus at ~0.3 though, invariant to `K`, `H`, softmax temperature, and weight decay —
-the round-trip constrains the frequency but does not pin it to the 1e-5 needed.
+It plateaus at ~0.24–0.32 though, invariant to `K` (32/64), `H` (8/16), softmax temperature
+(1.0/0.25), weight decay (0.1/1.0) and step count (4k/20k) — the round trip constrains the
+frequency but does not pin it to the 1e-5 that certification needs. At 20 000 steps with
+`K=64 H=16`:
+
+```
+step=20000 loss=0.00000  T1:seen=1.000,held=0.237  T2:seen=1.000,held=0.237
+                         T4:seen=1.000,held=0.237  T8:seen=1.000,held=0.316
+```
+
+**Read the last column carefully: trained only on `T<=3`, the model is at 1.000 on `T=8`
+for values it can handle.** Composition depth extrapolates *perfectly*; value
+generalisation does not move at all. That is the two-bottleneck picture of `findings.md`
+reproduced with a mechanism — the iteration bottleneck is solved outright by weight tying,
+and the per-step arithmetic bottleneck is the entire remaining problem.
 
 **Deeper `T` training makes it worse, not better.** Training on `T in {4,8,16}` (m1's
 ladder, i.e. up to 16 unrolled soft steps) **diverges** from random init — loss climbs from
