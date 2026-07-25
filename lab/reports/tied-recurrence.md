@@ -229,6 +229,15 @@ the iteration count equals T exactly.
 |---|---|---|---|---|---|---|---|---|---|
 | K=1 fixed (no composition) | 0.000 | 0.000 | 0.000 | 0.053 | 0.079 | 0.026 | 0.053 | 0.027 | 0.048 |
 | K=4 fixed | 0.026 | 0.026 | 0.026 | 0.079 | 0.026 | 0.026 | 0.053 | 0.027 | 0.038 |
+| K=4 PonderNet (β=0.01, warmup 2000) | 0.026 | 0.000 | 0.026 | 0.026 | 0.000 | 0.000 | 0.000 | 0.020 | 0.020 |
+
+One rung example is 1/38 = 0.026, so **every entry in this table is 0–3 correct
+out of 38, i.e. the trivial floor, and all differences are within one example.**
+Note in particular that the rung profile is *flat*: rung 1 is no better than
+rung 64. A model with a good step map and compounding error would show a
+monotone decay; a model with a bad step map shows exactly this — noise at every
+rung. That shape is the diagnostic, and it says the step map carries no signal
+on unseen `x` at all.
 
 ## 5. What was falsified / what is not the constraint
 

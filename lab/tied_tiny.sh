@@ -25,9 +25,10 @@
 set -u
 cd "$(dirname "$0")/.."
 VENV=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
-MAN=${MAN:-lab/manifests/lab_tp1_fs4000_s3.json}
-S=${S:-4000}
-BS=${BS:-64}
+MAN=${MAN:-lab/manifests/lab_tp1_fs3000_s3.json}
+S=${S:-3000}
+BS=${BS:-32}   # tp1 has ~240 train rows; 32 keeps 7 batches/epoch
+               # so the DataLoader worker respawn is amortised
 WD=${WD:-1.0}
 
 run () {
@@ -39,11 +40,10 @@ run () {
     --timeout 12000
 }
 
-run t_fixK1     --loops 1 --state-mode res --pos-mode rev --act sinbil
-run t_fixK4     --loops 4 --state-mode res --pos-mode rev --act sinbil
 run t_fixK4_g   --loops 4 --state-mode res --pos-mode rev --act gelu
-run t_reK4      --loops 4 --state-mode reembed_st --pos-mode rev --act sinbil
-run t_tsoftK4   --loops 4 --eval-loops 8 --iter-mode tsoft --state-mode res \
-                --pos-mode rev --act sinbil --beta 0.02 --warmup 1000 --ramp 1000
+run t_fixK4     --loops 4 --state-mode res --pos-mode rev --act sinbil
 run t_tgatK4    --loops 4 --eval-loops 8 --iter-mode tgather --state-mode res \
                 --pos-mode rev --act sinbil
+run t_reK4      --loops 4 --state-mode reembed_st --pos-mode rev --act sinbil
+run t_tsoftK4   --loops 4 --eval-loops 8 --iter-mode tsoft --state-mode res \
+                --pos-mode rev --act sinbil --beta 0.02 --warmup 800 --ramp 800
