@@ -27,9 +27,10 @@ OP_DROPOUT = 0.0
 LAM_COMPOSE = 1.0
 LAM_RAND = 1.0
 LAM_IDENT = 0.0
-RAND_MODE = "permute"
+RAND_MODE = "uniform"
 SYMMETRIC = False
 STRAIGHT_THROUGH = False
+LABEL_SMOOTHING = 0.1
 LR = 0.001
 WD = 0.1
 DIAG_EVERY = 1
@@ -369,7 +370,9 @@ def build_optimizer(model: nn.Module, spec: OptimizerSpec) -> OptimizerBundle:
 
 
 def training_loss(logits: Tensor, labels: Tensor, auxiliary) -> Tensor:
-    loss = F.cross_entropy(logits.float(), labels)
+    loss = F.cross_entropy(
+        logits.float(), labels, label_smoothing=LABEL_SMOOTHING
+    )
     if auxiliary is None:
         return loss
     return loss + auxiliary.float()
