@@ -286,7 +286,6 @@ the iteration count equals T exactly.
 | K=4 fixed | 0.026 | 0.026 | 0.026 | 0.079 | 0.026 | 0.026 | 0.053 | 0.027 | 0.038 |
 | K=4 PonderNet (β=0.01, warmup 2000) | 0.026 | 0.000 | 0.026 | 0.026 | 0.000 | 0.000 | 0.000 | 0.020 | 0.020 |
 | K=4 **tgather** (iteration count = T exactly; *diagnostic only, compliance-uncertain*) | 0.000 | 0.000 | 0.026 | 0.000 | 0.026 | 0.000 | 0.053 | 0.007 | 0.018 |
-
 | K=4 fixed + `rev` positions | 0.000 | 0.026 | 0.000 | 0.079 | 0.000 | 0.026 | 0.000 | 0.033 | 0.032 |
 
 **The `tgather` row is the decisive one.** `tgather` is the ideal-halting upper bound: the
@@ -404,14 +403,16 @@ iterations. Command: `bash lab/tied_e1_extrap.sh`.
 | 4 (as trained) | 0.026 | 0.026 | 0.079 | 0.053 | 0.000 | 0.079 | 0.026 | 0.020 |
 | 8  | 0.000 | 0.026 | 0.053 | 0.000 | 0.000 | 0.079 | 0.053 | 0.020 |
 | 16 | 0.000 | 0.026 | 0.053 | 0.000 | 0.000 | 0.079 | 0.053 | 0.020 |
+| 64 | 0.000 | 0.053 | 0.053 | 0.000 | 0.000 | 0.079 | 0.053 | 0.020 |
 
 Two things to read off, both negative and both informative:
 
 * **The model is invariant to how many times its own tied block is applied.**
   Running the block once, twice or four times moves every rung by at most one
-  example, and **8 and 16 iterations give bit-identical rung accuracies across
-  all seven rungs** — the model has reached a fixed point that the read-out
-  cannot distinguish. A block that actually implemented `y → y² mod N` would give
+  example; **8 and 16 iterations give bit-identical rung accuracies across all
+  seven rungs**, and 64 differs from them on exactly one example of 38. The
+  model has reached a fixed point that the read-out cannot distinguish, and it
+  reaches it within ~8 applications. A block that actually implemented `y → y² mod N` would give
   wildly different answers at 1 vs 4 applications. So under ordinary training
   the tied core **collapses toward an absorbing/near-identity map** and the
   answer is effectively produced by the encoder and the read-out, not by the
