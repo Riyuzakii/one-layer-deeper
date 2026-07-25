@@ -352,6 +352,7 @@ e1's 69%.
 | K=4 fixed, gelu | 0.050 | 0.067 | 0.067 | 0.067 | 0.100 | 0.167 | 0.050 | 0.039 | 0.05, 0.05, 0.05 |
 | K=4 fixed, `sinbil` | 0.100 | 0.017 | 0.083 | 0.083 | 0.050 | 0.133 | 0.100 | 0.039 | 0.05, 0.10, 0.15 |
 | K=4 **tgather** (*diagnostic only*) | 0.017 | 0.133 | 0.100 | 0.100 | 0.083 | 0.183 | 0.117 | 0.061 | 0.05, 0.00, 0.00 |
+| K=4 `reembed_st` | 0.017 | 0.067 | 0.100 | 0.100 | 0.050 | 0.117 | 0.050 | 0.061 | 0.00, 0.05, 0.00 |
 
 A rung is 20 examples, so 0.050 = 1/20. **Halving the digit count and the group
 order does not move rung 1 off the floor.** The gelu step map gets exactly 1/20
@@ -377,6 +378,15 @@ now the fourth independent dataset — e1, m1, hp1, tp1 — on which giving the 
 the correct iteration count for free fails to move rung 1. (Its `test` accuracy
 is nominally the highest at 0.061 vs 0.039, but on a 60-example split that is
 ~1.3 examples and I am not reading anything into it.)
+
+Held-out per-token CE across the tiny grid is worth one line, because it
+separates *what the model knows* from *how loudly it says it*: `sinbil` 5.881,
+`tgather` 5.600, `reembed_st` **4.087**, against ln(17) = 2.833 for uniform.
+Forcing the state onto the token manifold is the only mechanism tested that
+meaningfully reduces confident wrongness — but it buys **no exactness at all**
+(rung 1 = 0, 1, 0 of 20). That is the cleanest one-line statement of this
+branch's result: the on-manifold machinery works as designed and is aimed at the
+wrong bottleneck.
 
 So the wall is not "the modulus is too big" — it is that a transformer asked to
 learn a modular map from ~two-thirds of its domain memorizes the two-thirds and
