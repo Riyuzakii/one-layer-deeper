@@ -406,6 +406,19 @@ iterations. Command: `bash lab/tied_e1_extrap.sh`.
 | 16 | 0.000 | 0.026 | 0.053 | 0.000 | 0.000 | 0.079 | 0.053 | 0.020 |
 | 64 | 0.000 | 0.053 | 0.053 | 0.000 | 0.000 | 0.079 | 0.053 | 0.020 |
 
+Same manifest and seed, but with the inter-iteration state forced back onto the
+token manifold by a straight-through hard argmax (`--state-mode reembed_st`,
+which is the strongest on-manifold mechanism in the brief and the one that
+should break the gauge freedom of §6.1):
+
+| internal iterations at eval | T=1 | T=2 | T=4 | T=8 | T=16 | T=32 | T=64 | test |
+|---|---|---|---|---|---|---|---|---|
+| 4 (as trained), `reembed_st` | 0.000 | 0.000 | 0.000 | 0.026 | 0.026 | 0.105 | 0.000 | 0.020 |
+
+It is also at the floor. Forcing the state to be a real digit string does not
+recover per-step exactness — consistent with §5(1): there is no step map to keep
+on-manifold yet.
+
 Two things to read off, both negative and both informative:
 
 * **The model is invariant to how many times its own tied block is applied.**
