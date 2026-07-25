@@ -161,7 +161,9 @@ Medium/Hard look hopeless is removed.
 | learned, freeze `zero`+`gate`+`sub` | 0.000 (loss 18.7) | 0.000 |
 | learned, freeze all but `mul` | 0.000 (loss 15.6) | 0.000 |
 | learned, straight-through discrete states | 0.012 | 0.000 |
-| learned, identity/copy-through init (2500 steps) | 0.140 | 0.000 |
+| learned, identity/copy-through init `--identity-init 5` | 0.140 | 0.000 |
+| learned, identity/copy-through init `--identity-init 10` | 0.148 | 0.000 |
+| learned, identity init + temperature anneal 1.0→0.15 | 0.068 | 0.000 |
 
 **Freezing sub-modules at the truth makes it monotonically worse** — a correct
 `Tsub` applied to a register that a random `Tmul`/`Tadd` has scrambled amplifies
@@ -174,16 +176,25 @@ discretisation, which closes the continuous side-channel, does not help either.
 operand — N=91, S=2, so 3 Horner places over 3 slots, ~117 sequential soft table
 lookups instead of ~280 — with everything else identical:
 
-| chain length | modulus | train_exact | held_exact |
-|---|---|---|---|
-| ~280 soft steps (S=3, N=323) | 323 | 0.196 | 0.000 |
-| **~117 soft steps (S=2, N=91)** | 91 | **0.780** | 0.045 (1/22) |
+| chain length | modulus | train_exact | held_exact | constructed ceiling |
+|---|---|---|---|---|
+| ~280 soft steps (S=3, N=323) | 323 | 0.196 | 0.000 | 1.000 |
+| **~117 soft steps (S=2, N=91), seed 0** | 91 | **0.780** | 0.045 (1/22) | 1.000 |
+| **~117 soft steps (S=2, N=91), seed 1** | 91 | **0.720** | 0.000 | 1.000 |
 
-A 2.4× shorter chain takes train_exact from 0.20 to 0.78 at the same step count.
-The constructed ceiling is 1.000 in both cases, so nothing about the target
-changed — only the number of sequential soft steps the gradient has to cross.
-That makes "shorten the chain" a measured direction rather than a guess, and it
-is why it heads the recommendation list in §6.
+A 2.4× shorter chain takes train_exact from 0.20 to 0.72–0.78 at the same step
+count, on both seeds. The constructed ceiling is 1.000 in both regimes, so
+nothing about the target changed — only the number of sequential soft steps the
+gradient has to cross. That makes "shorten the chain" a measured direction rather
+than a guess, and it is why it heads the recommendation list in §6.
+
+Note the held-out column: at S=2 the model reaches train 0.78 and held-out is
+still ~0. That is **not** the memorisation signature seen everywhere else in this
+repo — `DigitALU` has nowhere to memorise to — it is a partially-learned
+transducer, where a table that is right on most entries still fails any example
+touching a wrong one. Exactness is all-or-nothing per example, so held-out only
+lifts off once train is very near 1.000. This is the reason train_exact, not
+held_exact, is the informative screening number for this family (§6.4).
 
 This is the same *shape* as group-rotation §5.5b ("the hypothesis class that
 excludes memorisation also excludes anything the optimizer can descend into")
@@ -321,18 +332,21 @@ variance floor there is one example).
 | submission | dataset | MAX_T | OOD_N MAX_T | rung 1 | rung 2 | rung 4 | rung 8 | rung 16 | rung 32 | rung 64 | mean |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | `dcp_marker` (marker-relative parser) | e5 fs2000 | **0** | 0 | 0.008 | 0.004 | 0.006 | 0.002 | 0.010 | 0.004 | 0.002 | 0.0096 |
+| `dcp_abs` (absolute-position control) | e5 fs2000 | **0** | 0 | 0.006 | 0.004 | 0.004 | 0.010 | 0.002 | 0.008 | 0.010 | 0.0088 |
 | `dcp_rev` (distance-from-end control) | e5 fs2000 | **0** | 0 | 0.004 | 0.002 | 0.000 | 0.006 | 0.008 | 0.006 | 0.002 | 0.0038 |
 
 e5 rungs are 512 examples, so the one-example floor is 0.002. Rung 1 is
-0.008 = 4/512 for the marker front end and 0.004 = 2/512 for the control — a
-**two-example difference**, i.e. the evaluator cannot resolve the parsing fix
-either, exactly as §3.3 predicts and exactly as group-rotation §8 found for the
-selector fix. Both are `MAX_T = 0`.
+0.008 = 4/512 for the marker front end against 0.006 = 3/512 (absolute) and
+0.004 = 2/512 (distance-from-end): a **one- to two-example spread across all
+three front ends**, and the two controls are not ordered consistently with each
+other either. The evaluator cannot resolve the parsing fix, exactly as §3.3
+predicts and exactly as group-rotation §8 found for the selector fix. All three
+are `MAX_T = 0`, and every rung of all three sits within a few examples of the
+trivial floor.
 
-`dcp_abs` on e5 and `dcp_marker` on e1 were still in the queue when the session
-ended; see §9 for the exact commands. The offline screen (§3.3, 3 seeds) already
-settles the ordering they would test, and neither can be anything but
-`MAX_T = 0` given train_exact = 1.000 with held-out at the floor.
+`dcp_marker` on e1 was still in the queue when the session ended; see §7 for the
+command. Given train_exact = 1.000 with held-out at the floor across 3 seeds
+offline (§3.3), it cannot be anything but `MAX_T = 0`.
 
 **One bug worth recording for whoever runs this next:** `torch.finfo(x.dtype).min`
 as an attention mask value raises `RuntimeError: value cannot be converted to
@@ -500,11 +514,13 @@ report:
 
 | in flight | purpose | command to resume |
 |---|---|---|
-| `probe_alu_oodn --bits 30 32` | push the construction to Hard scale (30/32-bit). 20/24-bit already returned 1.000, so this is confirmatory, not load-bearing | `$VENV lab/probe_alu_oodn.py --bits 30 32 --moduli 2 --x-per-modulus 128` |
-| `dcp_abs` on e5, `dcp_marker` on e1 | two remaining evaluator cells of the front-end comparison | see §9 |
-| `probe_alu --modulus 91 --slots 2 --seed 1` | second seed on the short-chain result (seed 0 gave train 0.780) | `$VENV lab/probe_alu.py --modulus 91 --slots 2 --train-x 50 --steps 4000 --seed 1` |
+| `probe_alu_oodn --bits 30 32` | push the construction to Hard scale (30/32-bit). 20/24-bit already returned 1.000 on 1200 operands, so this is confirmatory, not load-bearing | `$VENV lab/probe_alu_oodn.py --bits 30 32 --moduli 2 --x-per-modulus 128` |
+| `dcp_marker` on e1 | last evaluator cell of the front-end comparison; e5 (the screening dataset) has all three front ends | see §7 |
 
-Nothing was abandoned that changes a conclusion.
+Nothing was abandoned that changes a conclusion. Three items listed as in flight
+in the first draft *did* land before the session closed and are folded into the
+tables above: the second short-chain seed (train 0.720, replicating 0.780), the
+full identity-init sweep (§2.4), and `dcp_abs` on e5 (§4).
 
 **Tools.** Copied unchanged from
 `/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/group-rotation/lab/`:
