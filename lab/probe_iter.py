@@ -152,6 +152,25 @@ def main() -> int:
                     sa = (so[t].argmax(-1) == stg[t]).all(1).float().mean().item()
                     parts.append(f"T{t}:seen={sa:.3f},held={ha:.3f}")
             print(f"step={step:>7} loss={loss.item():.5f} " + " ".join(parts), flush=True)
+
+    # --- mechanistic check: did the block learn mod-N structure? ---
+    # (N-v)^2 = v^2 mod N, so a block that genuinely computes "square mod N" must
+    # give the SAME answer for v and N-v.  This is a property of the model's own
+    # activations on self-generated inputs; it needs no labels.
+    all_units = [v for v in units if math.gcd(modulus - v, modulus) == 1]
+    a = onehot(all_units)
+    b = onehot([modulus - v for v in all_units])
+    with torch.no_grad():
+        pa = block(a).argmax(-1)
+        pb = block(b).argmax(-1)
+        agree = (pa == pb).all(1).float().mean().item()
+        tgt_all = targets(all_units, 1)
+        acc_all = (pa == tgt_all).all(1).float().mean().item()
+    print(
+        f"[mech] pred(v) == pred(N-v) on {len(all_units)} units: {agree:.3f}   "
+        f"(1.0 => the block respects mod-N structure; ~0.0 => it is a value lookup)   "
+        f"exact over all units: {acc_all:.3f}"
+    )
     return 0
 
 
