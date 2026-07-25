@@ -92,6 +92,12 @@ def flatten(result: dict) -> dict:
     state_elems = None
     opt_elems = None
     final_loss = []
+    # per-token cross-entropy on each scored split.  exact_accuracy is
+    # all-or-none per example, so it cannot distinguish "the model knows nothing"
+    # from "the model knows most digits".  ln(17) = 2.833 is the
+    # uniform-over-vocab reference.  (The runner does not expose a per-rung loss,
+    # only per-rung exact accuracy, so this is measured on `test`/`ood`.)
+    split_loss_acc: dict[str, list[float]] = {}
     for s in seeds:
         completed.append(s.get("completed_training_steps"))
         tsec.append(s.get("training_seconds"))
@@ -102,6 +108,8 @@ def flatten(result: dict) -> dict:
         for split, m in s.get("evaluation", {}).items():
             splits.setdefault(split, [])
             splits[split].append(m.get("exact_accuracy"))
+            if m.get("loss") is not None:
+                split_loss_acc.setdefault(split, []).append(m["loss"])
     # mean per split across seeds
     split_acc = {k: (sum(v) / len(v) if v else None) for k, v in splits.items()}
 
@@ -144,6 +152,7 @@ def flatten(result: dict) -> dict:
         "ood_n_rung_exact_accuracy": rung_acc["ood_n"],
         "per_seed_max_certified_t": per_seed_max_t,
         "per_seed_rung_exact_accuracy": per_seed_rung,
+        "split_loss": {k: sum(v) / len(v) for k, v in sorted(split_loss_acc.items())},
         # --- diagnostics ---
         "mean_exact_accuracy": score.get("mean_exact_accuracy"),
         "split_exact_accuracy": split_acc,
@@ -233,6 +242,10 @@ def main() -> int:
         )
         print(f"      rungs(seen_n)={rungs}")
         print(f"      per_seed_MAX_T={row['per_seed_max_certified_t']}")
+        print(
+            "      split_loss(ln17=2.833)="
+            f"{ {k: round(v, 3) for k, v in row['split_loss'].items()} }"
+        )
         print(
             "      per_seed_rung1="
             f"{[None if d.get(1) is None else round(d[1], 3) for d in row['per_seed_rung_exact_accuracy']]}"
