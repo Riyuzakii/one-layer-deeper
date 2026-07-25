@@ -277,3 +277,86 @@ a model that has actually learned "square the digits and reduce". Combined with
 the gap is not going to be closed by a better embedding, and it puts a hard floor
 on what any purely-interpolating approach can score.
 
+### 3.6 Sampled-N (`e5`) and the grokking regime
+
+(see tables below)
+
+## 4. What is falsified
+
+**The hypothesis I own is falsified, and not narrowly.**
+
+1. **Field-aware embeddings** — no effect (rung-1 0.000 vs baseline 0.026; both
+   inside a 1-example floor).
+2. **Digit-position-within-field embeddings** — no effect.
+3. **LSD-first internal ordering** — no effect. (Worth recording *why* this was
+   never likely: a bidirectional transformer with learned positional embeddings
+   is equivariant to any fixed permutation of positions, so a pure re-ordering
+   is a no-op on the function class. The only content in "LSD-first" is the
+   *indexing*, which is axis 2/4, and that is what was tested.)
+4. **Abacus / shared place-value index** — no effect.
+5. **Output head design** (place-aligned readout, per-place heads, dedicated
+   answer slots) — no effect on generalisation.
+
+And the diagnosis is stronger than "the effects were small": **§3.2 shows there
+was no room for a representation effect to exist.** Every model already reaches
+100 % training exact-match with zero loss in ~300 steps. The optimiser is not
+struggling to fit; it fits perfectly and generalises at chance. Better alignment
+between digit places cannot help a model that has already solved its training
+objective — it only makes the memorisation cheaper to find (§3.3).
+
+The one thing that *is* real and replicated: **place-aligned slots memorise
+~35 % faster in steps** (rp_big, 3 seeds, non-overlapping ranges at steps
+800/1200/1600). That is a per-step learning-efficiency win that transfers to
+H100, and it is worth keeping — but it is not the bottleneck.
+
+**Also falsified: "the plateau is a capacity/architecture wall"**
+(`lab/findings.md`'s headline). It is not. Capacity is *excessive*: 0.25 M
+parameters memorise e1's 600 rows in 300 steps. The previous session's width
+sweep only went **up** (128 → 768, all worse), which is the wrong direction for
+a memorisation problem.
+
+## 5. What I would do next, and why
+
+### 5.1 The one recommendation, if the team only takes one
+
+**Re-frame the target from "fit better" to "make memorisation unavailable", and
+put `train_exact_accuracy` next to eval accuracy in every comparison.** It is
+already in `lab/archive.jsonl` under `train_curve` and nobody has been reading
+it. Any lever that leaves the train curve at 1.00-by-step-300 and the eval curve
+at chance is, by construction, a lever on the wrong variable — that includes
+depth, width, optimiser, loss shaping, and (as this report shows) every
+input/output representation. The variables that *can* move a memorisation gap
+are: capacity **downward**, regularisation strength, training far past
+convergence (grokking), and architectures in which a per-example lookup is not
+expressible.
+
+### 5.2 Stop screening on e1
+
+e1's rung is 38 examples: the accuracy quantum is 1/38 = 0.026, the seed-only
+spread is one example, and every number the previous session and this one
+produced on e1 is 0–3 correct examples. It has essentially no statistical power
+to rank architectures. `e5`, `e3`, `e4`, `m5` and the two probes here all have
+**256-example rungs** — a 6.7× finer grid and far better SNR — and `e5` also has
+T=1 inside its training range. Screening on e1 has already cost two sessions'
+worth of conclusions drawn from single-example differences.
+
+### 5.3 Which tiers are even winnable (structural, representation-independent)
+
+From §1.2: rung T=1 is **out of distribution in T** on m1–m5 and e3/e4. Since
+`max_certified_time_steps` is a prefix from T=1 upward, MAX_T ≥ 1 on those tiers
+is unreachable for anything that memorises a T-conditioned map, no matter how
+accurate it is at the T values it trained on. If Hard resembles Medium (the
+brief says it sits above Medium on the same two knobs), **the Hard leaderboard is
+gated on T-extrapolation *downward* to T=1**, and a weight-tied model that
+literally iterates T times is the only shape of solution that gets there. That
+argues for the `tied-recurrence` agent's axis being the load-bearing one, with
+the caveat that it must be combined with something that fixes generalisation —
+iterating a step you cannot compute exactly T times still gives 0.
+
+### 5.4 Things I would *not* spend more time on
+
+Input/output representation for this task. Not because the ideas are wrong —
+place alignment is the correct way to encode the problem and it does measurably
+speed up fitting — but because §3.2 shows the model is not representation-limited
+at any point on the data-volume curve.
+
