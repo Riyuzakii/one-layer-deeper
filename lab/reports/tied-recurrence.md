@@ -333,6 +333,27 @@ are the **same trained model** (`lab_e1_fs2000_s74`, seed 74, tied K=4,
 `sinbil`, `rev`, `wd=1.0`) evaluated with a different number of internal
 iterations. Command: `bash lab/tied_e1_extrap.sh`.
 
+| internal iterations at eval | T=1 | T=2 | T=4 | T=8 | T=16 | T=32 | T=64 | test |
+|---|---|---|---|---|---|---|---|---|
+| 1  | 0.079 | 0.026 | 0.026 | 0.053 | 0.000 | 0.053 | 0.026 | 0.020 |
+| 2  | 0.026 | 0.053 | 0.079 | 0.053 | 0.000 | 0.079 | 0.026 | 0.013 |
+| 4 (as trained) | 0.026 | 0.026 | 0.079 | 0.053 | 0.000 | 0.079 | 0.026 | 0.020 |
+
+Two things to read off, both negative and both informative:
+
+* **The model is nearly invariant to how many times its own tied block is
+  applied.** Running the block once, twice or four times moves every rung by at
+  most one example. A block that actually implemented `y → y² mod N` would give
+  wildly different answers at 1 vs 4 applications. So under ordinary training
+  the tied core **collapses toward an absorbing/near-identity map** and the
+  answer is effectively produced by the encoder and the read-out, not by the
+  recurrence. The "depth" is nominal.
+* Consequently the extrapolation question ("does it survive 64 applications?")
+  has no content yet: there is nothing being iterated. It does at least stay
+  numerically stable — no NaNs or divergence at 64 applications of a block
+  trained with 4 (the submission in `submissions/tied-recurrence/` trains at 8
+  and evaluates at 64 without incident).
+
 ## 7. Eval-budget feasibility for deep configs
 
 Training is cut to 50 steps in these runs (`evaluation_seconds` does not depend

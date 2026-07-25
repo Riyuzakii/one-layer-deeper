@@ -15,7 +15,7 @@
 set -u
 cd "$(dirname "$0")/.."
 VENV=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
-S=${S:-4000}
+S=${S:-3000}
 BS=${BS:-64}
 WD=${WD:-1.0}
 
@@ -29,10 +29,7 @@ run () {  # tag manifest extra...
 }
 
 for DS in m1 hp1; do
-  run m_fixK4_$DS   lab_${DS}_fs8000_s74 --loops 4  --state-mode res --pos-mode rev --act sinbil
-  run m_tsoftK16_$DS lab_${DS}_fs8000_s74 --loops 16 --eval-loops 64 --iter-mode tsoft \
-                    --state-mode res --pos-mode rev --act sinbil \
-                    --beta 0.02 --warmup 1000 --ramp 1000
-  run m_tgatK16_$DS lab_${DS}_fs8000_s74 --loops 16 --eval-loops 64 --iter-mode tgather \
+  run m_fixK4_$DS   lab_${DS}_fs3000_s74 --loops 4  --state-mode res --pos-mode rev --act sinbil
+  run m_tgatK16_$DS lab_${DS}_fs3000_s74 --loops 16 --eval-loops 64 --iter-mode tgather \
                     --state-mode res --pos-mode rev --act sinbil
 done
