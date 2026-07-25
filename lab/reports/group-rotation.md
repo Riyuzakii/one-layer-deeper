@@ -599,8 +599,10 @@ Reasons, in order of evidential weight:
 * Sampled-`N` datasets (`e5`, `hp3`): the plan was to test transfer only if something
   worked on fixed `N`. Nothing did, so these were not run — a fixed-`N` failure is
   strictly easier than a sampled-`N` one.
-* `e2` / `m1` evaluator runs: `probe_iter` shows the deeper-`T` regime diverges from random
-  init, and `findings.md` already records m1 at ~0; spending runs there was not justified.
+* `e2` / `m1` evaluator runs: §6A now gives a stronger reason than "not justified" — the
+  *oracle* ceiling at e2 is 0.614 and at m1 is 0.031, so certification there is impossible
+  for this family regardless of training. `probe_iter` separately shows the deeper-`T`
+  regime diverges from random init.
 * Nothing was submitted to the hosted service. No `one-layer login` / `submit` was run.
 
 ## 10. Reproduction
@@ -620,8 +622,23 @@ $VENV lab/probe_step.py --oracle --freqs 161 --harm 1 --steps 1500 # oracle   ->
 for e in 0 1e-6 1e-5 1e-4 1e-3 1e-2; do
   $VENV lab/probe_step.py --oracle --freq-jitter $e --freqs 161 --harm 1 --steps 1500
 done                                                                # basin width
-$VENV lab/probe_iter.py --time-steps 1 2 3 --freqs 32 --harm 8      # iteration -> held-out 0.24
+$VENV lab/probe_iter.py --time-steps 1 2 3 --freqs 32 --harm 8      # iteration -> held-out 0.25
 $VENV lab/probe_iter.py --time-steps 4 8 16                         # deep T    -> diverges
+
+# the coverage ceiling (6A) -- oracle representation vs modulus size
+for cfg in "323 3 161" "899 3 449" "2021 4 1010" "10403 5 5201"; do set -- $cfg
+  $VENV lab/probe_step.py --oracle --modulus $1 --slots $2 --freqs $3 \
+      --harm 1 --train-x 250 --steps 1200 --wd 0.01 --lr 0.01
+done
+
+# the selector fix (6B)
+$VENV lab/probe_sel.py --selector soft                              # -> 0.000
+$VENV lab/probe_sel.py --selector entropy                           # -> 0.000 (sharp, T-independent)
+$VENV lab/probe_sel.py --selector pointer --rand-loops --ptr-anneal  # -> 0.237-0.263
+$VENV lab/probe_sel.py --selector oracle                            # -> 0.237-0.289 (ceiling)
+
+# probe validity (6C): the SAME architecture, but parsing a real prompt
+$VENV lab/probe_learnability.py --submission submissions/group-rotation/gi_ptr/submission.py
 ```
 
 Every evaluator run is archived in `lab/archive.jsonl` (tags `baseline`, `gr-ablate`,
