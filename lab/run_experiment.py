@@ -107,6 +107,18 @@ def flatten(result: dict) -> dict:
 
     profile = result.get("depth_profile") or {}
     rung_acc: dict[str, dict[int, float]] = {"seen_n": {}, "ood_n": {}}
+    # per-seed detail (multi-seed manifests aggregate with min(), which hides the
+    # spread; rungs are small so the spread is the thing that matters)
+    per_seed_max_t = [
+        (s.get("depth_profile") or {}).get("max_certified_time_steps") or 0 for s in seeds
+    ]
+    per_seed_rung = [
+        {
+            r["time_steps"]: r.get("exact_accuracy")
+            for r in ((s.get("depth_profile") or {}).get("rungs") or [])
+        }
+        for s in seeds
+    ]
     for s in seeds:
         seed_profile = s.get("depth_profile") or {}
         for key, rungs in (
@@ -130,6 +142,8 @@ def flatten(result: dict) -> dict:
         "ood_n_max_certified_t": profile.get("ood_n_max_certified_time_steps") or 0,
         "rung_exact_accuracy": rung_acc["seen_n"],
         "ood_n_rung_exact_accuracy": rung_acc["ood_n"],
+        "per_seed_max_certified_t": per_seed_max_t,
+        "per_seed_rung_exact_accuracy": per_seed_rung,
         # --- diagnostics ---
         "mean_exact_accuracy": score.get("mean_exact_accuracy"),
         "split_exact_accuracy": split_acc,
@@ -218,6 +232,11 @@ def main() -> int:
             f"mean_acc={acc:.4f} steps={steps} train_s={ts}"
         )
         print(f"      rungs(seen_n)={rungs}")
+        print(f"      per_seed_MAX_T={row['per_seed_max_certified_t']}")
+        print(
+            "      per_seed_rung1="
+            f"{[None if d.get(1) is None else round(d[1], 3) for d in row['per_seed_rung_exact_accuracy']]}"
+        )
         print(
             f"      rungs(ood_n)="
             f"{ {t: round(a, 3) for t, a in row['ood_n_rung_exact_accuracy'].items()} }"
