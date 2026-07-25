@@ -340,13 +340,12 @@ unless the model genuinely iterates.
 
 To separate the depth mechanism from the arithmetic, I generated a proxy with
 the same experiment *shape* as e1 but much easier operands (exact command in
-`lab/tied_tiny.sh`): `N = 143 = 11·13`, 120 units, 2–3 digit
-operands, train T∈{1,2,3}, full 1…64 ladder, rung cohort = the 20 exhaustively
+`lab/tied_tiny.sh`): `N = 143 = 11·13`, 120 units, 2–3 digit operands, train T∈{1,2,3}, full 1…64 ladder, rung cohort = the 20 exhaustively
 held-out units. Coverage is 80 of 120 units per T setting (67%), comparable to
 e1's 69%.
 
-`lab_tp1_fs3000_s3` (3 seeds), tied K=4, `res`, `rev`, gelu, `wd=1.0`,
-`batch_size=32`:
+`lab_tp1_fs3000_s3` (3 seeds), tied K=4, `res` state, `rev` positions,
+`wd=1.0`, `batch_size=32`; the step nonlinearity varies by row:
 
 | config | T=1 | T=2 | T=4 | T=8 | T=16 | T=32 | T=64 | test | per-seed rung 1 |
 |---|---|---|---|---|---|---|---|---|---|
