@@ -134,7 +134,12 @@ with a soft-digit round trip between steps, and a learned selector pooled from t
 from the prompt*, not set by Python control flow over `input_ids`. `LOOPS=1` is the
 control that removes the round-trip constraint.
 
-<!--GRITER_TABLE-->
+| variant | MAX_T | T=1 | T=2 | T=4 | T=8 | T=16 | T=32 | T=64 | mean acc |
+|---|---|---|---|---|---|---|---|---|---|
+| GRIter LOOPS=1 (control: no round-trip constraint) | **0** | 0.000 | 0.079 | 0.053 | 0.053 | 0.026 | 0.053 | 0.026 | 0.0533 |
+| GRIter LOOPS=2 | **0** | 0.026 | 0.026 | 0.026 | 0.132 | 0.000 | 0.026 | 0.079 | 0.0433 |
+| GRIter LOOPS=2 slots=4 e1 20k | **0** | 0.026 | 0.026 | 0.026 | 0.132 | 0.000 | 0.026 | 0.079 | 0.0433 |
+| GRIter LOOPS=4 | **0** | 0.026 | 0.000 | 0.026 | 0.079 | 0.026 | 0.053 | 0.000 | 0.0333 |
 
 **It does not reproduce the offline gain, and the selector diagnostic says why.** Dumping
 the weights of a GRIter LOOPS=4 run and reading the selector's output on synthetic prompts
@@ -481,7 +486,7 @@ $VENV lab/probe_iter.py --time-steps 4 8 16                         # deep T    
 
 Every evaluator run is archived in `lab/archive.jsonl` (tags `baseline`, `gr-ablate`,
 `grnet-long`, `griter`, `diag`, plus `smoke` / `lr-screen` / `wd-screen` / `speed`
-screens) — 39 runs this session, none deleted, including the ones that contradict the
+screens) — 40+ runs this session, none deleted, including the ones that contradict the
 hypothesis. The offline studies are ~25 further runs, reproducible from the commands
 above.
 
