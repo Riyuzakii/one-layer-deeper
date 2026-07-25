@@ -75,7 +75,13 @@ def parse_result(stdout: str) -> dict | None:
 
 
 def flatten(result: dict) -> dict:
-    """Pull the fields we care about out of the nested runner result."""
+    """Pull the fields we care about out of the nested runner result.
+
+    THE RANKING METRIC (since the 2026-07-24 scoring change) is the depth
+    profile: `max_certified_time_steps` (largest T whose rung and every lower
+    rung are 100% exact), tie-broken by `ood_n_max_certified_time_steps`.
+    `mean_exact_accuracy` is now only a diagnostic.
+    """
     score = result.get("score", {})
     seeds = result.get("seeds", [])
     # one seed per manifest in this competition, but stay general
@@ -98,7 +104,33 @@ def flatten(result: dict) -> dict:
             splits[split].append(m.get("exact_accuracy"))
     # mean per split across seeds
     split_acc = {k: (sum(v) / len(v) if v else None) for k, v in splits.items()}
+
+    profile = result.get("depth_profile") or {}
+    rung_acc: dict[str, dict[int, float]] = {"seen_n": {}, "ood_n": {}}
+    for s in seeds:
+        seed_profile = s.get("depth_profile") or {}
+        for key, rungs in (
+            ("seen_n", seed_profile.get("rungs") or []),
+            ("ood_n", seed_profile.get("ood_n_rungs") or []),
+        ):
+            for rung in rungs:
+                acc = rung.get("exact_accuracy")
+                if acc is None:
+                    continue
+                t = rung["time_steps"]
+                rung_acc[key].setdefault(t, []).append(acc)
+    rung_acc = {
+        key: {t: sum(v) / len(v) for t, v in sorted(by_t.items())}
+        for key, by_t in rung_acc.items()
+    }
+
     return {
+        # --- ranking metric ---
+        "max_certified_t": profile.get("max_certified_time_steps") or 0,
+        "ood_n_max_certified_t": profile.get("ood_n_max_certified_time_steps") or 0,
+        "rung_exact_accuracy": rung_acc["seen_n"],
+        "ood_n_rung_exact_accuracy": rung_acc["ood_n"],
+        # --- diagnostics ---
         "mean_exact_accuracy": score.get("mean_exact_accuracy"),
         "split_exact_accuracy": split_acc,
         "completed_training_steps": completed,
@@ -179,10 +211,19 @@ def main() -> int:
         acc = row["mean_exact_accuracy"]
         steps = row["completed_training_steps"]
         ts = row["training_seconds"]
+        rungs = {t: round(a, 3) for t, a in row["rung_exact_accuracy"].items()}
         print(
             f"[OK] {manifest.stem} sha={row['submission_sha8']} "
-            f"mean_acc={acc:.4f} steps={steps} train_s={ts} "
-            f"splits={ {k: round(v,3) for k,v in row['split_exact_accuracy'].items()} }"
+            f"MAX_T={row['max_certified_t']} OOD_N_MAX_T={row['ood_n_max_certified_t']} "
+            f"mean_acc={acc:.4f} steps={steps} train_s={ts}"
+        )
+        print(f"      rungs(seen_n)={rungs}")
+        print(
+            f"      rungs(ood_n)="
+            f"{ {t: round(a, 3) for t, a in row['ood_n_rung_exact_accuracy'].items()} }"
+        )
+        print(
+            f"      splits={ {k: round(v,3) for k,v in row['split_exact_accuracy'].items()} }"
         )
     else:
         print(f"[FAIL rc={rc}] {manifest.stem} sha={row['submission_sha8']}")
