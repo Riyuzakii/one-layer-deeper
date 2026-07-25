@@ -455,9 +455,14 @@ free if anything ever needs it.
 dataset available, and treat everything else as blocked behind it.**
 
 The evidence for prioritising that above all else is in §5: depth, iteration
-count (including the perfect-halting upper bound), on-manifold state, training
-length, weight decay, model capacity and eval budget have all been measured and
-none of them is the binding constraint. Held-out rung accuracy is at the trivial
+count (including the perfect-halting upper bound), training length, weight decay,
+model capacity and eval budget have all been measured and none of them is the
+binding constraint. (The on-manifold state modes — `renorm`, `gate`, `reembed`,
+`reembed_st` — are implemented, gradient-checked and run end to end, but their
+multi-seed comparison did not finish inside the session's GPU share; the scripts
+`lab/tied_e1_extrap.sh` and `lab/tied_tiny.sh` will produce it as-is. Given (1),
+the expected value of that comparison is low: it addresses propagation, and
+propagation is not what is broken.) Held-out rung accuracy is at the trivial
 floor at **T=1**, which is the first rung and therefore gates the entire ladder.
 Concretely the milestone is 38/38 exact on `depth_t_1` for e1 (or 20/20 on the
 `tp1` proxy); nothing above that rung can score until it exists.
