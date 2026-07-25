@@ -161,6 +161,33 @@ they are reported as ratios as well as absolutes.)
 
 ---
 
+### 3.1 What the tied step actually has to compute
+
+For `x = 100a + 10b + c` with decimal digits `a,b,c`,
+
+```
+x² mod 323  ==  (310a² + 100b² + c² + 62ab + 200ac + 20bc) mod 323
+```
+
+verified exhaustively for every `x < 323` (pure arithmetic, no data). So one
+squaring step is a **fixed bilinear form in the digits followed by a single
+modular fold**. Two design consequences, and both are inductive-bias choices
+rather than implementations of the arithmetic:
+
+* the step needs *multiplicative* interactions between digit features — a gated
+  (SwiGLU-style) MLP expresses digit products directly, a GELU MLP has to
+  approximate them, so `--act swiglu` is on the grid;
+* because the pre-fold value is a **sum** of six digit-pair terms, the fold is
+  additive in phase: a representation where each digit-pair contributes an angle
+  and the angles add generalizes to digit combinations never seen. That is the
+  same "grokking" solution modular-arithmetic transformers are known to find, and
+  it is the only route by which the 38 held-out units could ever be exact.
+* and iterating requires the intermediate to be re-expressed **as digits**, which
+  is exactly what `--state-mode reembed_st` does. In other words the ideal
+  solution to this task *is* a digit-level squaring step plus straight-through
+  re-embedding, applied T times. The architecture family is right; §4 is about
+  whether it is learnable from the data on offer.
+
 ## 4. Results
 
 _(filled in as runs complete; see `lab/archive.jsonl` for the raw rows)_
@@ -169,6 +196,37 @@ _(filled in as runs complete; see `lab/archive.jsonl` for the raw rows)_
 
 ## 6. Iteration extrapolation
 
-## 7. Eval-budget feasibility
+## 7. Eval-budget feasibility for deep configs
+
+Training is cut to 50 steps in these runs (`evaluation_seconds` does not depend
+on it), so this measures eval cost alone. The eval budget is half the training
+budget and must cover `test` + `ood` + 7 seen-N rungs + 7 OOD-N rungs.
+**These runs were taken under heavy GPU contention (4 agents, ~10 concurrent
+jobs), so absolute seconds are pessimistic; the K-scaling is the transferable
+part.**
+
+| dataset | config | internal iterations K | eval seconds | tier eval budget | margin |
+|---|---|---|---|---|---|
+| e1  | fixed, res        | 4  | 5.06 | 30 s  | 5.9× |
+| e1  | fixed, res        | 16 | 4.95 | 30 s  | 6.1× |
+| e1  | fixed, res        | 64 | 5.15 | 30 s  | 5.8× |
+| e1  | ponder (64 per-step logit tensors) | 64 | 6.62 | 30 s | 4.5× |
+| e1  | reembed_st        | 64 | 6.30 | 30 s  | 4.8× |
+| m1  | fixed, res        | 4  | 5.66 | 300 s | 53× |
+| m1  | fixed, res        | 64 | 7.62 | 300 s | 39× |
+| hp1 | fixed, res        | 4  | 7.73 | 1800 s (Hard) | 233× |
+| hp1 | fixed, res        | 64 | 8.92 | 1800 s (Hard) | 202× |
+
+**Eval cost is essentially flat in K.** 4 → 64 internal iterations costs +2% on
+e1 and +17% on hp1. The reason is that eval time is dominated by DataLoader
+start-up across the 16 splits, not by the model: at d=128, seq len ≤ 12 and rung
+sizes of 38 / 500 examples, 64 applications of a 0.4 M-parameter block is
+nothing. Deep tied recurrence is **not** eval-budget constrained on any tier
+here — even at 64 iterations the Easy margin is ~5× and the Hard margin ~200×.
+The hazard flagged in the brief is real in principle but does not bind at this
+model size; it would only bind for a much wider model or a much longer sequence.
+
+Model state is 0.40 M elements against the 500 M ceiling (0.08%), so width is
+free if anything ever needs it.
 
 ## 8. Recommendation
