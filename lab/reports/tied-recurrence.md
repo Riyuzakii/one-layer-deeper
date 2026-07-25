@@ -12,6 +12,33 @@ eval-budget feasibility checks in §7, which are labelled as such.
 
 ---
 
+## 0. TL;DR
+
+* **MAX_T = 0 for every configuration tested, on e1, on the tiny proxy, at every
+  depth, halting mode, state mode, activation, weight decay and step count.**
+* **The binding constraint is per-step exactness, not error propagation.**
+  The brief's premise was that a 99%-correct step decays to 0.99⁶⁴. There is no
+  99% step: held-out rung accuracy is 0–3 correct out of 38 *at T=1*, and the
+  rung profile is **flat** rather than decaying — the signature of a step map
+  with no signal at all, not of compounding error.
+* **Iteration count is not the constraint on e1**: K=1 (no composition), K=4,
+  learned halting, and the `tgather` ideal-halting upper bound all sit at the
+  same floor.
+* **Eval budget is not the constraint**: 4 → 64 internal iterations costs +2% of
+  eval time on e1, +17% on hp1; margins ~5× (Easy) to ~200× (Hard).
+* **Two structural results that change how the ladder should be attacked**
+  (§2.1): on e1 rungs 8/32 are the same function and 16/64 are the same
+  function, and only rungs 1–2 use an exponent that appears in e1 training, so
+  **e1's ceiling is MAX_T = 2 for anyone**; and on m1/hp1 (and by extension
+  Hard) the trained T are {4,8,16} while the ladder must be certified as a
+  prefix from T=1, so **certification requires generalizing downward to T=1
+  and T=2, which are never trained** — the one thing only a tied, T-iterated
+  model can do by construction.
+* **Free lever, unrelated to the hypothesis**: `batch_size=64` instead of the
+  manifest's 512 gives **5.4× more optimizer steps** in the same wall clock on
+  Easy, because ~600 training rows and `drop_last` make a 512-batch one batch
+  per epoch and the DataLoader respawns workers every step.
+
 ## 1. Hypothesis
 
 `y = x^(2^T) mod N` is exactly `T` applications of one fixed map `s(y) = y² mod N`.
@@ -107,6 +134,25 @@ $VENV lab/make_manifest.py --dataset e1 --mode fixed_step --max-steps S --seeds 
 $VENV lab/run_experiment.py --submission submissions/exp_tied/<tag>/submission.py \
       --manifest lab/manifests/<m>.json --tag <axis> --note "<what>"
 ```
+
+Every grid is a script, so the exact commands are reproducible:
+
+| script | archive tag | what it asks |
+|---|---|---|
+| `lab/tied_e1_grok.sh`   | `T1-grok`       | does a tied step ever grok on e1 at 20 k steps? |
+| `lab/tied_e1_iter.sh`   | `T2-iter`       | does matching the iteration count to T matter? |
+| `lab/tied_e1_extrap.sh` | `T3-extrap`     | task T × internal iterations, one trained model |
+| `lab/tied_medium_iter.sh` | `T4-below-range` | rungs 1/2 on m1/hp1, below the trained T range |
+| `lab/tied_evalcost.sh`  | `T5-evalcost`   | eval seconds vs internal iteration count |
+| `lab/tied_phase2.sh`    | `T6-arch`       | step-map nonlinearity, 3 seeds |
+| `lab/tied_tiny.sh`      | `T7-tiny`       | same shape as e1 with the arithmetic wall lowered |
+
+`lab/make_tied2.py` is `lab/make_tied.py` plus three later additions (AdamW param
+groups that exclude 1-D tensors from weight decay, `--iter-mode tsoft`, and the
+`bilinear`/`sin`/`sinbil` step nonlinearities). It was kept as a separate file so
+that grids already in flight stayed internally comparable; `T1-grok` and
+`T2-iter` used `make_tied.py`, everything later used `make_tied2.py`.
+`lab/tied_table.py <tag>` renders any tag as the tables below.
 
 ### Harness finding: step time on e1 is DataLoader-bound, not model-bound
 
@@ -272,7 +318,12 @@ Stated plainly, because each of these was a candidate explanation before the run
 **What remains:** per-step exactness on unseen operands. That is the whole
 problem, and it is upstream of every axis this branch owns.
 
-## 6. Iteration extrapolation
+## 6. Iteration extrapolation (task T × internal iterations)
+
+`EVAL_LOOPS` only affects the eval-mode branch of `forward()`, so all rows below
+are the **same trained model** (`lab_e1_fs2000_s74`, seed 74, tied K=4,
+`sinbil`, `rev`, `wd=1.0`) evaluated with a different number of internal
+iterations. Command: `bash lab/tied_e1_extrap.sh`.
 
 ## 7. Eval-budget feasibility for deep configs
 
