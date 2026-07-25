@@ -191,6 +191,9 @@ class DigitALU(nn.Module):
     # ---------------- scans ----------------
     def _sm(self, logits):
         p = F.softmax(logits / self.tau, -1)
+        if getattr(self, "stat", None) is not None and p.dim() > 1:
+            self.stat[0] += p.max(-1).values.mean().item()
+            self.stat[1] += 1
         if self.hard:  # straight-through: close the continuous side-channel
             h = F.one_hot(p.argmax(-1), p.shape[-1]).to(p.dtype)
             p = h + p - p.detach()
@@ -558,13 +561,22 @@ def main() -> int:
         if not args.eval_hard:
             return ""
         h, _ = evaluate(inp, tgt, discrete=True)
-        return f" train_exact_hard={h:.3f}"
+        model.stat = [0.0, 0]
+        evaluate(inp[:256], tgt[:256])
+        s = model.stat[0] / max(model.stat[1], 1)
+        model.stat = None
+        return f" train_exact_hard={h:.3f} state_sharpness={s:.3f}"
 
     if args.construct:
         tr, tr_ce = evaluate(xin, xt)
         he, he_ce = evaluate(hin, ht)
+        hd = ""
+        if args.eval_hard:
+            trh, _ = evaluate(xin, xt, discrete=True)
+            heh, _ = evaluate(hin, ht, discrete=True)
+            hd = f" train_exact_hard={trh:.3f} held_exact_hard={heh:.3f}"
         print(f"[{args.tag}] CONSTRUCTED  train_exact={tr:.3f} held_exact={he:.3f} "
-              f"train_ce={tr_ce:.4f} held_ce={he_ce:.4f}", flush=True)
+              f"train_ce={tr_ce:.4f} held_ce={he_ce:.4f}{hd}", flush=True)
         return 0
 
     opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad],
