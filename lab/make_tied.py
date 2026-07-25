@@ -85,6 +85,7 @@ WARMUP = {warmup}
 RAMP = {ramp}
 PRIOR_LAMBDA = {prior_lambda}
 ENT_PEN = {ent_pen}
+POS_MODE = "{pos_mode}"
 EMB_STD = {emb_std}
 LOGIT_SCALE = {logit_scale}
 LR = {lr}
@@ -155,6 +156,14 @@ class Model(nn.Module):
         self.config = Config(spec.vocab_size, spec.max_seq_len)
         self.token_embedding = nn.Embedding(spec.vocab_size, D_MODEL)
         self.position_embedding = nn.Embedding(spec.max_seq_len, D_MODEL)
+        if POS_MODE == "rev":
+            # Targets are the LAST len(answer) positions of a prompt whose length
+            # depends on len(x) and len(T), so "j-th digit from the end" is the
+            # stable read-out slot.  An extra embedding indexed from the end of the
+            # valid region (computed from the evaluator-supplied mask) makes that
+            # slot identical for every prompt length -- including the 2-digit-T
+            # rungs, whose prompts are one token longer than anything in training.
+            self.rev_embedding = nn.Embedding(spec.max_seq_len, D_MODEL)
         self.enc = nn.ModuleList([Block() for _ in range(N_ENC)])
         self.core = Block()  # ONE shared block -- the tied step
         self.dec = nn.ModuleList([Block() for _ in range(N_DEC)])
@@ -170,6 +179,8 @@ class Model(nn.Module):
         with torch.no_grad():
             self.token_embedding.weight.normal_(0.0, EMB_STD)
             self.position_embedding.weight.normal_(0.0, EMB_STD)
+            if POS_MODE == "rev":
+                self.rev_embedding.weight.normal_(0.0, EMB_STD)
         self.logit_scale = nn.Parameter(torch.tensor(float(LOGIT_SCALE)))
         if STATE_MODE == "gate":
             self.gate = nn.Parameter(torch.full((D_MODEL,), float(GATE_INIT)))
@@ -212,8 +223,6 @@ class Model(nn.Module):
         if self.training:
             self._step += 1.0
         positions = torch.arange(length, device=device)
-        pemb = self.position_embedding(positions)
-        h0 = self.token_embedding(input_ids) + pemb
         mask = attention_mask if attention_mask is not None else (input_ids != 0)
         if mask.dim() == 2:
             valid = mask.to(device=device, dtype=torch.bool)
@@ -221,6 +230,14 @@ class Model(nn.Module):
         else:
             mask4 = mask.to(device=device, dtype=torch.bool)[:, None, :, :]
             valid = mask4[:, 0, 0, :]
+        pemb = self.position_embedding(positions).expand(input_ids.shape[0], -1, -1)
+        if POS_MODE == "rev":
+            n_valid = valid.sum(dim=1, keepdim=True)
+            rev = (n_valid - 1 - positions[None, :]).clamp(
+                0, self.rev_embedding.num_embeddings - 1
+            )
+            pemb = pemb + self.rev_embedding(rev)
+        h0 = self.token_embedding(input_ids) + pemb
         maskf = valid.to(h0.dtype)
         denom = maskf.sum(dim=1, keepdim=True).clamp_min(1.0)
 
@@ -377,6 +394,7 @@ def main() -> int:
     ap.add_argument("--ramp", type=int, default=1)
     ap.add_argument("--prior-lambda", type=float, default=0.3)
     ap.add_argument("--ent-pen", type=float, default=0.0)
+    ap.add_argument("--pos-mode", default="abs", choices=("abs", "rev"))
     ap.add_argument("--emb-std", type=float, default=0.05)
     ap.add_argument("--logit-scale", type=float, default=1.0)
     ap.add_argument("--lr", type=float, default=1e-3)
@@ -407,6 +425,7 @@ def main() -> int:
         "ramp": args.ramp,
         "prior_lambda": args.prior_lambda,
         "ent_pen": args.ent_pen,
+        "pos_mode": args.pos_mode,
         "emb_std": args.emb_std,
         "logit_scale": args.logit_scale,
         "lr": args.lr,
@@ -422,6 +441,7 @@ def main() -> int:
         f"{args.iter_mode}_K{args.loops}"
         + (f"e{eval_loops}" if eval_loops != args.loops else "")
         + f"_{args.state_mode}_{args.act}_d{args.d_model}"
+        + ("_rev" if args.pos_mode == "rev" else "")
         + f"_lr{args.lr:g}_wd{args.wd:g}"
         + (f"_b{args.beta:g}" if args.iter_mode == "ponder" else "")
         + (f"_ep{args.ent_pen:g}" if args.ent_pen else "")
