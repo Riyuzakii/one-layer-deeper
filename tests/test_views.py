@@ -61,6 +61,15 @@ class SubmissionRulesPageTests(unittest.TestCase):
         self.assertIn("use a random initialization", page)
         self.assertIn("<code>torch.load</code> is not allowed", page)
         self.assertIn("No hard-coded algorithm in the forward pass", page)
+        self.assertIn("End-to-end learning only", page)
+        self.assertIn(
+            "with all input-dependent computation inside the autograd graph",
+            page,
+        )
+        self.assertIn(
+            "an unbroken gradient path from the loss to the parameters responsible for the prediction",
+            page,
+        )
         self.assertIn("Everything stays on the GPU", page)
         self.assertIn("CPU offloading is not allowed", page)
         self.assertIn("Repeated rule-breaking will get you banned", page)
@@ -73,15 +82,15 @@ class SubmissionRulesPageTests(unittest.TestCase):
             page.index('id="submission-rules-heading">Rules</h2>'),
         )
         self.assertIn(
-            "<span>04</span><p><strong>Everything stays on the GPU.",
+            "<span>05</span><p><strong>Everything stays on the GPU.",
             page,
         )
         self.assertIn(
-            "<span>05</span><p><strong>Repeated rule-breaking will get you banned.",
+            "<span>06</span><p><strong>Repeated rule-breaking will get you banned.",
             page,
         )
         self.assertIn(
-            "<span>06</span><p><strong>The metric recorder for a Hard run must not be exploited.",
+            "<span>07</span><p><strong>The metric recorder for a Hard run must not be exploited.",
             page,
         )
 
@@ -131,6 +140,16 @@ class FooterAcknowledgementTests(unittest.TestCase):
         self.assertIn("#one-layer-deeper", page)
 
 
+class CompetitionDeadlineTests(unittest.TestCase):
+    def test_shared_layout_shows_submission_deadline(self) -> None:
+        page = leaderboard_page([])
+        self.assertIn(
+            "<strong>Submission deadline:</strong> August 31 at 10:00 PM PT.",
+            page,
+        )
+        self.assertIn('aria-label="Competition submission deadline"', page)
+
+
 class CompetitionRulesLinkTests(unittest.TestCase):
     def test_leaderboard_links_to_repository(self) -> None:
         page = leaderboard_page([])
@@ -163,7 +182,8 @@ class CompetitionPrivacyTests(unittest.TestCase):
             "dataset_id": "h1",
             "dataset_label": "H1 · Hidden evaluation",
             "submitter": "Ada Lovelace",
-            "score": 0.75,
+            "max_certified_time_steps": 32,
+            "ood_n_max_certified_time_steps": 16,
             # Private fields must never be rendered even if a caller supplies them.
             "name": "secret architecture name",
             "description": "secret architecture description",
@@ -173,12 +193,15 @@ class CompetitionPrivacyTests(unittest.TestCase):
             "result": {"seeds": [{"secret": "private-seed-payload"}]},
         }
 
-    def test_leaderboard_shows_identity_file_and_score_only(self) -> None:
+    def test_leaderboard_shows_identity_file_and_max_t_only(self) -> None:
         page = leaderboard_page([self.row])
         self.assertIn("Ada Lovelace", page)
         self.assertIn("submission.py", page)
         self.assertNotIn("<th>Status</th>", page)
-        self.assertIn("75.00%", page)
+        self.assertIn("Max T", page)
+        self.assertIn("OOD N Max T", page)
+        self.assertIn('<td class="score">32</td>', page)
+        self.assertIn('<td class="score">16</td>', page)
         self.assertIn("source and run details remain private", page)
         self.assertNotIn("secret architecture", page)
         self.assertNotIn("secret-modal-call", page)
