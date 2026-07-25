@@ -138,12 +138,18 @@ control that removes the round-trip constraint.
 
 ### 4.4 Screens (archived, tags `smoke` / `lr-screen` / `wd-screen`)
 
-GRPair (the pair-phase table) memorises e1's training set to `loss=0.001, acc=1.000`
-in **under 100 steps**.  An lr screen (1e-3 / 1e-2 / 3e-2) and a weight-decay screen
-(0.1 / 0.3 / 1 / 3) were run to find a setting that does not instantly memorise: wd=1
-holds train accuracy at 0.87 and wd=3 at 0.69, and neither moves rung-1 off the floor.
-At that point the evaluator stopped being the efficient instrument and the study moved
-offline (§5), where the same question can be asked in 90 seconds instead of 8 minutes.
+GRPair (the pair-phase table) memorises e1's training set to `loss=0.001, acc=1.000` in
+**under 100 steps** (tag `smoke`); GRNet's quadratic variant does it by ~500 steps while
+its `quad=0` control only reaches 0.45. On GRNet an lr screen (1e-3 / 1e-2 / 3e-2, tag
+`lr-screen`) and a weight-decay screen (0.3 / 1 / 3, tag `wd-screen`) were run to find a
+setting that does not instantly memorise: wd=1 holds train accuracy at 0.87 and wd=3 at
+0.69 after 2000 steps, and neither moves rung-1 off the floor.
+
+At that point the evaluator stopped being the efficient instrument. A 20 000-step e1 run
+costs 5–14 minutes and returns a single number that is 0; the offline crux in §5 asks a
+sharper question in 90 seconds. The written-but-unrun `lab/sweep_grpair_long.sh` (an 8-cell
+`(K, H)` grid) was superseded by §5.1, which sweeps the same axes offline and shows they
+are all at the memorisation floor — running it would have spent an hour to re-derive that.
 
 ## 5. Why — the offline probes (this is the real content)
 
