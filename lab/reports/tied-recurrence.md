@@ -323,6 +323,18 @@ Stated plainly, because each of these was a candidate explanation before the run
    trained by the data. That removes the collapse mechanism, and it still does
    not move rung 1, because of (1).
 
+7. **A new negative that was not on the list: the tied loop does not actually
+   loop.** §6 shows the output is nearly invariant to whether the block is
+   applied 1, 2 or 4 times. Under ordinary training the shared block settles into
+   a near-identity / absorbing map and the answer is produced by the encoder and
+   read-out. Every previous "depth sweep" in this repo — including the prior
+   session's Axis A — has been measuring a model whose recurrence is nominal.
+   Any future work on depth has to *force* the loop to carry the computation:
+   randomize the iteration count per training batch so no single K is
+   privileged, and/or require the state to decode to a valid residue at every
+   iteration (`--state-mode reembed_st`), rather than assuming a residual stream
+   will discover the step on its own.
+
 **What remains:** per-step exactness on unseen operands. That is the whole
 problem, and it is upstream of every axis this branch owns.
 
