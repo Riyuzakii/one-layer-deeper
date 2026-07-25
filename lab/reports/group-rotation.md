@@ -418,9 +418,10 @@ Reasons, in order of evidential weight:
 VENV=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
 $VENV lab/make_manifest.py --dataset e1 --mode fixed_step --max-steps 2000  --seeds 74 75 76
 $VENV lab/make_manifest.py --dataset e1 --mode fixed_step --max-steps 20000 --seeds 74
-bash lab/sweep_gr_ablate.sh          # transformer ablation
+bash lab/sweep_gr_ablate.sh          # transformer ablation (8 x 3 seeds)
 bash lab/sweep_gr_long.sh            # GRNet long runs
-bash lab/sweep_grpair_long.sh        # GRPair (K,H) grid
+bash lab/sweep_griter.sh             # GRIter LOOPS sweep
+bash lab/sweep_grpair_long.sh        # GRPair (K,H) grid -- WRITTEN BUT NOT RUN, see 4.4
 
 # the offline crux (no dataset access, ~90s each)
 $VENV lab/probe_step.py --freqs 32 --harm 8 --steps 20000          # learned  -> held-out 0.00
@@ -433,4 +434,15 @@ $VENV lab/probe_iter.py --time-steps 4 8 16                         # deep T    
 ```
 
 Every evaluator run is archived in `lab/archive.jsonl` (tags `baseline`, `gr-ablate`,
-`grnet-long`, `grpair-grid`, `diag`, plus `smoke`/`lr-screen`/`wd-screen` screens).
+`grnet-long`, `griter`, `diag`, plus `smoke` / `lr-screen` / `wd-screen` / `speed`
+screens) — 39 runs this session, none deleted, including the ones that contradict the
+hypothesis. The offline studies are ~25 further runs, reproducible from the commands
+above.
+
+## 11. Deliverable submission
+
+`submissions/group-rotation/submission.py` is GRIter (§4.3). It is delivered because it
+is the architecture that embodies this branch's one positive finding — iterating a single
+shared block, with composition depth learned from the prompt — **not** because it beats
+anything: like every other variant here it scores `MAX_T = 0` on e1, the same as the
+baseline. Per-variant copies live in `submissions/group-rotation/<name>/submission.py`.
