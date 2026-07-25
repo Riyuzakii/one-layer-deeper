@@ -65,6 +65,9 @@ def main() -> int:
     ap.add_argument("--moduli", type=int, default=8, help="moduli per bit width")
     ap.add_argument("--x-per-modulus", type=int, default=400)
     ap.add_argument("--slots", type=int, default=0, help="0 = from the widest N")
+    ap.add_argument("--reduce-mode", default="serial",
+                    choices=["serial", "binary", "quotient"])
+    ap.add_argument("--max-quot", type=int, default=10)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--device", default="cuda:0")
     args = ap.parse_args()
@@ -78,11 +81,17 @@ def main() -> int:
             seen.add(sample_semiprime(b, rng))
         mods += sorted(seen)
     S = args.slots or max(len(str(m)) for m in mods)
-    model = DigitALU(S).to(device)
+    model = DigitALU(S, reduce_mode=args.reduce_mode,
+                     max_quot=args.max_quot).to(device)
     model.construct()
     model.eval()
     n_par = sum(p.numel() for p in model.parameters())
+    d = model.depth()
+    over = [m for m in mods if (args.max_quot + 1) * m >= 10 ** (S + 1)]
+    if over:
+        print(f"WARNING: (Q+1)*N overflows W={S+1} slots for {len(over)} moduli")
     print(f"one CONSTRUCTED parameter vector, params={n_par:,}, slots={S}, "
+          f"mode={args.reduce_mode}, depth={d['main']} (+{d['prefix']} prefix), "
           f"applied to {len(mods)} unseen moduli\n")
     print(f"{'N':>7} {'bits':>4} {'units':>7} {'tested':>7} {'exact':>7}")
     print("-" * 38)
