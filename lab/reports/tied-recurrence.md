@@ -384,9 +384,11 @@ Stated plainly, because each of these was a candidate explanation before the run
    session's Axis A — has been measuring a model whose recurrence is nominal.
    Any future work on depth has to *force* the loop to carry the computation:
    randomize the iteration count per training batch so no single K is
-   privileged, and/or require the state to decode to a valid residue at every
-   iteration (`--state-mode reembed_st`), rather than assuming a residual stream
-   will discover the step on its own.
+   privileged, rather than assuming a residual stream will discover the step on
+   its own. Note that the intuitive fix — requiring the state to decode to a
+   valid residue at every iteration, `--state-mode reembed_st` — was tested and
+   **does not** break the invariance (§6.1): a discretized state is a map on a
+   finite set and simply acquires a fixed-point attractor instead.
 
 **What remains:** per-step exactness on unseen operands. That is the whole
 problem, and it is upstream of every axis this branch owns.
@@ -412,13 +414,30 @@ token manifold by a straight-through hard argmax (`--state-mode reembed_st`,
 which is the strongest on-manifold mechanism in the brief and the one that
 should break the gauge freedom of §6.1):
 
-| internal iterations at eval | T=1 | T=2 | T=4 | T=8 | T=16 | T=32 | T=64 | test |
-|---|---|---|---|---|---|---|---|---|
-| 4 (as trained), `reembed_st` | 0.000 | 0.000 | 0.000 | 0.026 | 0.026 | 0.105 | 0.000 | 0.020 |
+| internal iterations at eval | T=1 | T=2 | T=4 | T=8 | T=16 | T=32 | T=64 | test | test CE |
+|---|---|---|---|---|---|---|---|---|---|
+| 4 (as trained), `reembed_st` | 0.000 | 0.000 | 0.000 | 0.026 | 0.026 | 0.105 | 0.000 | 0.027 | 3.4698 |
+| 64, `reembed_st` | 0.000 | 0.000 | 0.000 | 0.026 | 0.026 | 0.105 | 0.000 | 0.027 | 3.4728 |
 
-It is also at the floor. Forcing the state to be a real digit string does not
-recover per-step exactness — consistent with §5(1): there is no step map to keep
-on-manifold yet.
+It is also at the floor — forcing the state to be a real digit string does not
+recover per-step exactness, consistent with §5(1). **And it does not break the
+K-invariance either**: 4 vs 64 iterations give identical accuracy on all seven
+rungs and a per-token cross-entropy differing by 0.003 (0.09%). That result
+falsifies the fix I proposed in the first draft of §6.1 and §8; the corrected
+version is below.
+
+For reference, the per-token cross-entropy of the `res` model under
+extrapolation (ln(17) = 2.833 is uniform):
+
+| eval iterations | 8 | 16 | 64 |
+|---|---|---|---|
+| `res`, test CE | 4.950 | 4.961 | 4.973 |
+
+Run deeper than it was trained, the residual model becomes *confidently wrong* —
+CE well above uniform — while its argmax predictions barely move. The logits are
+not literally frozen (CE drifts by 0.5% from K=8 to K=64), so the core is
+near-identity rather than exactly identity, but the drift never crosses a
+decision boundary.
 
 Two things to read off, both negative and both informative:
 
@@ -456,10 +475,29 @@ So "identity core" is not merely a degenerate solution, it is a solution the
 loss cannot see the depth of: **additive input injection into an unnormalized
 residual stream, read out through a norm, makes the iteration count a gauge
 freedom.** Gradient descent takes the shortest path to fitting the training set
-and lands there. Anyone continuing the depth line should break that degeneracy
-explicitly — randomize K per training batch, normalize the state each iteration,
-or force the state to decode to a valid residue every iteration
-(`--state-mode reembed_st`) — before concluding anything about depth.
+and lands there.
+
+**The obvious fix does not work, and I measured it.** Re-embedding the state
+onto the token manifold each iteration (`--state-mode reembed_st`) removes the
+scale gauge freedom — the state is re-normalized and re-embedded every step, so
+`h_K = (K+1)·base` no longer applies. It is nevertheless *equally* K-invariant
+(table above). The reason is a second, independent collapse mechanism: with a
+straight-through hard argmax the state is a point in a **finite** set, so
+iterating it is a map on a finite set and must reach a cycle; here it reaches a
+fixed point within 4 steps. Discretizing the state does not prevent an
+absorbing state, it guarantees one.
+
+So there are two distinct routes to the same collapse:
+
+1. `res` + additive injection + pre-norm read-out — a *scale* gauge freedom;
+2. `reembed_st` — a genuine *discrete attractor*.
+
+Neither is fixed by the other. What remains untested — and is now the concrete
+next experiment for anyone continuing the depth line — is making the iteration
+count something the loss can *see*: **randomize K per training batch** so no
+single K is privileged and the block must be correct at several depths at once,
+and/or supervise distinct iterations to decode to distinct answers. Until one of
+those is in place, no depth result in this repo is about a model that iterates.
 
 ## 7. Eval-budget feasibility for deep configs
 
@@ -537,10 +575,12 @@ Three secondary items worth acting on immediately:
 * **Anyone still working on depth must first break the gauge freedom in §6.1.**
   `h ← core(h + base)` plus a pre-norm read-out makes the iteration count
   invisible to the loss, and the model reliably collapses to an identity core.
-  Fix it by normalizing the state each iteration, randomizing K per training
-  batch so no single K is privileged, and/or forcing the state to decode to a
-  valid residue every iteration. Until then, any depth result in this repo is
-  about a model that is not iterating.
+  The intuitive fix (force the state to decode to a valid residue each
+  iteration) was tested and **fails** — a discretized state just acquires a
+  fixed-point attractor instead (§6.1). The untested and now most promising
+  option is to **randomize K per training batch**, so the loss can see the
+  iteration count at all. Until then, any depth result in this repo is about a
+  model that is not iterating.
 
 * **`batch_size=64` instead of the manifest's 512 gives 5.4× more optimizer
   steps in the same wall clock** on Easy (§3). e1 has ~600 training rows, so
