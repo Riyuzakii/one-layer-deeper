@@ -561,47 +561,59 @@ this hypothesis family: **any** recurrent digit-arithmetic model has to solve it
 
 ## 11. What survives, and the single highest-value recommendation
 
-**Recommendation: stop trying to make `T` free. Put the budget on a weight-tied recurrent
-block whose single step is *discrete* digit arithmetic (per-digit classification with
-carries, not a continuous phase), make a row with time-step `T` actually pass through `T`
-applications rather than a soft blend, and screen every candidate architecture with
-`lab/probe_step.py` — 90 seconds, self-generated data — before spending an evaluator run
-on it.**
+**Recommendation: the score is gated by three independent bottlenecks, and only one of them
+is the arithmetic everyone has been working on. Attack them in this order — (1) a readout
+that is compositional in the digits, (2) prompt-to-slot parsing, (3) the recurrent step —
+and screen with `lab/probe_learnability.py`, not with a parsed-input probe.**
 
-Reasons, in order of evidential weight:
+### The three bottlenecks, with what each is worth
 
-1. The only lever that moved held-out accuracy at all (0.000 -> 0.254 over 3 seeds) was
-   **composing one shared block**, and composition extrapolates in `T` perfectly on values
-   the model can handle (`T<=3` training -> `T=8` at 1.000 on seen `x`). The iteration
-   half of "one layer deeper" is *solved*; the bottleneck is entirely the per-step map,
-   exactly as `findings.md` concluded under the old metric — this branch now supplies the
-   mechanism.
-   *Immediate, cheap follow-up:* GRIter already implements the iterated block but its soft
-   depth selector dissolves the constraint (§4.3). Annealing that selector to one-hot, or
-   penalising its entropy via `training_loss`/`aux`, is a few lines and is the single most
-   likely way to port the 0.254 offline gain into the evaluator.
-2. Certification needs 38/38. Anything that carries a value in a *continuous* phase needs
-   the phase commensurate with `N` to 1e-5, and nothing in the training signal supplies
-   that. A representation that is **discrete in the value** (per-digit classification with
-   carries, i.e. an exact-arithmetic step) has no such needle. The `exact-arithmetic`
-   branch is where the remaining probability mass is.
-3. **Screen in two stages** (§9). `lab/probe_step.py` / `probe_sel.py` cost ~90 s and
-   kill a candidate's arithmetic core cheaply, but they hand the model parsed input and
-   so over-state it by ~0.25. `lab/probe_learnability.py` loads the *real submission* and
-   feeds it real prompts; it tracked the evaluator to within one example on every
-   candidate here. Kill with the first, believe only the second.
-4. **Solve prompt parsing as its own subproblem.** It costs 0.25 → 0.00 all by itself
-   (§9) and it is architecture-independent, so it is worth someone's whole session
-   regardless of which arithmetic core wins.
-5. **Above e1, the representation alone stops being sufficient.** On e2's `N=899` even the
-   *oracle* group representation tops out at 0.61 held-out from 250 training `x`, because
-   the training set no longer covers the distinct squares (§6.3). Certification on the
-   larger tiers therefore needs a readout that is itself structured in the value (digits +
-   carries), not a table over `Z_N` — another argument for the exact-arithmetic route.
-6. If anyone does revisit Fourier features, the scale-free `code(x)^2/(code(N) code(1))`
+| # | bottleneck | status | evidence |
+|---|---|---|---|
+| 1 | **iteration count / depth in `T`** | **SOLVED** | one weight-tied block, trained on `T<=3`, is at 1.000 on `T=8` for seen `x` (§5.6). Routing `T -> step count` is also solved: ordered pointer + randomised depth budget + annealed window, 0.000 -> 0.254 = the oracle ceiling (§8) |
+| 2 | **per-step arithmetic on unseen values** | open, and **capped** | a value-indexed readout is bounded by the coverage ceiling: 1.000 at e1, **0.614 at e2, 0.031 at m1** (§7). A continuous-phase carrier additionally needs its frequency right to 1e-5 with no gradient pointing there (§5.3) |
+| 3 | **prompt -> place-valued digit slots** | open, **unrecognised until now** | worth 0.25 exact accuracy on its own: the identical architecture scores 0.254 on parsed input and 0.000–0.026 on the real prompt (§9) |
+
+### Reasons, in order of evidential weight
+
+1. **The coverage ceiling (§7) is the finding that should change other branches' plans.**
+   With a *perfect* representation and the generator's 250 training `x`, held-out accuracy
+   is 1.000 at e1 but 0.614 at e2 and 0.031 at m1 — and a closed-form combinatorial
+   quantity predicts those exactly. Any readout that is an arbitrary function of the
+   residue (Fourier readout, softmax over `Z_N`, embedding table, learned permutation) is
+   capped by it. **e1 is the only public dataset where such a readout can certify even
+   T=1.** The escape is a readout compositional in the digits — per-digit prediction with
+   carries — which generalises to residues never seen. This is a quantitative argument for
+   the exact-arithmetic route that does not depend on my hypothesis at all.
+2. **Prompt parsing deserves its own session (§9).** It is architecture-independent, it
+   costs everything downstream, and it was invisible until the same model was run on parsed
+   vs unparsed input. `x` sits at positions `5..4+len(x)` so absolute position does not fix
+   place value; distance-from-the-end does, but only while the `T` field has constant width
+   — and the ladder's `T=16/32/64` are two digits where training's `T=1,2,3` are one. Adding
+   a reverse-position table recovered only 0.000 -> 0.026, so this needs a real idea, not a
+   tweak.
+3. **Do not spend more runs on making `T` free or on the depth selector.** Both are
+   settled: `T`-freedom is impossible for this input format (§2, §10.1), and the selector
+   is fixed (§8). Note in particular that the *intuitive* selector fix — an entropy penalty
+   — is wrong: it makes the selector sharp but `T`-independent and fits worse. Depth must
+   be treated as an **ordered** quantity.
+4. **Screen in two stages (§9).** `lab/probe_step.py` / `probe_sel.py` cost ~90 s and kill a
+   candidate's arithmetic core cheaply, but they hand the model parsed input and so
+   over-state a submission by ~0.25. `lab/probe_learnability.py` loads the *real
+   submission* and feeds it real prompts; it tracked the evaluator to within one example on
+   every candidate here. **Kill with the first, believe only the second.**
+5. If anyone does revisit Fourier features, the scale-free `code(x)^2/(code(N) code(1))`
    construction in §5.5a is the right shape — it removes the flat direction and would
-   transfer across sampled-`N` — but it needs the digit/place code supplied or trained
-   with a ~1e-7 learning rate, and supplying it is hand-writing the value decoder.
+   transfer across sampled-`N` — but it needs the digit/place code supplied or trained with
+   a ~1e-7 learning rate, and supplying it is hand-writing the value decoder.
+
+### Honest expected value
+
+Even with all three bottlenecks solved at e1, this family tops out where the coverage
+ceiling puts it, and at e2 and above that is below certification. **The realistic target
+for the whole team is `MAX_T = 1` on Easy with a fixed modulus**, via a digit-compositional
+recurrent step; anything beyond that needs a per-step map that generalises across residues,
+which is exactly the exact-arithmetic problem and not an optimisation problem.
 
 ## 12. Not attempted / out of scope
 
