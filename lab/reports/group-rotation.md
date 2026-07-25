@@ -136,6 +136,27 @@ control that removes the round-trip constraint.
 
 <!--GRITER_TABLE-->
 
+**It does not reproduce the offline gain, and the selector diagnostic says why.** Dumping
+the weights of a GRIter LOOPS=4 run and reading the selector's output on synthetic prompts
+(`lab/diagnose_gr.py` probe [6]):
+
+```
+T= 1  weights=[0.357, 0.497, 0.074, 0.072]  entropy=1.097 (max 1.386)
+T= 2  weights=[0.409, 0.022, 0.422, 0.147]  entropy=1.097
+T= 4  weights=[0.850, 0.150, 0.000, 0.000]  entropy=0.424
+T=64  weights=[0.039, 0.878, 0.074, 0.009]  entropy=0.475
+```
+
+The selector never learns `T -> step count`: it is diffuse, it puts almost all mass on
+steps 1–2 regardless of `T`, and steps 3–4 are effectively dead. A *soft blend* of
+composition depths lets the model satisfy every training row without ever performing a
+clean round trip — so the constraint that produced the offline gain (§5.6, where each
+depth is supervised separately) is dissolved by the very mechanism that was supposed to
+make `T` learnable. **Concrete fix for whoever picks this up: anneal the selector towards
+one-hot (or add an entropy penalty through `training_loss`/`aux`, which the evaluator
+allows), so that a row with time-step `T` is actually forced through `T` applications of
+the block.**
+
 ### 4.4 Screens (archived, tags `smoke` / `lr-screen` / `wd-screen`)
 
 GRPair (the pair-phase table) memorises e1's training set to `loss=0.001, acc=1.000` in

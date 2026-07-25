@@ -96,6 +96,8 @@ def main() -> int:
             max_len = value.shape[0] // 17
         elif key == "readout" and value.ndim == 3:
             max_len = value.shape[0]
+        elif key == "slot_bias":
+            max_len = value.shape[0]
     if max_len is None:
         raise SystemExit("could not infer max_seq_len from checkpoint")
 
@@ -224,6 +226,26 @@ def main() -> int:
             f"median={np.median(pr):.1f} min={pr.min():.1f} "
             f"(small => sparse/Fourier; ~{spec.shape[0] / 3:.0f} => dense/dense-memorisation)"
         )
+
+    if hasattr(model, "selector"):
+        # GRIter: is the learned depth selector actually using more than one step?
+        print("\n[6] learned composition-depth selector")
+        prompts = [build_prompt(modulus, units[0], t) for t in args.ladder]
+        ids, mask = make_batch(prompts, max_len, device)
+        acts: dict[str, torch.Tensor] = {}
+        h = model.selector.register_forward_hook(
+            lambda _m, _i, out: acts.__setitem__("sel", out.detach().float().cpu())
+        )
+        with torch.no_grad():
+            model(ids, mask)
+        h.remove()
+        weights = torch.softmax(acts["sel"], dim=-1)
+        for t, row in zip(args.ladder, weights):
+            ent = float(-(row * (row + 1e-12).log()).sum())
+            print(
+                f"    T={t:>2}  weights={[round(float(v), 3) for v in row]}  "
+                f"entropy={ent:.3f} (max {float(torch.tensor(len(row)).float().log()):.3f})"
+            )
 
     print("\n[5] singular-value structure of the learned tables")
     for key, value in state.items():
