@@ -287,7 +287,9 @@ the iteration count equals T exactly.
 | K=4 PonderNet (β=0.01, warmup 2000) | 0.026 | 0.000 | 0.026 | 0.026 | 0.000 | 0.000 | 0.000 | 0.020 | 0.020 |
 | K=4 **tgather** (iteration count = T exactly; *diagnostic only, compliance-uncertain*) | 0.000 | 0.000 | 0.026 | 0.000 | 0.026 | 0.000 | 0.053 | 0.007 | 0.018 |
 
-**This is the decisive row.** `tgather` is the ideal-halting upper bound: the
+| K=4 fixed + `rev` positions | 0.000 | 0.026 | 0.000 | 0.079 | 0.000 | 0.026 | 0.000 | 0.033 | 0.032 |
+
+**The `tgather` row is the decisive one.** `tgather` is the ideal-halting upper bound: the
 iteration count is set to the true T, so the tied step map receives exactly the
 composition supervision the hypothesis is built on (for a training row with T=3
 the step must be right at `x`, `x²` and `x⁴`). It does **not** move rung 1.
