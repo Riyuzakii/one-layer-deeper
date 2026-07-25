@@ -141,6 +141,10 @@ control that removes the round-trip constraint.
 | GRIter LOOPS=2 slots=4 e1 20k | **0** | 0.026 | 0.026 | 0.026 | 0.132 | 0.000 | 0.026 | 0.079 | 0.0433 |
 | GRIter LOOPS=4 | **0** | 0.026 | 0.000 | 0.026 | 0.079 | 0.026 | 0.053 | 0.000 | 0.0333 |
 
+(A `LOOPS=8` cell was still running when this was written; it is not needed for the
+conclusion — the `LOOPS` axis is already flat from 1 to 4, and §4.3's selector diagnostic
+below explains why deeper loops cannot help as the architecture stands.)
+
 **It does not reproduce the offline gain, and the selector diagnostic says why.** Dumping
 the weights of a GRIter LOOPS=4 run and reading the selector's output on synthetic prompts
 (`lab/diagnose_gr.py` probe [6]):
