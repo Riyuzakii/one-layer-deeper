@@ -479,6 +479,26 @@ model size; it would only bind for a much wider model or a much longer sequence.
 Model state is 0.40 M elements against the 500 M ceiling (0.08%), so width is
 free if anything ever needs it.
 
+## 7.1 Scope / what did not finish
+
+The GPU was shared by four agents for the whole session (peaks of ~50 concurrent
+runner processes), so wall clock per run was roughly 2–3× the idle-machine
+figure. Every accuracy comparison above uses fixed-step manifests and is
+therefore unaffected; what contention cost was *coverage*. Specifically these
+were started, archived where they completed, and left running:
+
+* `lab/tied_e1_grok.sh` runs 2–4 (wd=1.0 and the on-manifold/halting variants at
+  20 k steps) — **cancelled** after run 1 answered the grokking question.
+* `lab/tied_phase2.sh` (step-map nonlinearity on e1, 3 seeds) — **cancelled**
+  after the e1 floor was established by five independent single-seed runs.
+* `lab/tied_tiny.sh` configs 2–5 and `lab/tied_e1_extrap.sh`'s `reembed_st`
+  points — still running at write-up time; they append to `lab/archive.jsonl`
+  via `run_experiment.py` as they land and can be read with
+  `python lab/tied_table.py T7-tiny T3-extrap`.
+
+None of the cancelled work would change §5: the constraint identified there is
+upstream of all of it.
+
 ## 8. Recommendation — one thing
 
 **Get one squaring step exact on held-out operands, on the smallest fixed-N
