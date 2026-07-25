@@ -125,7 +125,18 @@ indexing under which a decimal place value is well defined when x has variable l
 also null.  Train accuracy reaches 1.000 within ~100-1000 steps in every one of these
 runs (see `train_curve` in `lab/archive.jsonl`), so all 20 000 steps are post-memorisation.
 
-### 4.3 Screens (archived, tags `smoke` / `lr-screen` / `wd-screen`)
+### 4.3 GRIter — iterating one shared phase block (e1, 20 000 fixed steps, seed 74)
+
+The offline result of §5.6 ported to the real prompt: learned slot queries read the
+prompt into S soft digit slots, ONE shared pairwise-phase block is applied `LOOPS` times
+with a soft-digit round trip between steps, and a learned selector pooled from the prompt
+(which contains the `T` field) mixes the step outputs — so composition depth is *learned
+from the prompt*, not set by Python control flow over `input_ids`. `LOOPS=1` is the
+control that removes the round-trip constraint.
+
+<!--GRITER_TABLE-->
+
+### 4.4 Screens (archived, tags `smoke` / `lr-screen` / `wd-screen`)
 
 GRPair (the pair-phase table) memorises e1's training set to `loss=0.001, acc=1.000`
 in **under 100 steps**.  An lr screen (1e-3 / 1e-2 / 3e-2) and a weight-decay screen
@@ -331,9 +342,10 @@ group representation alone would not be enough even if it were found.**
    discrete-log lookup on the value, which provably cannot generalise to a held-out `x`.
    The compositional (additive-character) encoder makes squaring a degree-2 map, so `T`
    costs `2^T` degree — depth, not a phase multiplier.
-2. **A learned `T`-conditioned angle multiplier buys nothing** (`a6_tcond`, `gp_tcond`):
-   at every step count it is indistinguishable from the control. It has nothing to
-   multiply, because the state's phase is not a group element's phase.
+2. **A learned `T`-conditioned angle multiplier buys nothing** (`a6_tcond`, 3 seeds):
+   rung-1 0.009 vs control 0.000, mean 0.0350 vs 0.0278 — indistinguishable. It has
+   nothing to multiply, because the state's phase is not a group element's phase (§6.1:
+   0/8 channels are quadratic in `x`).
 3. **Bilinear / multiplicative mixers, complex-rotation sublayers, outer-product pooling,
    Fourier readouts and untying the head are all null** on the metric: every variant is at
    `MAX_T = 0` and rung-1 within one example of the control.
@@ -342,6 +354,10 @@ group representation alone would not be enough even if it were found.**
    direction that matters.
 5. **Small `K` / large `H` / strong weight decay do not force the Fourier solution** — the
    bottleneck that would prevent memorisation also prevents fitting (§5.5b).
+6. **The rung profile shows no exponent structure.** `2^T mod phi` makes T=8 and T=32 the
+   same exponent, and T=16 and T=64 the same, so a model with any `T` structure would
+   succeed or fail on those rungs together. Across all 22 evaluator runs they move
+   independently and all sit at chance (§6.1).
 
 ## 8. What survives, and the single highest-value recommendation
 
@@ -364,7 +380,12 @@ Reasons, in order of evidential weight:
 3. `lab/probe_step.py` costs ~90 seconds and answers "can this architecture generalise to
    held-out `x` at all" far more sharply than a 20 000-step evaluator run. Every
    architecture should be screened there first. `--oracle` gives the achievable ceiling.
-4. If anyone does revisit Fourier features, the scale-free `code(x)^2/(code(N) code(1))`
+4. **Above e1, the representation alone stops being sufficient.** On e2's `N=899` even the
+   *oracle* group representation tops out at 0.61 held-out from 250 training `x`, because
+   the training set no longer covers the distinct squares (§6.3). Certification on the
+   larger tiers therefore needs a readout that is itself structured in the value (digits +
+   carries), not a table over `Z_N` — another argument for the exact-arithmetic route.
+5. If anyone does revisit Fourier features, the scale-free `code(x)^2/(code(N) code(1))`
    construction in §5.5a is the right shape — it removes the flat direction and would
    transfer across sampled-`N` — but it needs the digit/place code supplied or trained
    with a ~1e-7 learning rate, and supplying it is hand-writing the value decoder.
