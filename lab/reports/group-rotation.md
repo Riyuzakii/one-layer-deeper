@@ -382,7 +382,7 @@ The single-step model has essentially *zero* mod-`N` structure beyond what memor
 members of a pair gives you for free.  Iterating buys a real but small excess — the same
 ordering as the held-out accuracy (0.000 -> 0.237).
 
-### 6.3 Cross-modulus check (e2's N=899)
+### 6.3 Cross-modulus check (e2's N=899) — generalised in §7
 
 The same offline crux, `digits(v) -> digits(v^2 mod 899)` from 250 of 840 units:
 
@@ -398,7 +398,7 @@ distinct squares, so the readout is genuinely underdetermined.  **On e2 and abov
 group representation alone would not be enough even if it were found.**
 
 
-## 6A. THE COVERAGE CEILING — a hard bound on any value-indexed readout
+## 7. THE COVERAGE CEILING — a hard bound on any value-indexed readout
 
 This is the most transferable number in the report and it is not specific to my
 architecture. Take the **oracle** setup of §5.2 (phases frozen at the exact additive
@@ -448,7 +448,7 @@ for cfg in "323 3 161" "899 3 449" "2021 4 1010" "10403 5 5201"; do
 done
 ```
 
-## 6B. Making `T` applications actually happen (the selector fix)
+## 8. Making `T` applications actually happen (the selector fix)
 
 §4.3 showed GRIter's learned soft selector never learns `T -> step count`. `lab/probe_sel.py`
 reproduces GRIter's *training setting* offline (one target per row, a selector that must
@@ -490,7 +490,7 @@ selector was never the ceiling — the per-step arithmetic is. This is a mechani
 not a score moved.
 
 
-## 6C. Probe validity — where the offline gain is actually lost
+## 9. Probe validity — where the offline gain is actually lost
 
 The coordinator asked which candidates the probe passed and then failed in the evaluator.
 The answer is sharp, and it identifies a bottleneck nobody had isolated.
@@ -526,7 +526,7 @@ that hands the model *parsed* input. So:
 That last point is independently actionable and cheap to attack, and it is not specific to
 this hypothesis family: **any** recurrent digit-arithmetic model has to solve it first.
 
-## 7. What is falsified
+## 10. What is falsified
 
 1. **"Squaring is a rotation, so any `T` is free at constant depth."** Falsified for this
    input format. The rotation lives in multiplicative characters, whose encoder is a
@@ -550,7 +550,7 @@ this hypothesis family: **any** recurrent digit-arithmetic model has to solve it
    succeed or fail on those rungs together. Across all 22 evaluator runs they move
    independently and all sit at chance (§6.1).
 
-## 8. What survives, and the single highest-value recommendation
+## 11. What survives, and the single highest-value recommendation
 
 **Recommendation: stop trying to make `T` free. Put the budget on a weight-tied recurrent
 block whose single step is *discrete* digit arithmetic (per-digit classification with
@@ -576,13 +576,13 @@ Reasons, in order of evidential weight:
    that. A representation that is **discrete in the value** (per-digit classification with
    carries, i.e. an exact-arithmetic step) has no such needle. The `exact-arithmetic`
    branch is where the remaining probability mass is.
-3. **Screen in two stages** (§6C). `lab/probe_step.py` / `probe_sel.py` cost ~90 s and
+3. **Screen in two stages** (§9). `lab/probe_step.py` / `probe_sel.py` cost ~90 s and
    kill a candidate's arithmetic core cheaply, but they hand the model parsed input and
    so over-state it by ~0.25. `lab/probe_learnability.py` loads the *real submission* and
    feeds it real prompts; it tracked the evaluator to within one example on every
    candidate here. Kill with the first, believe only the second.
 4. **Solve prompt parsing as its own subproblem.** It costs 0.25 → 0.00 all by itself
-   (§6C) and it is architecture-independent, so it is worth someone's whole session
+   (§9) and it is architecture-independent, so it is worth someone's whole session
    regardless of which arithmetic core wins.
 5. **Above e1, the representation alone stops being sufficient.** On e2's `N=899` even the
    *oracle* group representation tops out at 0.61 held-out from 250 training `x`, because
@@ -594,18 +594,18 @@ Reasons, in order of evidential weight:
    transfer across sampled-`N` — but it needs the digit/place code supplied or trained
    with a ~1e-7 learning rate, and supplying it is hand-writing the value decoder.
 
-## 9. Not attempted / out of scope
+## 12. Not attempted / out of scope
 
 * Sampled-`N` datasets (`e5`, `hp3`): the plan was to test transfer only if something
   worked on fixed `N`. Nothing did, so these were not run — a fixed-`N` failure is
   strictly easier than a sampled-`N` one.
-* `e2` / `m1` evaluator runs: §6A now gives a stronger reason than "not justified" — the
+* `e2` / `m1` evaluator runs: §7 now gives a stronger reason than "not justified" — the
   *oracle* ceiling at e2 is 0.614 and at m1 is 0.031, so certification there is impossible
   for this family regardless of training. `probe_iter` separately shows the deeper-`T`
   regime diverges from random init.
 * Nothing was submitted to the hosted service. No `one-layer login` / `submit` was run.
 
-## 10. Reproduction
+## 13. Reproduction
 
 ```bash
 VENV=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
@@ -647,7 +647,7 @@ screens) — 40+ runs this session, none deleted, including the ones that contra
 hypothesis. The offline studies are ~25 further runs, reproducible from the commands
 above.
 
-## 11. Deliverable submission
+## 14. Deliverable submission
 
 `submissions/group-rotation/submission.py` is GRIter (§4.3). It is delivered because it
 is the architecture that embodies this branch's one positive finding — iterating a single
