@@ -49,7 +49,8 @@ in `lab/findings.md`:
 | e4 | sampled 11/12-bit | **2 only** | 256 | **no** |
 | e5 | sampled 10/11-bit | 1,2,3 | 256 | yes |
 | m1,m2 | fixed 10403 / 38021 | 4,8,16 | 192 / 768 | **no** |
-| m3,m4 | sampled | 2 / 8 only | 256 | m3 no, m4 no |
+| m3 | sampled 11/13/15-bit | **2 only** | 256 | **no** |
+| m4 | sampled 14/18/22-bit | **8 only** | 256 | **no** |
 | m5 | sampled 12/14/16-bit | 2,4,8 | 256 | **no** |
 
 1. **On every Medium dataset and on e3/e4, rung T=1 is out of distribution in
@@ -61,8 +62,8 @@ in `lab/findings.md`:
 2. **e1's rung is only 38 examples, and the accuracy scale there is 1/38 =
    0.026.** Everything the previous session measured on e1 (0.013–0.079) is
    0–3 correct examples. As a place to detect a representation effect, e1 has
-   almost no signal — which is why the runs below add `e2` (40), `e5` (256) and
-   two purpose-built probes with 256-example rungs.
+   almost no signal — which is why the runs below also use `e5` (256-example
+   rungs, T=1 in training) and two purpose-built probes with 256-example rungs.
 3. e1's `--depth_evaluation_exhaustive_x true` means the depth cohort is
    *literally every unit of 323 not used elsewhere*: φ(323)=288, 250 go to
    train/test/ood, **38 are held out**. Certifying T=1 on e1 therefore means
@@ -277,9 +278,28 @@ a model that has actually learned "square the digits and reduce". Combined with
 the gap is not going to be closed by a better embedding, and it puts a hard floor
 on what any purely-interpolating approach can score.
 
-### 3.6 Sampled-N (`e5`) and the grokking regime
+### 3.6 Sampled-N (`e5`, 256-example rungs, T=1 in training)
 
-(see tables below)
+```bash
+$V lab/make_manifest.py --dataset e5 --mode fixed_step --max-steps 2000 --seeds 74
+bash lab/repr_par.sh lab_e5_fs2000_s74 repr-sampledn r0_base r6_slotsep
+```
+
+| config | train acc @1800 | `test` | rung T=1 (of 256) |
+|--------|----------------:|-------:|------------------:|
+| flat | 0.94 | 0.0033 | 0.0078 (2/256) |
+| slots_sep | 0.93 | 0.0067 | 0.0000 (0/256) |
+
+Same shape as everywhere else — 93–94 % of the training set memorised, ~0.5 % of
+held-out prompts right, no representation difference. This is the finest grid in
+the study (1/256 = 0.004) and it still shows nothing.
+
+### 3.7 The grokking regime — does place alignment change *when* it groks?
+
+The sharpened version of the hypothesis: if the model memorises because
+memorisation is the cheapest solution, then under strong weight decay and long
+training the representation that gives the *algorithm* the shortest description
+should transition first. e1, wd = 1.0, **20 000 steps** (10× the screen):
 
 ## 4. What is falsified
 
@@ -288,11 +308,14 @@ on what any purely-interpolating approach can score.
 1. **Field-aware embeddings** — no effect (rung-1 0.000 vs baseline 0.026; both
    inside a 1-example floor).
 2. **Digit-position-within-field embeddings** — no effect.
-3. **LSD-first internal ordering** — no effect. (Worth recording *why* this was
-   never likely: a bidirectional transformer with learned positional embeddings
-   is equivariant to any fixed permutation of positions, so a pure re-ordering
-   is a no-op on the function class. The only content in "LSD-first" is the
-   *indexing*, which is axis 2/4, and that is what was tested.)
+3. **LSD-first internal ordering** — no effect (`slots_sep`, `slots_sum`). One
+   thing worth recording so nobody re-runs the trivial version: a *uniform*
+   reversal of the whole sequence is a no-op for a bidirectional transformer
+   with learned position embeddings, since permuting positions and permuting the
+   position table together leave the function class unchanged. The content of
+   "LSD-first" is therefore entirely in the *place indexing* and in making the
+   layout canonical across examples of different digit counts — which is what
+   the slot layouts implement and what was tested here.
 4. **Abacus / shared place-value index** — no effect.
 5. **Output head design** (place-aligned readout, per-place heads, dedicated
    answer slots) — no effect on generalisation.
@@ -359,4 +382,58 @@ Input/output representation for this task. Not because the ideas are wrong —
 place alignment is the correct way to encode the problem and it does measurably
 speed up fitting — but because §3.2 shows the model is not representation-limited
 at any point on the data-volume curve.
+
+## 6. The submission
+
+`submissions/exact-arithmetic/submission.py` — the place-aligned slot layout
+(`LAYOUT="slots_sep"`, no absolute position embedding), D=128, 4 heads, 8
+weight-tied loops, AdamW lr 1e-3 wd 0.1, plain CE.
+
+**It does not beat the baseline on the metric.** MAX_T = 0, exactly like every
+other configuration in this report and like the previous session's best. I am
+shipping it rather than the flat baseline for three reasons that are measured,
+not asserted:
+
+1. it removes the readout misalignment verified in §1.1 (place-exact readout
+   that does not shift when `x` or `T` gains a digit — the latter happens at
+   rungs 16/32/64);
+2. it memorises ~35 % faster in steps, replicated over 3 seeds with
+   non-overlapping ranges (§3.3), which is hardware-independent and so transfers
+   to H100;
+3. shorter sequences (2·places + digits-of-T instead of the full prompt) make
+   both training and the 14-rung evaluation cheaper, and eval budget is a real
+   failure mode on the deeper tiers.
+
+Checks run: source lint via `submission_validation.validate_submission_source`
+(passes), and a **deliberate wall-clock feasibility run** on the real Easy 60 s
+manifest (`lab/manifests/lab_e1_wc60_s74.json`, tag `repr-feasibility`) — 332
+steps in 60.0 s on a heavily contended shared GPU, and all 14 rungs plus
+`test`/`ood` completed inside the half-budget evaluation window with no
+`not_completed` rung. Timing is B300-and-contention-local; the *fit-in-budget*
+conclusion is what matters.
+
+## 7. Compliance record
+
+* Nothing under `data/generated/` was read, printed, sampled or summarised.
+  Every structural claim comes from `data/squaring_mod.py`,
+  `scripts/generate_datasets.sh`, `benchmark/runner.py` or elementary number
+  theory on public generator parameters. `lab/test_repr.py` constructs its
+  prompts by calling the public tokenizer, not by loading a split.
+* Two datasets were generated with the public generator
+  (`lab/gen_repr_probe.sh`, exact commands in that file and in §3.3) and, like
+  every other dataset, never inspected.
+* No arithmetic is implemented in any `forward`. The slot layouts do index
+  arithmetic on token *positions* (a `cumsum` over the public marker tokens plus
+  gather/scatter); they never operate on the digit *values*. Every prediction
+  comes from parameters trained from random init in the run, and
+  `lab/test_repr.py` asserts the loss backprops to all of them.
+* No data-dependent Python control flow: the loop count is the constant
+  `NUM_LOOPS`. The only `.item()` calls read the batch's maximum field length to
+  size a tensor, which is shape metadata, not a value-dependent branch.
+* No custom training loop, no participant-controlled backward, no manifest
+  override in the submission.
+* Nothing was submitted to the hosted service; `one-layer login`/`submit` were
+  never run and no network call was made.
+* Every run — including all the negative ones — is in `lab/archive.jsonl` under
+  tags `repr-*`.
 
