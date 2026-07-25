@@ -32,12 +32,12 @@ import random
 import torch
 
 
-def digits_le(value: int, slots: int) -> list[int]:
+def digits_le(value: int, slots: int, base: int = 10) -> list[int]:
     """Little-endian digits, slot 0 = units."""
     out = []
     for _ in range(slots):
-        out.append(value % 10)
-        value //= 10
+        out.append(value % base)
+        value //= base
     return out
 
 
@@ -85,9 +85,17 @@ def split(modulus: int, train_x: int, seed: int,
 #  (u,v,state) for the comparator.  Those are the "atoms".
 
 
-def atoms_for(x: int, modulus: int, slots: int) -> dict[str, set]:
+def atoms_for(x: int, modulus: int, slots: int, base: int = 10) -> dict[str, set]:
+    """`base` is the INTERNAL radix of the tables, not the prompt's alphabet.
+
+    explore/alu-depth: a larger internal radix (pair adjacent decimal digits
+    into a base-100 symbol) halves the slot count and so roughly quarters the
+    sequential depth.  It also squares every table's index space, and this
+    routine is what prices that trade: it is the same coverage question, asked
+    of a base-B alphabet.
+    """
     S = slots
-    d = digits_le(x, S)
+    d = digits_le(x, S, base)
     A: dict[str, set] = {k: set() for k in
                          ("pair", "add", "mul", "sub", "cmp")}
 
@@ -99,24 +107,24 @@ def atoms_for(x: int, modulus: int, slots: int) -> dict[str, set]:
             A["pair"].add((d[i], d[j]))
             c[i + j] += d[i] * d[j]
 
-    W = S + 1  # 10*r needs one slot more than r
+    W = S + 1  # base*r needs one slot more than r
     r = 0
     for k in range(K - 1, -1, -1):
-        # ---- shift + ripple add:  acc = 10*r + c[k]
-        shifted = digits_le(10 * r, W + 1)
-        addend = digits_le(c[k], W + 1)
+        # ---- shift + ripple add:  acc = base*r + c[k]
+        shifted = digits_le(base * r, W + 1, base)
+        addend = digits_le(c[k], W + 1, base)
         carry = 0
         for m in range(W + 1):
             A["add"].add((shifted[m], addend[m], carry))
             t = shifted[m] + addend[m] + carry
-            carry = t // 10
-        acc = 10 * r + c[k]
+            carry = t // base
+        acc = base * r + c[k]
 
         # ---- quotient by comparison against multiples of N (digit scan,
-        #      MSB->LSB, three-valued state).  q <= 10 because r < N.
+        #      MSB->LSB, three-valued state).  q <= base because r < N.
         q = acc // modulus
-        accd = digits_le(acc, W + 1)
-        cand = digits_le(q * modulus, W + 1)
+        accd = digits_le(acc, W + 1, base)
+        cand = digits_le(q * modulus, W + 1, base)
         state = 0  # 0 = equal-so-far, 1 = greater, 2 = less
         for m in range(W, -1, -1):
             A["cmp"].add((accd[m], cand[m], state))
@@ -124,15 +132,15 @@ def atoms_for(x: int, modulus: int, slots: int) -> dict[str, set]:
                 state = 0 if accd[m] == cand[m] else (1 if accd[m] > cand[m] else 2)
 
         # ---- q * N  (single digit x multi digit, shared cell)
-        nd = digits_le(modulus, W + 1)
+        nd = digits_le(modulus, W + 1, base)
         carry = 0
         for m in range(W + 1):
             A["mul"].add((q, nd[m], carry))
             t = q * nd[m] + carry
-            carry = t // 10
+            carry = t // base
 
         # ---- acc - q*N  (subtract with borrow, shared cell)
-        prodd = digits_le(q * modulus, W + 1)
+        prodd = digits_le(q * modulus, W + 1, base)
         borrow = 0
         for m in range(W + 1):
             A["sub"].add((accd[m], prodd[m], borrow))
@@ -150,12 +158,17 @@ def main() -> int:
                     default=["323:3", "899:3", "2021:4", "10403:5"])
     ap.add_argument("--train-x", type=int, default=250)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--radix", type=int, default=10,
+                    help="INTERNAL radix of the learned tables.  --radix 100 "
+                         "pairs adjacent decimal digits, halving the slot "
+                         "count and so the sequential depth; slots in "
+                         "--configs are then base-`radix` slots.")
     ap.add_argument("--held-sample", type=int, default=0,
                     help="sample the held-out cohort instead of enumerating "
                          "(needed above ~1e6 units)")
     args = ap.parse_args()
 
-    print(f"train_x={args.train_x} seed={args.seed}\n")
+    print(f"train_x={args.train_x} seed={args.seed} radix={args.radix}\n")
     hdr = (f"{'N':>7} {'S':>2} {'units':>6} {'held':>5} "
            f"{'residue ceiling':>15} {'digit ceiling':>13}   atoms seen / needed")
     print(hdr)
@@ -173,12 +186,12 @@ def main() -> int:
         # ---- family 2: readout = place-shared digit tables
         seen: dict[str, set] = {k: set() for k in ("pair", "add", "mul", "sub", "cmp")}
         for x in train_x:
-            for k, v in atoms_for(x, modulus, slots).items():
+            for k, v in atoms_for(x, modulus, slots, args.radix).items():
                 seen[k] |= v
         ok = 0
         needed: dict[str, set] = {k: set() for k in seen}
         for x in held_x:
-            a = atoms_for(x, modulus, slots)
+            a = atoms_for(x, modulus, slots, args.radix)
             for k, v in a.items():
                 needed[k] |= v
             if all(a[k] <= seen[k] for k in a):
