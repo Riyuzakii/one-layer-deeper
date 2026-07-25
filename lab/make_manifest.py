@@ -42,9 +42,14 @@ DATA_ROOTS = {
     "hp1": "data/generated/proxy_hard_fixed_n_p2003_q2011_t4816",
     "hp2": "data/generated/proxy_hard_sampled_b3032_t4816",
     "hp3": "data/generated/proxy_hard_sampled_b202428_t8",
+    # grok-optimization diagnostic controls (lab/gen_grok_controls.sh): e1's
+    # recipe at a smaller / larger fixed modulus, i.e. fewer / more distinct
+    # (x -> x^2 mod N) facts to learn from.
+    "gs": "data/generated/grokctl_small_n77_t123",
+    "gb": "data/generated/grokctl_big_n1147_t123",
 }
 
-TIER_SECONDS = {"e": 60.0, "m": 600.0, "h": 3600.0}
+TIER_SECONDS = {"e": 60.0, "m": 600.0, "h": 3600.0, "g": 60.0}
 
 
 def build(

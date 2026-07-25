@@ -9,5 +9,5 @@ cd "$REPO"
 $V lab/make_grok.py --name "$NAME" --max-steps "$STEPS" "$@" >/dev/null
 $V lab/run_experiment.py \
   --submission "submissions/grok-optimization/$NAME/submission.py" \
-  --manifest "lab/manifests/lab_${DS:-e1}_fs${STEPS}_s${SEED}.json" \
+  --manifest "lab/manifests/lab_e1_fs${STEPS}_s${SEED}.json" \
   --tag "${TAG:-grok}" --note "$NOTE" --timeout "${TMO:-14400}"
