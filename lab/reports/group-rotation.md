@@ -80,7 +80,29 @@ $VENV lab/make_manifest.py --dataset e1 --mode fixed_step --max-steps 2000 --see
 bash lab/sweep_gr_ablate.sh
 ```
 
-<!--ABLATE_TABLE-->
+Matched control = the same generator with every toggle off.  3 seeds, so the
+single-example floor is 1/114 = 0.009.
+
+| variant | MAX_T | T=1 | T=2 | T=4 | T=8 | T=16 | T=32 | T=64 | mean acc |
+|---|---|---|---|---|---|---|---|---|---|
+| GR control: std MLP, tied head, L8 d128 | **0** | 0.000 | 0.000 | 0.000 | 0.035 | 0.000 | 0.018 | 0.026 | 0.0278 |
+| H1 bilinear mixer (pure product of 2 projections) | **0** | 0.000 | 0.009 | 0.000 | 0.000 | 0.018 | 0.018 | 0.026 | 0.0222 |
+| H1 control: GEGLU (gated, not pure bilinear) | **0** | 0.009 | 0.000 | 0.000 | 0.009 | 0.009 | 0.026 | 0.018 | 0.0389 |
+| H2 complex-rotation sublayer (unit-modulus) | **0** | 0.018 | 0.035 | 0.000 | 0.018 | 0.035 | 0.044 | 0.009 | 0.0306 |
+| outer-product global bilinear pooling | **0** | 0.009 | 0.009 | 0.009 | 0.026 | 0.009 | 0.026 | 0.009 | 0.0261 |
+| H4 Fourier (phase) readout + linear head | **0** | 0.009 | 0.018 | 0.009 | 0.035 | 0.009 | 0.035 | 0.026 | 0.0361 |
+| H3 T-conditioned per-frequency angle multiplier | **0** | 0.009 | 0.000 | 0.000 | 0.000 | 0.009 | 0.026 | 0.009 | 0.0350 |
+| H4b untied input embedding / output head | **0** | 0.009 | 0.009 | 0.044 | 0.018 | 0.035 | 0.018 | 0.026 | 0.0378 |
+
+Matched recurrent baseline (`submissions/exp_recur/L8_d128`, 2000 steps, seed 74):
+
+| variant | MAX_T | T=1 | T=2 | T=4 | T=8 | T=16 | T=32 | T=64 | mean acc |
+|---|---|---|---|---|---|---|---|---|---|
+| matched baseline: recurrent L8 d128, e1 fs2000 s74 | **0** | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.026 | 0.0150 |
+
+**Every toggle is null.** No variant certifies any rung; rung-1 is within one
+example of the control everywhere.  The T-conditioned angle multiplier (H3), the
+headline idea of this branch, is indistinguishable from the control.
 
 ### 4.2 GRNet, long runs (e1, 20 000 fixed steps, seed 74)
 
@@ -88,11 +110,29 @@ bash lab/sweep_gr_ablate.sh
 bash lab/sweep_gr_long.sh
 ```
 
-<!--GRNET_TABLE-->
+| variant | MAX_T | T=1 | T=2 | T=4 | T=8 | T=16 | T=32 | T=64 | mean acc |
+|---|---|---|---|---|---|---|---|---|---|
+| GRNet w2 K256 wd0.1 lr0.01 20k | **0** | 0.026 | 0.000 | 0.053 | 0.079 | 0.026 | 0.000 | 0.079 | 0.0300 |
+| GRNet w2 K256 wd1.0 lr0.01 20k | **0** | 0.026 | 0.000 | 0.053 | 0.105 | 0.053 | 0.026 | 0.079 | 0.0383 |
+| GRNet w2 K256 wd3.0 lr0.01 20k | **0** | 0.026 | 0.026 | 0.026 | 0.026 | 0.026 | 0.000 | 0.000 | 0.0333 |
+| GRNet w2 K256 wd1.0 QUAD=0 (control) | **0** | 0.000 | 0.000 | 0.053 | 0.026 | 0.079 | 0.079 | 0.079 | 0.0633 |
+| GRNet w2 K256 wd1.0 posmode=rev | **0** | 0.026 | 0.026 | 0.000 | 0.000 | 0.000 | 0.053 | 0.000 | 0.0383 |
+| GRNet w2 K256 wd1.0 posmode=abs | **0** | 0.000 | 0.026 | 0.053 | 0.026 | 0.000 | 0.000 | 0.053 | 0.0200 |
 
-### 4.3 GRPair, (K, H) bottleneck grid (e1, 20 000 fixed steps, seed 74)
+`quad=0` is the control that removes the multiplicative interaction; it is not worse.
+`posmode=rev` indexes slots by distance from the end of the prompt, which is the only
+indexing under which a decimal place value is well defined when x has variable length --
+also null.  Train accuracy reaches 1.000 within ~100-1000 steps in every one of these
+runs (see `train_curve` in `lab/archive.jsonl`), so all 20 000 steps are post-memorisation.
 
-<!--GRPAIR_TABLE-->
+### 4.3 Screens (archived, tags `smoke` / `lr-screen` / `wd-screen`)
+
+GRPair (the pair-phase table) memorises e1's training set to `loss=0.001, acc=1.000`
+in **under 100 steps**.  An lr screen (1e-3 / 1e-2 / 3e-2) and a weight-decay screen
+(0.1 / 0.3 / 1 / 3) were run to find a setting that does not instantly memorise: wd=1
+holds train accuracy at 0.87 and wd=3 at 0.69, and neither moves rung-1 off the floor.
+At that point the evaluator stopped being the efficient instrument and the study moved
+offline (§5), where the same question can be asked in 90 seconds instead of 8 minutes.
 
 ## 5. Why — the offline probes (this is the real content)
 
@@ -225,7 +265,64 @@ training loop. This independently reproduces `findings.md`'s "m1 is ~0 everywher
 
 ## 6. Is the learned solution the group one? (weight/activation diagnostics)
 
-<!--DIAG_BLOCK-->
+Two independent diagnostics, both on the model's **own weights and activations**
+(synthetic prompts built from the public tokenizer spec; no dataset file is opened).
+
+### 6.1 On a real trained submission (GRPair K=8 H=16 wd=1.0, e1, 20 000 steps)
+
+```
+$VENV lab/mkdiag.py --submission submissions/group-rotation/gp_k8h16/submission.py
+GR_DIAG_SAVE=/tmp/gp_k8h16.pt $VENV lab/run_experiment.py \
+    --submission lab/diag/gp_k8h16/submission.py \
+    --manifest lab/manifests/lab_e1_nw0_fs20000_s74.json --tag diag
+$VENV lab/diagnose_gr.py --submission submissions/group-rotation/gp_k8h16/submission.py \
+    --checkpoint /tmp/gp_k8h16.pt --modulus 323 --p 17
+```
+
+| probe | result | reading |
+|---|---|---|
+| exact accuracy over **all 288 units**, T=1 | 0.656 (189/288) | ~ the 250 training x memorised; the rest fail |
+| same, T=2 | 0.667 | trained T, same story |
+| same, T=4 / 8 / 16 / 32 / 64 | 0.031 / 0.049 / 0.028 / 0.021 / 0.028 | chance — **no** T-extrapolation |
+| channels with `R^2(theta_k ~ x^2) > 0.99` | **0 / 8** | the phases are *not* a quadratic form in the value |
+| best channel `R^2` | 0.570 | and its implied `w*N/2pi` is **0.005 cycles** — the phase barely wraps at all |
+| spectral participation ratio of `cos(theta_k)` over the units | median 15.7 of 162 | not sparse; a Fourier solution would be ~1-3 |
+| `rank@90%` of the pair-phase table | 7 of 8 | no low-rank "place x digit x frequency" structure |
+
+**The learned solution is not the group one, on every measure.**  Note also the rung
+profile: rungs that *share an exponent* (`2^T mod phi` gives T=8 and T=32 the same
+exponent, and T=16 and T=64 the same) do **not** succeed or fail together — they are all
+independently at chance, which is what a value lookup with no `T` structure looks like.
+
+### 6.2 Mod-N symmetry of the learned map (label-free)
+
+`(N-v)^2 = v^2 mod N`, so a block that genuinely squares mod `N` must give the same answer
+for `v` and `N-v`.  Measured over all 288 units:
+
+| model | agreement `pred(v) == pred(N-v)` |
+|---|---|
+| memorisation baseline `(250/288)^2` | 0.754 |
+| single step (trained on T={1}) | **0.764** |
+| iterated block (trained on T={1,2,3}) | **0.826** |
+
+The single-step model has essentially *zero* mod-`N` structure beyond what memorising both
+members of a pair gives you for free.  Iterating buys a real but small excess — the same
+ordering as the held-out accuracy (0.000 -> 0.237).
+
+### 6.3 Cross-modulus check (e2's N=899)
+
+The same offline crux, `digits(v) -> digits(v^2 mod 899)` from 250 of 840 units:
+
+| | train exact | held-out exact |
+|---|---|---|
+| learned end-to-end | 1.000 | **0.003** |
+| oracle phases, learned readout (K=161) | 1.000 | 0.614 |
+| oracle phases, full frequency basis (K=449) | 1.000 | 0.614 |
+
+Two things worsen with `N`: the learned model is *even more* purely memorising, and the
+oracle ceiling itself drops to 0.61, because 250 training `x` no longer cover all the
+distinct squares, so the readout is genuinely underdetermined.  **On e2 and above, the
+group representation alone would not be enough even if it were found.**
 
 ## 7. What is falsified
 

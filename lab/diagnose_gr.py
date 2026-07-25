@@ -92,8 +92,10 @@ def main() -> int:
     for key, value in state.items():
         if key.endswith("position_embedding.weight"):
             max_len = value.shape[0]
-        if "tables.0.weight" in key or key.endswith("attn.embed.weight"):
+        elif "tables.0.weight" in key or key.endswith("attn.embed.weight"):
             max_len = value.shape[0] // 17
+        elif key == "readout" and value.ndim == 3:
+            max_len = value.shape[0]
     if max_len is None:
         raise SystemExit("could not infer max_seq_len from checkpoint")
 
@@ -122,6 +124,9 @@ def main() -> int:
         sub = getattr(model, name, None)
         if sub is not None:
             handles.append(sub.register_forward_hook(grab(name)))
+    phase = getattr(model, "phase", None)  # GRPair names its phase map differently
+    if phase is not None and len(phase) > 0:
+        handles.append(phase[0].register_forward_hook(grab("to_theta")))
 
     # ---- probe 1: exact-digit accuracy over every unit, per rung ----
     print("\n[1] exact accuracy over ALL units (synthetic prompts), per rung T")
