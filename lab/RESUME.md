@@ -47,24 +47,52 @@ rung-1 anywhere is 3/38 on e1, against a trivial-predictor floor of 1/38.
 | # | bottleneck | status |
 |---|---|---|
 | 1 | iteration / depth in T | **solved** — stop spending runs |
-| 2 | per-step arithmetic on unseen operands | open, **capped by coverage** unless the readout is digit-compositional |
-| 3 | prompt → digit-slot parsing | open, worth ~0.25, previously unrecognised |
+| 2 | per-step arithmetic on unseen operands | representation **solved and uncapped** (digit readout, above); *training* it is now the open problem |
+| 3 | prompt → digit-slot parsing | **solved**, verified at multi-digit T |
+| 4 | **optimising a small discrete transducer** | **the one remaining bottleneck** — and no longer capped by anything |
 
-**The coverage ceiling.** With a *perfect* representation and the generator's 250
-training x, held-out accuracy equals `P[x² already seen]` — a closed-form
-combinatorial quantity, verified against measurement at three moduli:
+**Bottleneck 3, solved (`explore/digit-carry`).** Anchor each digit on the marker that
+*terminates its own field*: `d(x)` ends at `[T]`, so `x`'s slots key off the `[T]`
+marker position, which does not move when `T` gains a digit. Implemented as a learned
+differentiable pointer (`MarkerPointer`) plus a second learned table scoring
+cumulative anchor mass to supply the field's opening boundary. Verified 1.000 on
+x/N/T at **T=16,32,64** for both fixed and sampled N; the distance-from-end control
+scores 0.000 there, exactly as predicted.
 
-| dataset | modulus | oracle held-out |
+**Note this falsified my own brief's premise** that parsing was "worth ~0.25 on its
+own". With the parse exact, held-out T=1 is 0.026 — indistinguishable from the broken
+control across 3 seeds, both optimiser settings, and the evaluator. **Parsing is
+necessary, not sufficient.**
+
+**The coverage ceiling — and its escape (measured, `explore/digit-carry`).** With a
+*perfect* representation and the generator's 250 training x, held-out accuracy for a
+residue-indexed readout equals `P[x² already seen]`, a closed-form combinatorial
+quantity. A **digit-compositional** readout is not subject to it, and this was
+measured, not assumed:
+
+| modulus | residue readout | **digit readout** |
 |---|---|---|
-| e1 | 323 | 1.000 |
-| e2 | 899 | 0.614 |
-| — | 2021 | 0.337 |
-| m1 | 10403 | 0.031 |
+| 323 (e1) | 1.000 | **1.000** |
+| 899 (e2) | 0.614 | **1.000** |
+| 2021 | 0.337 | **1.000** |
+| 10403 (m1) | 0.031 | **1.000** |
+| 12 *unseen* 10/11-bit moduli (e5) | needs a new `Z_N` table per N | **1.000** (4800 operands, one parameter vector) |
+| 6 *unseen* 20/24-bit moduli (hp3) | 0.001 / 0.000 (closed form) | **1.000** (1200 operands, same vector) |
 
-This caps **any readout that is an arbitrary function of the residue** (Fourier
-readout, softmax over `Z_N`, embedding table, learned permutation), so **e1 is the
-only public dataset where such a readout can certify even T=1**. The only escape is a
-readout compositional in the digits, with carries.
+The parameter count is identical at every modulus — that is the mechanism. A
+closed-form sweep over 7 moduli from 9 to 30 bits shows the digit quantity does not
+degrade with N (0.95–0.99) while `P[x² already seen]` reaches exactly 0.000 by 24
+bits. **The scale argument that made Medium/Hard look hopeless is removed.** Residue-
+indexed readouts (Fourier, softmax over `Z_N`, embedding table, learned permutation)
+remain capped, and for those e1 is still the only public dataset where T=1 is
+certifiable.
+
+> **Compliance boundary — important.** The ceiling above was measured with
+> `probe_alu.py --construct`, which *sets* the digit tables to the truth. That is a
+> diagnostic oracle and **is not a legal submission** (rule 7: no hard-coded algorithm
+> in the forward pass). A submission may use the same *structure* — digit-indexed
+> product/add/subtract tables and a gate — but every tensor must be learned from
+> random init. Keep this distinction explicit in any write-up.
 
 ### Two protocol corrections (both cost real runs to learn)
 
@@ -141,27 +169,47 @@ lab/run_experiment.py --submission submissions/grok-optimization/wc_bs32/submiss
 The two 500k-step runs will not have finished. **Resume by relaunching them**; they
 are the tail of the steps-to-exactness curve.
 
-### `explore/digit-carry` — digit-compositional readout + prompt parsing
+### `explore/digit-carry` — COMPLETE (HEAD `ed804e0`), and it changes the target
 
-**Mandate.** Owns bottlenecks 2 and 3. Highest-value single experiment: build the
-oracle-equivalent for a **digit-compositional** readout and measure held-out accuracy
-at N = 323 / 899 / 2021 / 10403. If it stays high where the residue readout collapses
-to 0.031, there is a path at Medium/Hard scale; if it collapses too, the task is
-unlearnable from the evaluator's data above e1 — a far stronger negative than
-anything measured so far.
+Owned bottlenecks 2 and 3. **Both resolved**; see the two tables above. Report:
+`lab/reports/digit-carry.md` (543 lines), 7 evaluator runs archived.
 
-**Committed state at cutoff.** `dc87b01 WIP: all digit-carry probes, submissions and
-report draft (time-limit checkpoint)`. Earlier commit `609903d` states *"digit readout
-is modulus-transferable; parser alone does not move held-out"* — provisional, see the
-branch report for the numbers and caveats.
+`DigitALU` is the artifact: a readout in which every learned tensor is indexed by a
+digit tuple — a 10×10 product table, a `[digit, addend, carry]` add table, a
+`[digit, n_digit, borrow]` subtract table, and a gate — **6,817 parameters, no index
+ranging over `Z_N`**. N enters only as input digits.
 
-**In flight at cutoff:**
+**What it falsified, including its own mandate's premises:**
+1. "Parsing is worth ~0.25 on its own" — false; necessary but not sufficient.
+2. "Compositional structure prevents memorisation" — **false, and the sharpest
+   result.** A place-shared product table with a *continuous* carry vector memorises
+   as fast as anything (train 1.000 / held 0.000 by step 2000). **The state alphabet
+   must be small**; a 32-dim carry just re-encodes the value.
+3. `DigitALU` does not train (train_exact 0.196, held 0.000). Freezing sub-modules at
+   the truth makes it monotonically *worse* (loss 2.3 → 18.7); straight-through and
+   identity-init do not help.
+
+Best rung-1: 1/38 on e1, 4/512 on e5 — level with the field, `MAX_T = 0`.
+
+**The diagnostic inversion — cheap screening from here on.** `DigitALU` *cannot*
+memorise 250 residues in 6,817 digit-indexed parameters, so for this architecture
+**train_exact → 1.000 implies held-out → 1.000**. Train accuracy, previously the
+signal that told you a lever was useless, is now the whole game. Screen on it.
+
+**The measured optimisation direction** (not a guess): shortening the soft chain from
+~280 to ~117 sequential steps (S=3→S=2) took train_exact from **0.20 to 0.78**, with
+the constructed ceiling 1.000 in both cases. The `R=11` tied conditional subtractions
+are ~80% of the depth and 10 of 11 are no-ops; replacing them with one learned
+quotient digit plus a single subtraction is exact and gives ~60 steps.
+
+**Next command on resume:**
 ```
-lab/run_experiment.py --submission submissions/digit-carry/dcp_abs/submission.py \
-  --manifest lab/manifests/lab_e5_fs2000_s74.json
-lab/run_experiment.py --submission submissions/digit-carry/dcp_marker/submission.py \
-  --manifest lab/manifests/lab_e1_fs2000_s74.json
+$VENV lab/probe_alu.py --modulus 323 --slots 3 --reduce 4 --steps 4000
 ```
+
+Abandoned at cutoff, all confirmatory and none load-bearing (exact commands in report
+§8): the 30/32-bit construction, two evaluator cells (`dcp_abs` on e5, `dcp_marker`
+on e1), and a second seed on the short-chain result.
 
 ---
 
@@ -207,16 +255,23 @@ certified T transfer; absolute wall clock, steps-in-budget and compile payoff do
 
 ## 5. Ranked next actions
 
-1. **Finish the digit-readout coverage-ceiling measurement** (`digit-carry`). One
-   number at four moduli; decides whether anything above e1 is reachable.
-2. **Finish the steps-to-exactness curve** (`grok-optimization`). Relaunch the two
-   500k-step runs. Even a lower bound is actionable.
-3. **Solve prompt→digit-slot parsing properly.** Worth ~0.25 and blocks everything
-   downstream from registering in the evaluator. Must be verified at multi-digit T —
-   distance-from-the-end indexing breaks on exactly the T=16/32/64 rungs.
-4. **Combine**: a weight-tied recurrent step (bottleneck 1, solved) with a
-   digit-compositional readout (2) reading place-valued slots (3). Target **MAX_T = 1
-   on e1**, i.e. rung 1 at 38/38, against a field best of 3/38.
+1. **Make `DigitALU` train.** This is now the entire problem, and it is no longer
+   capped by representation, scale, or parsing. Start from the measured direction:
+   shorten the soft chain (S=3→S=2 already took train_exact 0.20→0.78), then replace
+   the `R=11` tied conditional subtractions with one learned quotient digit plus a
+   single subtraction (~60 steps). Screen on **train_exact**, which for this
+   architecture implies held-out. Resume command in §3.
+2. **Keep the state alphabet small.** The falsification that matters: a continuous
+   carry vector re-encodes the value and restores memorisation. Any variant must keep
+   the inter-step state discrete or near-discrete.
+3. **Finish the steps-to-exactness curve** (`grok-optimization`). Relaunch the two
+   500k-step runs. Even a lower bound is actionable — and note its conclusion was
+   drawn on a *dense* architecture, so it may not transfer to `DigitALU`, whose
+   parameterisation cannot memorise in the first place.
+4. **Then combine**: weight-tied recurrent step (bottleneck 1, solved) + trained
+   digit readout (2) + marker-relative slots (3). Target **MAX_T = 1 on e1** — rung 1
+   at 38/38, against a field best of 3/38 — then check e5/m1, which the digit readout
+   makes legitimate targets for the first time.
 5. **Consider one early Hard submission as ranking insurance.** `service/db.py:585-618`
    orders the leaderboard by `max_certified_time_steps DESC, ood_n_... DESC,
    created_at ASC` over `status='succeeded'` runs only. Every branch is MAX_T=0, so
@@ -229,10 +284,18 @@ certified T transfer; absolute wall clock, steps-in-budget and compile payoff do
 
 ## 6. Honest summary
 
-Six hypothesis families, ~230 experiments, zero certified rungs. The session's value
-is the map, not a score: it converted a vague "1-5% accuracy plateau" into three
-separately-diagnosed bottlenecks, one of which is solved, one of which has a
-closed-form ceiling that rules out most of the search space, and one of which was
-previously invisible. Two independent branches concluded that MAX_T ≥ 1 is probably
-not reachable by architecture or loss search in this budget. That conclusion is worth
-testing against the two in-flight results before accepting it.
+Six hypothesis families, ~240 experiments, **zero certified rungs — every branch
+scored MAX_T = 0**, and the best rung-1 anywhere is 3/38. No submission here beats the
+official baseline on the metric.
+
+The value is the map. A vague "1-5% accuracy plateau" became four separately
+diagnosed bottlenecks: iteration in T (solved), prompt parsing (solved), readout
+representation (solved, and measured to be uncapped by modulus size), and training a
+small discrete transducer (open, and now the only one left). Two branches concluded
+MAX_T ≥ 1 was unreachable by architecture search; `digit-carry` then removed the
+ceiling those conclusions rested on, so they should be re-tested rather than
+inherited — its architecture cannot memorise, which inverts the diagnostic those
+branches used.
+
+The honest position: the path is narrower and better lit than at the start, and it is
+still unproven. Nothing here has certified a single rung.
