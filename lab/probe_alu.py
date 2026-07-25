@@ -69,7 +69,8 @@ def digits_le(value: int, slots: int) -> list[int]:
 
 class DigitALU(nn.Module):
     def __init__(self, slots: int, n_carry: int = 2, n_borrow: int = 2,
-                 reduce_steps: int = 11, tau: float = 1.0):
+                 reduce_steps: int = 11, tau: float = 1.0,
+                 identity_init: float = 0.0, hard: bool = False):
         super().__init__()
         self.S = slots
         self.K = 2 * slots - 1
@@ -77,6 +78,7 @@ class DigitALU(nn.Module):
         self.R = reduce_steps
         self.Ca, self.Cb = n_carry, n_borrow
         self.tau = tau
+        self.hard = hard
         self.Tmul = nn.Parameter(torch.randn(10, 10, 20) * 0.5)
         self.Tadd = nn.Parameter(torch.randn(10, 10, n_carry, 10 + n_carry) * 0.5)
         self.Tsub = nn.Parameter(torch.randn(10, 10, n_borrow, 10 + n_borrow) * 0.5)
@@ -84,6 +86,16 @@ class DigitALU(nn.Module):
         self.carry0 = nn.Parameter(torch.randn(n_carry) * 0.5)
         self.borrow0 = nn.Parameter(torch.randn(n_borrow) * 0.5)
         self.gate = nn.Linear(n_borrow, 1)
+        # A 280-step soft chain from random init is badly conditioned: every
+        # scan scrambles the register before any of them is right.  A learned
+        # copy-through path makes each scan the IDENTITY at init, so the chain
+        # starts well-conditioned and learning perturbs away from it.  This is
+        # residual/identity initialisation, not a supplied arithmetic rule --
+        # copy_scale is trainable and the tables can override it.
+        self.copy_scale = nn.Parameter(torch.tensor(float(identity_init)))
+        if identity_init > 0:
+            nn.init.zeros_(self.gate.weight)
+            nn.init.constant_(self.gate.bias, -4.0)  # reduction starts closed
 
     # ---------------- construction (LAB DIAGNOSTIC ONLY) ----------------
     @torch.no_grad()
@@ -128,39 +140,46 @@ class DigitALU(nn.Module):
             b = torch.full((self.Cb,), -BIG)
             b[0] = BIG
             self.borrow0.copy_(b)
+        self.copy_scale.zero_()
 
     # ---------------- scans ----------------
+    def _sm(self, logits):
+        p = F.softmax(logits / self.tau, -1)
+        if self.hard:  # straight-through: close the continuous side-channel
+            h = F.one_hot(p.argmax(-1), p.shape[-1]).to(p.dtype)
+            p = h + p - p.detach()
+        return p
+
     def add_scan(self, r, addend):
-        c = F.softmax(self.carry0 / self.tau, -1).expand(r.shape[0], self.Ca)
+        c = self._sm(self.carry0).expand(r.shape[0], self.Ca)
         outs = []
         for m in range(self.W):
             o = torch.einsum("bu,bv,bc,uvco->bo", r[:, m], addend[:, m], c, self.Tadd)
-            outs.append(F.softmax(o[:, :10] / self.tau, -1))
-            c = F.softmax(o[:, 10:] / self.tau, -1)
+            outs.append(self._sm(o[:, :10] + self.copy_scale * r[:, m]))
+            c = self._sm(o[:, 10:] + self.copy_scale * c)
         return torch.stack(outs, 1)
 
     def cond_sub(self, r, ndig):
         b = r.shape[0]
-        c = F.softmax(self.borrow0 / self.tau, -1).expand(b, self.Cb)
+        c = self._sm(self.borrow0).expand(b, self.Cb)
         outs = []
         for m in range(self.W):
             o = torch.einsum("bu,bv,bc,uvco->bo", r[:, m], ndig[m].expand(b, 10),
                              c, self.Tsub)
-            outs.append(F.softmax(o[:, :10] / self.tau, -1))
-            c = F.softmax(o[:, 10:] / self.tau, -1)
+            outs.append(self._sm(o[:, :10] + self.copy_scale * r[:, m]))
+            c = self._sm(o[:, 10:] + self.copy_scale * c)
         t = torch.stack(outs, 1)
         g = torch.sigmoid(self.gate(c))[:, :, None]  # (B,1,1)
         return g * t + (1 - g) * r
 
     def forward(self, s, ndig):
         b = s.shape[0]
-        z = F.softmax(self.zero / self.tau, -1).expand(b, 10)
+        z = self._sm(self.zero).expand(b, 10)
         prod = {}
         for i in range(self.S):
             for j in range(self.S):
                 o = torch.einsum("bu,bv,uvo->bo", s[:, i], s[:, j], self.Tmul)
-                prod[(i, j)] = (F.softmax(o[:, :10] / self.tau, -1),
-                                F.softmax(o[:, 10:] / self.tau, -1))
+                prod[(i, j)] = (self._sm(o[:, :10]), self._sm(o[:, 10:]))
         r = z[:, None].expand(b, self.W, 10)
         for k in range(self.K - 1, -1, -1):
             r = torch.cat([z[:, None], r[:, : self.W - 1]], dim=1)  # x10
@@ -185,6 +204,14 @@ def main() -> int:
     ap.add_argument("--carry", type=int, default=2)
     ap.add_argument("--borrow", type=int, default=2)
     ap.add_argument("--tau", type=float, default=1.0)
+    ap.add_argument("--tau-final", type=float, default=None,
+                    help="anneal the state temperature from --tau to this")
+    ap.add_argument("--identity-init", type=float, default=0.0,
+                    help="copy-through logit scale; >0 makes every scan the "
+                         "identity at init (trainable)")
+    ap.add_argument("--hard", action="store_true",
+                    help="straight-through discrete states: closes the "
+                         "continuous side-channel through the soft digits")
     ap.add_argument("--construct", action="store_true",
                     help="LAB DIAGNOSTIC: set every table to the exact solution")
     ap.add_argument("--freeze", nargs="*", default=[],
@@ -226,7 +253,8 @@ def main() -> int:
         ndig[i, d] = 1.0
     ndig = ndig.to(device)
 
-    model = DigitALU(S, args.carry, args.borrow, args.reduce, args.tau).to(device)
+    model = DigitALU(S, args.carry, args.borrow, args.reduce, args.tau,
+                     args.identity_init, args.hard).to(device)
     frozen = []
     if args.construct:
         model.construct()
@@ -269,6 +297,10 @@ def main() -> int:
                             lr=args.lr, weight_decay=args.wd, betas=(0.9, 0.95))
     t0 = time.time()
     for step in range(1, args.steps + 1):
+        if args.tau_final is not None:
+            f = step / args.steps
+            model.tau = math.exp((1 - f) * math.log(args.tau)
+                                 + f * math.log(args.tau_final))
         logits = model(xin, ndig)
         loss = F.cross_entropy(logits.reshape(-1, 10), xt.reshape(-1))
         opt.zero_grad(set_to_none=True)
