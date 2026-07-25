@@ -67,6 +67,8 @@ def main() -> int:
     ap.add_argument("--slots", type=int, default=0, help="0 = from the widest N")
     ap.add_argument("--reduce-mode", default="serial",
                     choices=["serial", "binary", "quotient"])
+    ap.add_argument("--mul-mode", default="horner",
+                    choices=["horner", "tree"])
     ap.add_argument("--max-quot", type=int, default=10)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--device", default="cuda:0")
@@ -82,7 +84,7 @@ def main() -> int:
         mods += sorted(seen)
     S = args.slots or max(len(str(m)) for m in mods)
     model = DigitALU(S, reduce_mode=args.reduce_mode,
-                     max_quot=args.max_quot).to(device)
+                     max_quot=args.max_quot, mul_mode=args.mul_mode).to(device)
     model.construct()
     model.eval()
     n_par = sum(p.numel() for p in model.parameters())
@@ -91,7 +93,7 @@ def main() -> int:
     if over:
         print(f"WARNING: (Q+1)*N overflows W={S+1} slots for {len(over)} moduli")
     print(f"one CONSTRUCTED parameter vector, params={n_par:,}, slots={S}, "
-          f"mode={args.reduce_mode}, depth={d['main']} (+{d['prefix']} prefix), "
+          f"mul={args.mul_mode}, mode={args.reduce_mode}, depth={d['main']} (+{d['prefix']} prefix), "
           f"applied to {len(mods)} unseen moduli\n")
     print(f"{'N':>7} {'bits':>4} {'units':>7} {'tested':>7} {'exact':>7}")
     print("-" * 38)
