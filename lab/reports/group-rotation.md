@@ -500,6 +500,7 @@ steps (tag `griter-sel`):
 | GRIter selector=pointer rand_loops=1 LOOPS=4 e1 20k | **0** | 0.026 | 0.026 | 0.026 | 0.026 | 0.026 | 0.026 | 0.026 | 0.0167 |
 | GRIter selector=pointer rand_loops=0 LOOPS=4 e1 20k | **0** | 0.000 | 0.000 | 0.026 | 0.053 | 0.053 | 0.053 | 0.053 | 0.0333 |
 | GRIter selector=pointer rand_loops=1 pos=abs+rev LOOPS=4 e1 20k (best by probe_learnability) | **0** | 0.000 | 0.000 | 0.053 | 0.053 | 0.026 | 0.026 | 0.026 | 0.0233 |
+| GRIter selector=soft rand_loops=1 LOOPS=4 e1 20k | **0** | 0.026 | 0.000 | 0.026 | 0.000 | 0.000 | 0.053 | 0.000 | 0.0317 |
 
 The `rand-loops` control is in: offline it was worth 0.079 -> 0.158, and in the evaluator
 it is 0.000 vs 0.026 on rung 1 — a one-example difference, i.e. **the evaluator cannot
@@ -509,8 +510,10 @@ screening with `probe_learnability` rather than burning 20 000-step runs on this
 The `pos=abs+rev` cell is the candidate `probe_learnability` ranked best (§9); it predicted
 0.000–0.026 for it and the evaluator returned 0.000. That is the **fourth consecutive**
 candidate where the prompt-parsing probe called the evaluator to within one example.
-(A `soft` + `rand-loops` cell was still queued behind other branches' jobs; no number is
-claimed for it. It is a control on an ordering the offline screen already settles.)
+All four cells are in, and they are **mutually indistinguishable**: rung-1 is 0.000 or
+0.026 (zero or one example of 38) in every one, and `MAX_T = 0` in every one. Offline the
+same four configurations spanned 0.000 -> 0.263. **The evaluator resolves none of it**,
+because the parsing bottleneck upstream pins every cell at the trivial-predictor floor.
 
 Rung-1 is 0.026 = 1/38, and *every* rung is 1/38 — the trivial-predictor floor on the
 held-out cohort. `lab/probe_learnability.py`, which trains this same submission on
