@@ -419,7 +419,7 @@ is. What this branch delivers is the removal of a bound that was being planned
 around, a parser that is exact where the previous one was structurally wrong, and
 a sharply-located replacement bottleneck with a concrete attack list.
 
-## 10. Deliverables and reproduction
+## 7. Deliverables and reproduction
 
 * `submissions/digit-carry/submission.py` — marker-relative parser + weight-tied
   step with an ordered pointer selector (`dcp_marker`). Variants under
