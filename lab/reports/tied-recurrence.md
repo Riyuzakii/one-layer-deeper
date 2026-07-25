@@ -24,6 +24,15 @@ eval-budget feasibility checks in §7, which are labelled as such.
 * **Iteration count is not the constraint on e1**: K=1 (no composition), K=4,
   learned halting, and the `tgather` ideal-halting upper bound all sit at the
   same floor.
+* **The tied loop does not actually loop, and that is an architecture bug with a
+  named cause** (§6.1). With the standard recipe `h ← core(h + base)` read out
+  through a pre-norm head, an identity core gives `h_K = (K+1)·base`, and RMSNorm
+  divides the scale out — so the read-out is *bit-identical for every K*. The
+  iteration count is a gauge freedom the loss cannot see, and training lands on
+  the identity. Measured: changing eval iterations 1 → 2 → 4 moves every rung by
+  at most one example out of 38. **Every depth sweep in this repo, including the
+  prior session's "Axis A confirmed", has been measuring a model whose recurrence
+  is a no-op.**
 * **Eval budget is not the constraint**: 4 → 64 internal iterations costs +2% of
   eval time on e1, +17% on hp1; margins ~5× (Easy) to ~200× (Hard).
 * **Two structural results that change how the ladder should be attacked**
@@ -453,7 +462,15 @@ floor at **T=1**, which is the first rung and therefore gates the entire ladder.
 Concretely the milestone is 38/38 exact on `depth_t_1` for e1 (or 20/20 on the
 `tp1` proxy); nothing above that rung can score until it exists.
 
-Two secondary items worth acting on immediately because they are free:
+Three secondary items worth acting on immediately:
+
+* **Anyone still working on depth must first break the gauge freedom in §6.1.**
+  `h ← core(h + base)` plus a pre-norm read-out makes the iteration count
+  invisible to the loss, and the model reliably collapses to an identity core.
+  Fix it by normalizing the state each iteration, randomizing K per training
+  batch so no single K is privileged, and/or forcing the state to decode to a
+  valid residue every iteration. Until then, any depth result in this repo is
+  about a model that is not iterating.
 
 * **`batch_size=64` instead of the manifest's 512 gives 5.4× more optimizer
   steps in the same wall clock** on Easy (§3). e1 has ~600 training rows, so
