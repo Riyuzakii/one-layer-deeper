@@ -91,6 +91,49 @@ still plateaus at 0.78. **No tier affords the step count at which the architectu
 already known to fail.** This makes chain-shortening a hard requirement, not a
 nicety.
 
+### Round 2 results — the ALU family, measured to its edge
+
+**`explore/alu-depth` (complete) — depth is not the binding variable, and it produced
+the graph everything else should use.**
+
+`tree:quotient`: same hypothesis class, same discrete alphabet (10/2/2/11), 6,820
+params, constructed ceiling **1.000 soft AND argmax-hard** at N = 323/899/2021/10403
+and on 12 unseen sampled moduli — at **39 sequential soft steps instead of 257**,
+103 ms/step instead of 390. Throughput: **4.6x (Easy) / 7.9x (Medium) / 12.2x (Hard)**
+more optimizer steps; add `prefix` above Easy (loses at Easy, 43 vs 39; wins at
+Medium 71 vs 83 and Hard 101 vs 155). **Adopt unconditionally.**
+
+But removing 85% of the chain did not move the discrete solution: `train_exact_hard`
+across the ladder 257/195/117/83/62/39 reads 0.008/0.008/0.012/0.000/0.000/0.004 -
+zero everywhere; `train_exact` is not monotone in depth. Also falsified: **larger
+internal radix cannot be stacked** (coverage 0.947 -> 0.026 -> 0.000 at radix
+10/100/1000, because at radix 1000 with S=1 the pair table is indexed by `(x,x)` and
+*is* a residue-indexed readout - the radix is the dial between shallow-and-memorising
+and deep-and-compositional); reduce-less-often (quotient range grows as `10^p`);
+straight-through at every chain length (loss 15-17 at depths 257, 39, 21).
+
+**`explore/alu-credit` (complete) - ~160 training procedures, none works.**
+
+Best legal `train_exact_hard` **0.020**; best of any kind 0.183 (short chain, held
+0.000). The state-pressure direction is falsified monotonically at 12,000 steps:
+sharpness 0.762 -> 0.967 while `train_exact` collapses 0.616 -> 0.004 and
+`train_exact_hard` stays pinned in 0.000-0.020. **The soft channel is not a crutch
+over a nearly-found discrete solution; it is the entirety of what the model has.**
+
+Null: annealing, Gumbel-to-discrete, straight-through, staged unfreezing, truncated
+BPTT, magnitude curriculum, entropy/commutativity/`Tsub.Tadd=id` regularisers,
+bounded losses, every init family, every optimiser setting, target propagation.
+Not legal (need the true register trace, rule 7) and the only things that moved
+anything: `--construct`, `--deep-sup`, `--teacher-force`, cross-modulus curricula.
+
+**The one positive, and it is parameter-level:** teacher forcing drives gauge-invariant
+structure scores to `mul_lo` 0.90 / `add_shift` 0.78 / `sub_shift` 0.817 (random
+baseline 0.23-0.28), **78% of it within 20 optimizer steps** - inside the Easy budget.
+Snapping cannot touch these. So per-step inputs *do* teach the tables and the tables
+*are* identifiable; the residual 10-20% of wrong cells is what the soft channel
+absorbs. **The open problem is table identification, not credit assignment and not
+relaxation tightness.**
+
 ### Corrections to earlier entries in this log
 
 - **`batch_size` 512→32 is 1.2× for the ALU model, not 5.8×.** The DataLoader lever
@@ -163,6 +206,18 @@ certifiable.
    is one example. e5 has 512-example rungs. Keep e1 only for a final MAX_T=1 attempt.
 
 ### Screening discipline
+
+**THE HEADLINE METRIC IS `train_exact_hard`** (every inter-step state snapped to
+argmax). `train_exact` is fooled by mixtures, and graph shapes that mix *more* score
+*higher* on it - ranking on it actively selects for the failure mode. A trained ALU
+goes from `train_exact` 0.556 to **0.004** under hard states while the *constructed*
+solution survives at 1.000.
+
+**No single metric is safe.** Each of the three in play has a configuration that fools
+it: sharpness 0.975 with zero correctness; `sub_shift` 0.600 with zero correctness;
+`train_exact` 0.38 with chance-level tables. Report `train_exact_hard`, the
+gauge-invariant structure scores, and sharpness together, and trust none alone.
+
 
 Two-stage, validated: parsed-input probes (`probe_step.py`, `probe_sel.py`, ~90s)
 **over-state a submission by ~0.25** — use them only to *kill* candidates.
