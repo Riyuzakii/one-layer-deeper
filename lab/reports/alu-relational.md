@@ -19,8 +19,9 @@ generated from `math.gcd` over `range(1, N)` or from `torch.randint`.
 
 **No legal training signal with intra-squaring content moves `train_exact_hard`
 off the floor.** All three mandated families are null, and the strongest of them
-is null *even in its illegal form*. Every training run in this report reads
-`train_exact_hard` 0.000 and `held_exact_hard` 0.000.
+is null *even in its illegal form*. Across **32 completed training runs**, the
+highest `train_exact_hard` anywhere is **0.001** (`b_sym_s1`, one example in
+1,024) and every `held_exact_hard` is 0.000 or 0.001. The floor is untouched.
 
 My read is that **the legal-signal search for `DigitALU` is closed** (§9), and
 it is closed for a *structural* reason rather than an empirical one: `Tmul`'s
@@ -521,8 +522,9 @@ argument has four steps, three measured and one structural.
 
 **1. The gap is not marginal, it is three orders of magnitude.** The legal
 baseline at Stage-1 conditions sits at `local_ce` 3.5–4.2 against a cliff at
-0.005–0.0073 (§2). Nothing in this report — 63 training runs across three
-families, plus 30 discrete searches — moved it below 2.34. The best `local_ce`
+0.005–0.0073 (§2). Nothing in this report — **32 completed training runs**
+across three families, plus **21 discrete searches** and 3 basin ladders —
+moved it below 2.34. The best `local_ce`
 anywhere here (`--assoc`, 2.34) belongs to a run whose composed map had
 collapsed to a *constant*, so it is not even progress in the right direction.
 
