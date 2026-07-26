@@ -660,17 +660,24 @@ def main() -> int:
           flush=True)
 
     @torch.no_grad()
-    def evaluate(inp, tgt, nd):
+    def evaluate(inp, tgt, nd, discrete=False):
+        # `discrete=True` snaps every inter-step state (register slots, carry,
+        # borrow AND the cond_sub gate) to its argmax.  alu-depth showed the
+        # soft register is a continuous side-channel, so `train_exact` alone
+        # over-reports; this is the honest number.
         model.eval()
-        save = (model.R, model.tau, model.noise, model.S, model.K, model.W)
+        save = (model.R, model.tau, model.noise, model.S, model.K, model.W,
+                model.hard, model.hard_gate)
+        if discrete:
+            model.hard, model.hard_gate = True, True
         model.R, model.noise = args.reduce, 0.0
         model.tau = args.tau_final if args.tau_final is not None else args.tau
         model.S, model.K, model.W = args.slots, 2 * args.slots - 1, args.slots + 1
         lg = model(inp, nd)
         ok = (lg.argmax(-1) == tgt).all(dim=1).float().mean().item()
         ce = F.cross_entropy(lg.reshape(-1, 10), tgt.reshape(-1)).item()
-        (model.R, model.tau, model.noise,
-         model.S, model.K, model.W) = save
+        (model.R, model.tau, model.noise, model.S, model.K, model.W,
+         model.hard, model.hard_gate) = save
         model.train()
         return ok, ce
 
@@ -789,7 +796,10 @@ def main() -> int:
     nd_dig = digits_le(args.modulus, args.slots + 1)
     ta = table_accuracy(model, nd_dig)
     ss = structure_scores(model, nd_dig)
+    trh, _ = evaluate(xin, xt, ndig, discrete=True)
+    heh, _ = evaluate(hin, ht, ndig, discrete=True)
     print(f"[{args.tag}] FINAL train_exact={tr:.3f} held_exact={he:.3f} "
+          f"train_exact_hard={trh:.3f} held_exact_hard={heh:.3f} "
           f"best_train={best:.3f} struct[" +
           " ".join(f"{k}={v}" for k, v in ss.items()) +
           f"] ({time.time()-t0:.0f}s)", flush=True)

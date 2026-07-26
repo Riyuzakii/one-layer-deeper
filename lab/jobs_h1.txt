@@ -1,0 +1,18 @@
+h_base --steps 2000 --log-every 1000
+h_ent003 --steps 2000 --log-every 1000 --state-ent 0.03
+h_ent01 --steps 2000 --log-every 1000 --state-ent 0.1
+h_ent03 --steps 2000 --log-every 1000 --state-ent 0.3
+h_ent10 --steps 2000 --log-every 1000 --state-ent 1.0
+h_ent30 --steps 2000 --log-every 1000 --state-ent 3.0
+h_ent01w --steps 2000 --log-every 1000 --state-ent 0.1 --state-ent-warm 0.3
+h_ent03w --steps 2000 --log-every 1000 --state-ent 0.3 --state-ent-warm 0.3
+h_tau015 --steps 2000 --log-every 1000 --tau-final 0.15
+h_tau005 --steps 2000 --log-every 1000 --tau-final 0.05
+h_tau001 --steps 2000 --log-every 1000 --tau-final 0.01
+h_gum --steps 2000 --log-every 1000 --gumbel 1.0 --gumbel-final 0.0
+h_gum_tau --steps 2000 --log-every 1000 --gumbel 1.0 --gumbel-final 0.0 --tau-final 0.05
+h_hardat05 --steps 2000 --log-every 1000 --hard-at 0.5
+h_hardat08 --steps 2000 --log-every 1000 --hard-at 0.8
+h_ent03_tau --steps 2000 --log-every 1000 --state-ent 0.3 --tau-final 0.05
+h_ent03_hardat --steps 2000 --log-every 1000 --state-ent 0.3 --hard-at 0.8
+h_ent10_tau --steps 2000 --log-every 1000 --state-ent 1.0 --tau-final 0.05

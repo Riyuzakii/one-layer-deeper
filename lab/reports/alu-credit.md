@@ -236,6 +236,18 @@ off chance.** Chain length is the only thing that moves the number at all:
 | baseline | 3000 | 0.132 | 0.317 |
 | N=91 S=2 (short chain) | 3000 | 0.750 | 0.45 |
 | N=91 S=2, `--loss linear` | 1000 | 0.167 | 0.333 |
+| `--sym 1.0` (commutativity of `Tmul`/`Tadd`) | 3000 | 0.052 | — |
+| `--trunc 1` / `--trunc 2` (truncated BPTT) | 1000 | 0.024 / 0.024 | 0.20 / 0.20 |
+| `--trunc 1`, N=91 S=2 | 1000 | 0.283 | 0.283 |
+| **target propagation, weight 1.0** (§6.5) | 1500 | 0.196 | **0.567** |
+
+Truncated BPTT is worth its own line because it is the cheapest legal way to
+shorten the *gradient* path without touching the forward pass (the constructed
+ceiling is unchanged). Detaching the register at every Horner place cuts the
+backward path from ~280 ops to ~14 and makes things slightly worse (0.024), for
+a reason the §2.1 gradient profile predicts: `Tmul` sits upstream of every
+detach, so truncation starves the one module that was getting a usable signal.
+Shortening the gradient path is not a substitute for shortening the chain.
 
 The bounded losses deserve a note because §2.3 predicted they would help and they
 do not. If cross-entropy's 17-nat penalty for confident error is what pins the
@@ -277,6 +289,36 @@ solution. The short chain fits the *degenerate* solution faster; it does not fin
 the algorithm. This is why the cross-modulus curriculum (train the shared tables
 at S=2, then move to S=3) transfers nothing: there is nothing correct at the
 source to transfer.
+
+### 5.1 The full chain-length ladder — and an honest complication
+
+All three configurations have **constructed ceiling 1.000**, verified, so this is
+a valid comparison. Legal training, 3,000 steps:
+
+| chain | ops | constructed | `train_exact` @20 | `train_exact` @3000 | `sub_shift` @3000 |
+|---|---|---|---|---|---|
+| N=91, S=2 | ~117 | 1.000 | **0.25** (3-seed mean) | **0.750** | 0.45 |
+| N=323, S=3 | ~280 | 1.000 | 0.024 (3-seed mean) | 0.132 | 0.317 |
+| N=2021, S=4 | ~525 | 1.000 | 0.028 | 0.164 | **0.600** |
+
+`train_exact` behaves as the depth story predicts — shorter is much better,
+especially at budget. **`sub_shift` does not.** The *longest* chain has the
+highest legal structure score of the three (0.600, and the second-highest of any
+legal run in this report). I did not predict that and I am reporting it rather
+than smoothing it over.
+
+The most likely reading is that `Tsub` is the module *nearest* the loss (§2.1
+measured its gradient at 10⁵× `Tmul`'s), and S=4 applies `cond_sub` far more
+times per example — 7 Horner places × 11 subtractions × 5 slots against 3 × 11 ×
+3 — so it accumulates far more gradient into that one table. More depth buys
+`Tsub` signal and costs composition. That is consistent with everything else
+here, but it is one configuration and I would want it replicated before anyone
+plans on it.
+
+The practical consequence is a warning: **`sub_shift` alone is not a sufficient
+screen either.** S=4 reaches 0.600 while sitting at `train_exact` 0.164 and
+`held_exact` 0.000. Screen on the structure scores *and* `train_exact` *and*
+held-out — no single one of the three is safe on its own in this family.
 
 ## 6. What worked, why, and exactly why it is not a submission
 
@@ -401,8 +443,28 @@ input is the model's own learned `zero`). This is method-of-auxiliary-coordinate
 / target propagation. It supplies no arithmetic, it is discarded at eval, and it
 *is* expressible under the evaluator's fixed loop.
 
-It is also ~12× the cost per step, which under step famine is close to
-disqualifying on its own. Result in `lab/credit_runs.jsonl` under `z_tprop*`.
+**It is the only legal procedure in this report that moves the tables.**
+
+| procedure | steps | `train_exact` | `mul_lo` | `add_shift` | `sub_shift` |
+|---|---|---|---|---|---|
+| random init (reference) | — | — | 0.28 | 0.275 | **0.233** |
+| best other legal (`--xcurr 0.5`) | 3000 | 0.224 | 0.29 | 0.26 | 0.417 |
+| best other legal (short chain, S=2) | 3000 | 0.750 | 0.29 | 0.305 | 0.45 |
+| **target propagation, weight 1.0** | 1500 | 0.196 | 0.31 | **0.38** | **0.567** |
+| teacher forcing (LAB ONLY), for scale | 20 | 0.000 | 0.77 | 0.51 | 0.78 |
+
+`train_exact` 0.196 is squarely inside the baseline seed band, so **as a recipe it
+is null** — it does not train the model. But `sub_shift` 0.567 against a random
+baseline of 0.233 is the largest structural movement any legal procedure
+produced, and it is produced by exactly the mechanism teacher forcing identified:
+per-step *inputs*, here learned rather than computed. That is a real signal on a
+real mechanism, from one untuned configuration.
+
+Two caveats keep me from recommending it. It is **~12× the cost per step**, which
+under step famine is close to disqualifying on its own. And it is still 0.567
+against teacher forcing's 0.78-in-20-steps, so the learned latents are a much
+weaker substitute for the true trace than the mechanism would suggest. Raw
+results in `lab/credit_runs.jsonl` under `z_tprop*`.
 
 ## 7. Which procedures a submission could actually express
 
@@ -470,11 +532,17 @@ margin no schedule closes.**
 4. **Retire the rule "`train_exact` → 1.000 implies `held_exact` → 1.000."** It
    is false in both directions of evidence I have (§0.5). Whatever finally trains
    still has to be checked on held-out.
-5. **If anyone wants one more shot from the training side**, target propagation
-   (§6.5) is the only legal construction that supplies per-step inputs, which is
-   the exact thing shown to be sufficient — but its ~12× per-step cost probably
-   disqualifies it under the new budget, so I would spend the GPU on
-   `alu-depth`'s lane instead.
+5. **The one legal thread I would not cut is target propagation (§6.5).** It is
+   the only legal procedure that moved the tables at all — `sub_shift` 0.567
+   against 0.233 random and 0.417/0.45 for the next best — from a single untuned
+   configuration, and it moves them by exactly the mechanism teacher forcing
+   identified. It did **not** train the model (`train_exact` 0.196, inside the
+   baseline band) and it costs ~12× per step, so it is not a candidate under the
+   current budget. But if `alu-depth` shortens the chain, the per-step cost falls
+   with it and target propagation becomes affordable at the same time as it
+   becomes easier — those two compound. That is the one place I would spend
+   further training-side GPU, and I would spend it *after* the depth work, not
+   before.
 
 *Noted for the record:* the coordinator's correction that `batch_size` 512→32 is
 1.2× for this model rather than 5.8× is consistent with what I saw — these runs

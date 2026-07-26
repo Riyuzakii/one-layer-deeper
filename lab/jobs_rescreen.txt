@@ -1,0 +1,6 @@
+k_tf_hard --teacher-force 1.0 --deep-sup 1.0 --steps 1000 --log-every 1000
+k_tf_hard_3k --teacher-force 1.0 --deep-sup 1.0 --steps 3000 --log-every 3000
+k_base_hard --steps 1000 --log-every 1000
+k_s2_hard --modulus 91 --slots 2 --train-x 60 --steps 3000 --log-every 3000
+k_tprop_hard --tprop 1.0 --main-warm 0.3 --steps 1500 --log-every 1500
+k_xcurr_hard --xcurr 0.5 --steps 3000 --log-every 3000

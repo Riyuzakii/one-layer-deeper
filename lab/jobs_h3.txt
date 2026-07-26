@@ -1,0 +1,4 @@
+i_long_ent --steps 12000 --log-every 4000 --state-ent 0.1 --state-ent-warm 0.3
+i_long_tau --steps 12000 --log-every 4000 --tau-final 0.05
+i_long_base --steps 12000 --log-every 4000
+i_long_gum --steps 12000 --log-every 4000 --gumbel 1.0 --gumbel-final 0.0 --tau-final 0.15
