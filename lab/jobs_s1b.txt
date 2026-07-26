@@ -1,0 +1,8 @@
+b_notie_s0 --steps 4000 --batch 512 --log-every 1000 --seed 0
+b_notie_s1 --steps 4000 --batch 512 --log-every 1000 --seed 1
+b_notie_s2 --steps 4000 --batch 512 --log-every 1000 --seed 2
+b_full_s0 --steps 4000 --batch 512 --log-every 1000 --tie --tie-sub --seed 0
+b_full_s1 --steps 4000 --batch 512 --log-every 1000 --tie --tie-sub --seed 1
+b_full_s2 --steps 4000 --batch 512 --log-every 1000 --tie --tie-sub --seed 2
+b_e1ctl_s0 --modulus 323 --slots 3 --train-x 250 --held-x 38 --steps 4000 --batch 250 --log-every 1000 --tie --tie-sub --seed 0
+b_e1ctl_s1 --modulus 323 --slots 3 --train-x 250 --held-x 38 --steps 4000 --batch 250 --log-every 1000 --tie --tie-sub --seed 1

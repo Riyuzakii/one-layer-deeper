@@ -1,0 +1,8 @@
+c_s3 --steps 8000 --batch 512 --log-every 2000 --seed 3
+c_s4 --steps 8000 --batch 512 --log-every 2000 --seed 4
+c_s5 --steps 8000 --batch 512 --log-every 2000 --seed 5
+c_s6 --steps 8000 --batch 512 --log-every 2000 --seed 6
+c_s0long --steps 8000 --batch 512 --log-every 2000 --seed 0
+c_s1long --steps 8000 --batch 512 --log-every 2000 --seed 1
+c_s2long --steps 8000 --batch 512 --log-every 2000 --seed 2
+c_tie_s2 --steps 8000 --batch 512 --log-every 2000 --tie --tie-sub --seed 2
