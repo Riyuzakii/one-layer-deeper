@@ -679,11 +679,7 @@ Read down the table: as pressure rises, sharpness climbs monotonically
 length, the soft fit keeps improving, and the discrete fit never starts. Full
 traces in `lab/logs/i_long_*.log`.
 
-Two confirmatory re-screens (`k_tprop_hard`, `k_xcurr_hard`) were still running
-at cutoff; their logs land in `lab/logs/`. Neither can change a conclusion here —
-both configurations already read `train_exact` 0.196 and 0.224 soft, i.e. inside
-the baseline band before snapping, so their hard numbers are bounded above by
-that.
+All six re-screens completed; the full table is in §9.3.
 
 ### 9.1 Which of my earlier conclusions survive the metric change
 
@@ -749,7 +745,16 @@ Original 257-step graph, `lab/logs/k_*.log`:
 | baseline, 1,000 steps | 0.100 | 0.008 | 0.000 | 0.000 | 0.417 |
 | **teacher forcing, 1,000 steps** (LAB ONLY) | 1.000 | **0.064** | 0.789 | **0.053** | **0.817** |
 | **teacher forcing, 3,000 steps** (LAB ONLY) | 1.000 | **0.072** | 0.816 | 0.026 | **0.817** |
+| target propagation, 1,500 steps (legal) | 0.196 | **0.004** | 0.000 | 0.000 | **0.567** |
+| magnitude curriculum `--xcurr 0.5`, 3,000 steps (legal) | 0.224 | 0.012 | 0.000 | 0.000 | 0.417 |
 | **N=91 S=2 short chain, 3,000 steps** | 0.750 | **0.183** | 0.000 | 0.000 | 0.45 |
+
+The target-propagation row is the sharpest warning in the whole report. It has
+the **best structure score of any legal procedure** (`sub_shift` 0.567 against
+0.233 random) and the **worst hard correctness in the table** (0.004, at the
+trivial floor). Real, measurable movement in the parameters, and not one extra
+correct example once the states are priced. Parameter-level progress and
+discrete correctness are close to independent in this family.
 
 The 1,000-vs-3,000-step teacher-forcing pair is worth reading carefully, because
 it is the cleanest single demonstration of what the metric change exposed.
@@ -819,11 +824,18 @@ Three things follow, in the order I would spend GPU on them.
    untried *shape* of that idea and it behaves like the rest.
 
 **Method note for whoever picks this up.** Report `train_exact_hard`, state
-sharpness, *and* the gauge-invariant parameter scores together. §9 has
-configurations with sharpness 0.975 and zero correctness, §5.1 has one with
-`sub_shift` 0.600 and zero correctness, and §0.2 has plenty with `train_exact`
-0.38 and chance-level tables. **Each of the three metrics has a configuration
-that fools it. None of them is safe alone.**
+sharpness, *and* the gauge-invariant parameter scores together. Each of the
+metrics in this family has a configuration in this report that fools it:
+
+| metric | a configuration that fools it | reads | but |
+|---|---|---|---|
+| `train_exact` | baseline, 12,000 steps | 0.616 | `train_exact_hard` 0.000 |
+| state sharpness | `--tau-final 0.01` | 0.975 | `train_exact_hard` 0.000 |
+| `sub_shift` (parameters) | target propagation | 0.567 | `train_exact_hard` 0.004 |
+| `held_exact` | teacher forcing, 3,000 steps | 0.816 | `held_exact_hard` 0.026 |
+| `train_exact_hard` alone | N=91 S=2 short chain | 0.183 | `held_exact_hard` 0.000 |
+
+**No single number is safe. Report the row, not the cell.**
 
 ## 13. Compliance
 
