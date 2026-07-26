@@ -326,6 +326,14 @@ def main() -> int:
                          "the adder identifiable from generic algebraic laws "
                          "alone, with no labels at all?  The chain is skipped, "
                          "so it is ~50x cheaper per step.")
+    ap.add_argument("--massoc", type=float, default=0.0,
+                    help="associativity of the model's OWN modular multiply: "
+                         "(x*y)*z == x*(y*z) at self-generated operands.  The "
+                         "last generic algebraic law available on the "
+                         "operations the model already performs, and the only "
+                         "one that touches Tmul beyond commutativity.  Costs 4 "
+                         "chains per evaluation.")
+    ap.add_argument("--massoc-batch", type=int, default=128)
     ap.add_argument("--cancel", type=float, default=0.0,
                     help="cancellativity: B -> A (+) B is injective.  A generic "
                          "algebraic non-degeneracy law.  It excludes the "
@@ -504,7 +512,8 @@ def main() -> int:
         rows = []
         for k in ks:
             acc = {key: [] for key in
-                   ("dig", "ce", "exact", "fold", "red", "horn", "rel", "asc")}
+                   ("dig", "ce", "exact", "fold", "red", "horn", "rel",
+                    "asc", "mas")}
             for rep in range(args.basin_reps):
                 gen = torch.Generator().manual_seed(1000 * k + rep)
                 model.construct()
@@ -530,6 +539,13 @@ def main() -> int:
                     rhs = model.addmod(model.addmod(r, ax, nd, mults), cc,
                                        nd, mults)
                     acc["rel"].append(sym_kl(lhs, rhs).item())
+                    y = xin[n:2 * n]
+                    z = xin[2 * n:3 * n]
+                    ml = model.mulmod(model.mulmod(s, y, nd, mults), z,
+                                      nd, mults)
+                    mr = model.mulmod(s, model.mulmod(y, z, nd, mults),
+                                      nd, mults)
+                    acc["mas"].append(sym_kl(ml, mr).item())
                     g2 = torch.Generator(device=dev).manual_seed(7)
                     rr = torch.randint(0, 10, (3, 256, W), device=dev,
                                        generator=g2)
@@ -549,7 +565,8 @@ def main() -> int:
                   f"red={row['red']:.4f}+-{row['red_sd']:.4f} "
                   f"horn={row['horn']:.4f}+-{row['horn_sd']:.4f} "
                   f"rel={row['rel']:.4f}+-{row['rel_sd']:.4f} "
-                  f"asc={row['asc']:.4f}+-{row['asc_sd']:.4f}", flush=True)
+                  f"asc={row['asc']:.4f}+-{row['asc_sd']:.4f} "
+                  f"mas={row['mas']:.4f}+-{row['mas_sd']:.4f}", flush=True)
         if args.jsonl:
             with open(args.jsonl, "a") as fh:
                 fh.write(json.dumps({"tag": args.tag, "argv": sys.argv[1:],
@@ -675,7 +692,8 @@ def main() -> int:
             r = None
             loss = torch.zeros((), device=dev)
 
-        if (args.dual != "none" or args.rel != "none") and r is None:
+        if (args.dual != "none" or args.rel != "none"
+                or args.massoc > 0) and r is None:
             r = model.square(bi, nd, mults)
 
         if args.dual != "none":
@@ -724,6 +742,16 @@ def main() -> int:
             p = assoc_pen(256)
             parts["assoc"] = p.item()
             loss = loss + args.assoc * p
+        if args.massoc > 0:
+            nb = min(args.massoc_batch, args.batch)
+            y = xin[torch.randint(0, xin.shape[0], (nb,), device=dev)]
+            z = xin[torch.randint(0, xin.shape[0], (nb,), device=dev)]
+            x0 = bi[:nb]
+            l = model.mulmod(model.mulmod(x0, y, nd, mults), z, nd, mults)
+            rr2 = model.mulmod(x0, model.mulmod(y, z, nd, mults), nd, mults)
+            pm = agree(l, rr2)
+            parts["massoc"] = pm.item()
+            loss = loss + args.massoc * pm
         if args.cancel > 0:
             p = cancel_pen(256)
             parts["cancel"] = p.item()

@@ -1,0 +1,8 @@
+f_rep100_s1 --sweeps 25 --n 512 --seed 1 --start corrupt --corrupt 100
+f_rep150_s0 --sweeps 25 --n 512 --seed 0 --start corrupt --corrupt 150
+f_rep200_s0 --sweeps 25 --n 512 --seed 0 --start corrupt --corrupt 200
+f_rep200_s1 --sweeps 25 --n 512 --seed 1 --start corrupt --corrupt 200
+f_rep50_s1 --sweeps 25 --n 512 --seed 1 --start corrupt --corrupt 50
+f_rep50_s2 --sweeps 25 --n 512 --seed 2 --start corrupt --corrupt 50
+f_rep100_s2 --sweeps 25 --n 512 --seed 2 --start corrupt --corrupt 100
+f_rand_rs_s0 --sweeps 25 --n 512 --seed 0 --resample

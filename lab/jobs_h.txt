@@ -1,0 +1,8 @@
+# Block H -- multiplicative associativity, the last generic algebraic law
+# available on the operations the model already performs.
+h_mas_s0 --steps 2000 --log-every 500 --seed 0 --massoc 1.0
+h_mas_s1 --steps 2000 --log-every 500 --seed 1 --massoc 1.0
+h_mas_s2 --steps 2000 --log-every 500 --seed 2 --massoc 1.0
+h_mas_kl_s0 --steps 2000 --log-every 500 --seed 0 --massoc 1.0 --div kl
+h_mas_all_s0 --steps 2000 --log-every 500 --seed 0 --massoc 1.0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+h_mas_all_s1 --steps 2000 --log-every 500 --seed 1 --massoc 1.0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0

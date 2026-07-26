@@ -1,0 +1,14 @@
+d_aff_s0 --steps 2000 --log-every 500 --seed 0 --rel affine --rel-w 1.0 --rel-nondeg 1.0
+d_aff_s1 --steps 2000 --log-every 500 --seed 1 --rel affine --rel-w 1.0 --rel-nondeg 1.0
+d_free_s0 --steps 2000 --log-every 500 --seed 0 --rel free --rel-w 1.0 --rel-nondeg 1.0
+d_free_s1 --steps 2000 --log-every 500 --seed 1 --rel free --rel-w 1.0 --rel-nondeg 1.0
+e_full_s0 --steps 2000 --log-every 500 --seed 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_full_s1 --steps 2000 --log-every 500 --seed 1 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_alg_st_s0 --steps 4000 --log-every 1000 --seed 0 --hard --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_alg_st_s1 --steps 4000 --log-every 1000 --seed 1 --hard --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_alg_kl_s0 --steps 4000 --log-every 1000 --seed 0 --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0 --div kl
+e_alg_nocan_s0 --steps 4000 --log-every 1000 --seed 0 --label-w 0 --assoc 1.0 --inv 1.0 --sym 1.0
+h_mas_all_s0 --steps 2000 --log-every 500 --seed 0 --massoc 1.0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+c_fold_kl_s0 --steps 2000 --log-every 500 --seed 0 --dual fold --dual-w 1.0 --div kl
+c_fold_w3_s0 --steps 2000 --log-every 500 --seed 0 --dual fold --dual-w 3.0
+c_fold_st_s0 --steps 2000 --log-every 500 --seed 0 --hard --dual fold --dual-w 1.0

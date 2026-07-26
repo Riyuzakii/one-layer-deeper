@@ -1,0 +1,12 @@
+e_alg_lr3_s0 --steps 4000 --log-every 1000 --seed 0 --lr 0.003 --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_alg_lr300_s0 --steps 4000 --log-every 1000 --seed 0 --lr 0.3 --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_alg_c10_s0 --steps 4000 --log-every 1000 --seed 0 --label-w 0 --assoc 1.0 --cancel 10.0 --inv 1.0 --sym 1.0
+e_alg_nocan_s0 --steps 4000 --log-every 1000 --seed 0 --label-w 0 --assoc 1.0 --inv 1.0 --sym 1.0
+e_alg_kl_s0 --steps 4000 --log-every 1000 --seed 0 --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0 --div kl
+e_alg_st_s0 --steps 4000 --log-every 1000 --seed 0 --hard --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_alg_st_s1 --steps 4000 --log-every 1000 --seed 1 --hard --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_alg_st_lr3_s0 --steps 4000 --log-every 1000 --seed 0 --hard --lr 0.003 --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_full_s0 --steps 2000 --log-every 500 --seed 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_full_s1 --steps 2000 --log-every 500 --seed 1 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_full_s2 --steps 2000 --log-every 500 --seed 2 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_full_st_s0 --steps 2000 --log-every 500 --seed 0 --hard --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0

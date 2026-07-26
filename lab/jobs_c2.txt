@@ -1,0 +1,12 @@
+c_red_s0 --steps 2000 --log-every 500 --seed 0 --dual redall --dual-w 1.0
+c_red_s1 --steps 2000 --log-every 500 --seed 1 --dual redall --dual-w 1.0
+c_red_s2 --steps 2000 --log-every 500 --seed 2 --dual redall --dual-w 1.0
+c_horn_s0 --steps 2000 --log-every 500 --seed 0 --dual horner --dual-w 1.0
+c_horn_s1 --steps 2000 --log-every 500 --seed 1 --dual horner --dual-w 1.0
+c_horn_s2 --steps 2000 --log-every 500 --seed 2 --dual horner --dual-w 1.0
+c_fold_w3_s0 --steps 2000 --log-every 500 --seed 0 --dual fold --dual-w 3.0
+c_fold_w03_s0 --steps 2000 --log-every 500 --seed 0 --dual fold --dual-w 0.3
+c_fold_kl_s0 --steps 2000 --log-every 500 --seed 0 --dual fold --dual-w 1.0 --div kl
+c_horn_kl_s0 --steps 2000 --log-every 500 --seed 0 --dual horner --dual-w 1.0 --div kl
+c_fold_nl_s0 --steps 2000 --log-every 500 --seed 0 --dual fold --dual-w 1.0 --dual-label 0
+c_fold_st_s0 --steps 2000 --log-every 500 --seed 0 --hard --dual fold --dual-w 1.0

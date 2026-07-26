@@ -1,0 +1,18 @@
+f_rep100_s1 --sweeps 25 --n 512 --seed 1 --start corrupt --corrupt 100
+f_rep150_s0 --sweeps 25 --n 512 --seed 0 --start corrupt --corrupt 150
+f_rep200_s0 --sweeps 25 --n 512 --seed 0 --start corrupt --corrupt 200
+f_rep200_s1 --sweeps 25 --n 512 --seed 1 --start corrupt --corrupt 200
+f_rep50_s1 --sweeps 25 --n 512 --seed 1 --start corrupt --corrupt 50
+f_rep50_s2 --sweeps 25 --n 512 --seed 2 --start corrupt --corrupt 50
+f_rep100_s2 --sweeps 25 --n 512 --seed 2 --start corrupt --corrupt 100
+f_rand_rs_s0 --sweeps 25 --n 512 --seed 0 --resample
+g_hop_s0 --sweeps 8 --n 512 --seed 0 --hops 60 --hop-m 20
+g_hop_s1 --sweeps 8 --n 512 --seed 1 --hops 60 --hop-m 20
+g_hop_m50_s0 --sweeps 8 --n 512 --seed 0 --hops 60 --hop-m 50
+g_hop_m5_s0 --sweeps 8 --n 512 --seed 0 --hops 60 --hop-m 5
+g_rand_s3 --sweeps 25 --n 512 --seed 3
+g_rand_s4 --sweeps 25 --n 512 --seed 4
+g_rand_s5 --sweeps 25 --n 512 --seed 5
+g_rand_s6 --sweeps 25 --n 512 --seed 6
+g_rand_s7 --sweeps 25 --n 512 --seed 7
+g_rand_s8 --sweeps 25 --n 512 --seed 8
