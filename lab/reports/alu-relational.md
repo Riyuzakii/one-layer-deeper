@@ -785,6 +785,16 @@ basin ladder `k = 0 … 1000`; the discrete-search repair ladder (10/20/50/100/1
 from-random init (7 seeds + a resampled control + the assoc-only control);
 basin hopping (2 seeds, run to completion).
 
+**Archive integrity note.** `lab/rel_runs.jsonl` is append-only, as the brief
+requires. A queued sweep relaunched a handful of already-completed tags
+(`d_aff_s0/s1`, `d_free_s0/s1`, `e_full_s0`) after the tables above were
+written, so the file may hold a second line for those tags. **Every number in
+this report is the run archived at the time of writing**; the re-runs use the
+same seed and configuration, so they are repeats rather than new evidence, and
+`lab/rel_tables.py` (which takes the last line per tag) can therefore print a
+value differing from the report in the last digit if GPU reduction order
+differed. Nothing in §8 or §9 turns on a last digit.
+
 **Not measured / partial**, with resume commands:
 
 ```bash
