@@ -168,6 +168,73 @@ Snapping cannot touch these. So per-step inputs *do* teach the tables and the ta
 absorbs. **The open problem is table identification, not credit assignment and not
 relaxation tightness.**
 
+### Round 3 — the ALU's legal training is CLOSED
+
+**`explore/alu-credit` Stage 1 (DIAGNOSTIC ceiling).** With m1-scale operands on the
+39-step `tree:quotient` graph, **untied**, teacher forcing on the true register trace
+reaches `train_exact_hard` **0.951** / `held_exact_hard` **0.946** — soft and hard
+agreeing to 0.001, the first genuinely discrete transducer in the repo, generalising at
+a scale with no room to memorise, plateauing by **step 1,000** (inside a Hard budget).
+Scale is the active ingredient: same graph at e1 scale gives 0.028. **Teacher forcing is
+illegal (rules 2, 7) — this is a ceiling, not a result.**
+
+- The control variable is `local_ce`, with a razor cliff: **0.0050 -> 0.951**,
+  **0.0073 -> 0.103**, 0.070 -> 0.000. That is the `(1-eps)^50` law measured. Use
+  `local_ce` as the early indicator; it separates basins long before exact-match moves.
+- Basin rate **1 of 7 untied seeds**, deterministic per seed. **Weight ties are harmful
+  for learning from random init** (the one successful seed fails when tied,
+  `local_ce` 0.0050 -> 0.1187) even though ties help *repair* near a solution. Two
+  different problems — do not carry a tie result across them.
+- **Target propagation collapses at every mixing weight** (0.3/1.0/3.0, 3 seeds, +/-ties):
+  `mul_gauge` 0.100 = a constant map, unanimously. A low weight does *not* recover the
+  baseline. It is an attractor, not a tunable balance.
+
+**`explore/alu-relational` (complete) — no legal signal with intra-squaring content.**
+37 training runs; highest `train_exact_hard` anywhere **0.001**. Three families, all null:
+the relational increment law, dual-path agreement, and the algebraic re-screen
+(`--sym`, `--inv`, `--assoc`, `--cancel`).
+
+- **The missing control, now measured:** the plain LEGAL baseline at Stage-1 conditions
+  is a hard zero — `local_ce` **3.5-4.2** against the 0.005-0.0073 cliff, i.e. ~500-800x
+  the per-op error rate that separates 0.951 from 0.000.
+- **The relational family is closed by its own ILLEGAL ceiling.** Writing the true
+  identity `(x+1)^2 = x^2 + 2x + 1` into the loss lands inside the baseline band on every
+  metric. No legal version with learned operators can beat the version handed the true
+  coefficients.
+- **A Stage-1 re-screen failed to overturn an e1-scale negative** (`--sym`, `--inv` null
+  at both scales). "e1 negatives do not survive" is NOT universal — check, don't assume.
+- `--assoc` collapses the map to a constant (`out_div` 0.002); `--cancel` blocks the
+  collapse and buys nothing.
+- **Structural closure argument:** `Tmul`'s 200 cells are unidentifiable — not from the
+  end-of-chain label, not from any generic algebraic law, and the only law that *would*
+  identify them (multiplication as repeated addition) is the definition of the
+  arithmetic, i.e. rule 2 moved into the loss.
+
+**The one result worth carrying to a future architecture (a measurement, not a recipe):**
+**a constraint's conditioning is set by how many learned ops separate it from the tables,
+not by its information content.** Laws evaluated O(1) ops from a table (adder
+associativity/commutativity/cancellativity) exactly repair **50 of 400 corrupted cells,
+3/3 seeds**, against the end-of-chain label's **0/5 at k=20 of 337** — a **~14x wider**
+exact-repair basin, and the only objective still climbing past k=100. Laws evaluated
+*through the chain* inherit the chain's ruggedness exactly. Both still fail from random
+init, so this buys no submission — but it says the next architecture should put its
+objective O(1) ops from its parameters.
+
+**Compliance line, adopted and applied consistently (alu-relational §7, agreeing with
+discrete-search §9):** a loss term is **legal** if it asserts *a generic algebraic
+property of an operation the model already performs*; **not legal** if it asserts *the
+specific relationship that constitutes the definition of the arithmetic* — that is rule 2
+moved from the forward pass into the loss. Under this rule `--rel affine` ("the increment
+is affine, i.e. the map is quadratic") was flagged and resolved **against**, since
+"degree 2" is a fact about this task rather than a generic property. It measured null
+anyway, so the ruling cost nothing.
+
+**Two methodological rules earned the hard way:**
+1. **Measure a signal's ILLEGAL ceiling before building its legal version.** Four runs
+   closed the strongest family in `alu-relational`.
+2. **Measure a signal's BASIN before optimising it.** Costs no training and predicts
+   whether optimisation can go anywhere.
+
 ### Corrections to earlier entries in this log
 
 - **`batch_size` 512→32 is 1.2× for the ALU model, not 5.8×.** The DataLoader lever
