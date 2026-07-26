@@ -663,16 +663,27 @@ over-sharpen — does preserve `train_exact` better (0.152–0.220 against
 `train_exact_hard` 0.000–0.008. Preserving the soft solution does not help
 either.
 
-Long runs at 12,000 steps (6× the sweep) confirm it is not a slow transition:
-`--tau-final 0.05` finishes at `train_exact` 0.004, **`train_exact_hard` 0.020**,
-sharpness **0.967** — the best hard number of the state-pressure family and still
-at the floor, with the soft solution destroyed. The baseline at the same 12,000
-steps finishes at `train_exact` **0.616** and `train_exact_hard` **0.000**,
-sharpness 0.762: six times the sweep length, the soft fit keeps improving, and
-the discrete fit never starts. Full traces in `lab/logs/i_long_*.log`; the
-remaining confirmatory runs (`k_tf_hard_3k`, `k_tprop_hard`, `k_xcurr_hard`,
-`i_long_gum`) were still running at cutoff and their logs land in the same
-place.
+**Long runs at 12,000 steps** (6× the sweep) confirm it is not a slow transition.
+All four completed:
+
+| 12,000 steps | `train_exact` | **`train_exact_hard`** | sharpness |
+|---|---|---|---|
+| baseline | **0.616** | **0.000** | 0.762 |
+| `--state-ent 0.1 --state-ent-warm 0.3` | 0.460 | 0.008 | 0.875 |
+| `--gumbel 1.0 → 0 --tau-final 0.15` | 0.028 | 0.004 | 0.926 |
+| `--tau-final 0.05` | 0.004 | **0.020** | **0.967** |
+
+Read down the table: as pressure rises, sharpness climbs monotonically
+0.762 → 0.967 and `train_exact` collapses monotonically 0.616 → 0.004, while
+`train_exact_hard` stays pinned in 0.000–0.020 throughout. Six times the sweep
+length, the soft fit keeps improving, and the discrete fit never starts. Full
+traces in `lab/logs/i_long_*.log`.
+
+Three confirmatory re-screens (`k_tf_hard_3k`, `k_tprop_hard`, `k_xcurr_hard`)
+were still running at cutoff; their logs land in `lab/logs/` and none of them
+can change a conclusion here — the configurations they re-measure already read
+`train_exact_hard` 0.064, 0.196-soft and 0.224-soft respectively on the runs
+that did finish.
 
 ### 9.1 Which of my earlier conclusions survive the metric change
 
