@@ -1,0 +1,15 @@
+c_tf_005 --steps 5 --lr 0.3 --teacher-force 1.0 --deep-sup 1.0 --log-every 5
+c_tf_010 --steps 10 --lr 0.3 --teacher-force 1.0 --deep-sup 1.0 --log-every 5
+c_tf_020 --steps 20 --lr 0.3 --teacher-force 1.0 --deep-sup 1.0 --log-every 10
+c_tf_040 --steps 40 --lr 0.3 --teacher-force 1.0 --deep-sup 1.0 --log-every 20
+c_tf_080 --steps 80 --lr 0.3 --teacher-force 1.0 --deep-sup 1.0 --log-every 40
+c_tf_300 --steps 300 --lr 0.3 --teacher-force 1.0 --deep-sup 1.0 --log-every 100
+c_tf_600 --steps 600 --lr 0.3 --teacher-force 1.0 --deep-sup 1.0 --log-every 200
+c_lg_020 --steps 20 --lr 0.3 --log-every 10
+c_lg_080 --steps 80 --lr 0.3 --log-every 40
+c_lg_300 --steps 300 --lr 0.3 --log-every 100
+c_lg_600 --steps 600 --lr 0.3 --log-every 200
+c_s2_020 --modulus 91 --slots 2 --train-x 60 --steps 20 --lr 0.3 --log-every 10
+c_s2_080 --modulus 91 --slots 2 --train-x 60 --steps 80 --lr 0.3 --log-every 40
+c_s2_300 --modulus 91 --slots 2 --train-x 60 --steps 300 --lr 0.3 --log-every 100
+c_s2_600 --modulus 91 --slots 2 --train-x 60 --steps 600 --lr 0.3 --log-every 200

@@ -1,0 +1,8 @@
+d_tf20_s2 --modulus 91 --slots 2 --train-x 60 --steps 20 --lr 0.3 --teacher-force 1.0 --deep-sup 1.0 --log-every 10
+d_tf20_s4 --modulus 2021 --slots 4 --steps 20 --lr 0.3 --teacher-force 1.0 --deep-sup 1.0 --log-every 10
+d_tf80_s4 --modulus 2021 --slots 4 --steps 80 --lr 0.3 --teacher-force 1.0 --deep-sup 1.0 --log-every 40
+d_tf20_s1 --steps 20 --lr 0.3 --teacher-force 1.0 --deep-sup 1.0 --log-every 10 --seed 1
+d_tf20_s2seed --steps 20 --lr 0.3 --teacher-force 1.0 --deep-sup 1.0 --log-every 10 --seed 2
+d_ds20 --steps 20 --lr 0.3 --deep-sup 1.0 --log-every 10
+d_ds80 --steps 80 --lr 0.3 --deep-sup 1.0 --log-every 40
+d_ds300 --steps 300 --lr 0.3 --deep-sup 1.0 --log-every 100

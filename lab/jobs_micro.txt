@@ -1,0 +1,14 @@
+m20_lr003 --steps 20 --lr 0.03 --log-every 5
+m20_lr01 --steps 20 --lr 0.1 --log-every 5
+m20_lr03 --steps 20 --lr 0.3 --log-every 5
+m20_lr10 --steps 20 --lr 1.0 --log-every 5
+m20_lr30 --steps 20 --lr 3.0 --log-every 5
+m20_tf --steps 20 --lr 0.3 --teacher-force 1.0 --deep-sup 1.0 --log-every 5
+m20_s2 --modulus 91 --slots 2 --train-x 60 --steps 20 --lr 0.3 --log-every 5
+m150_lr01 --steps 150 --lr 0.1 --log-every 25
+m150_lr03 --steps 150 --lr 0.3 --log-every 25
+m150_lr10 --steps 150 --lr 1.0 --log-every 25
+m150_tf --steps 150 --lr 0.3 --teacher-force 1.0 --deep-sup 1.0 --log-every 25
+m150_s2 --modulus 91 --slots 2 --train-x 60 --steps 150 --lr 0.3 --log-every 25
+m150_tf_lr01 --steps 150 --lr 0.1 --teacher-force 1.0 --deep-sup 1.0 --log-every 25
+m150_s2_tf --modulus 91 --slots 2 --train-x 60 --steps 150 --lr 0.3 --teacher-force 1.0 --deep-sup 1.0 --log-every 25

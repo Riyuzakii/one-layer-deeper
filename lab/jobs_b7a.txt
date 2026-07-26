@@ -1,0 +1,2 @@
+v_tf_s2 --modulus 91 --slots 2 --train-x 60 --teacher-force 1.0 --deep-sup 1.0 --steps 2000 --log-every 500
+v_tf_280 --train-x 280 --teacher-force 1.0 --deep-sup 1.0 --steps 2000 --log-every 500

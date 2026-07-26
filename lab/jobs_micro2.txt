@@ -1,0 +1,23 @@
+n20_onehot4 --steps 20 --lr 0.3 --onehot-init 4
+n20_iscale4 --steps 20 --lr 0.3 --init-scale 4
+n20_perm8 --steps 20 --lr 0.3 --perm-init 8
+n20_gateoff --steps 20 --lr 0.3 --perm-init 8 --gate-off -6 --gate-warm 0.5
+n20_hardgate --steps 20 --lr 0.3 --hard --hard-gate
+n20_rstart3 --steps 20 --lr 0.3 --r-start 3 --r-warm 0.5
+n20_inv --steps 20 --lr 0.3 --inv 1.0
+n20_ent --steps 20 --lr 0.3 --ent 0.05
+n20_sym --steps 20 --lr 0.3 --sym 1.0
+n20_xcurr --steps 20 --lr 0.3 --xcurr 0.5
+n20_sign --steps 20 --lr 0.03 --opt sign
+n20_s4 --modulus 2021 --slots 4 --steps 20 --lr 0.3
+n150_s4 --modulus 2021 --slots 4 --steps 150 --lr 0.3 --log-every 50
+n20_s2_lr10 --modulus 91 --slots 2 --train-x 60 --steps 20 --lr 1.0
+n20_s2_lr01 --modulus 91 --slots 2 --train-x 60 --steps 20 --lr 0.1
+n20_s2_onehot --modulus 91 --slots 2 --train-x 60 --steps 20 --lr 0.3 --onehot-init 4
+n20_s2_rstart --modulus 91 --slots 2 --train-x 60 --steps 20 --lr 0.3 --r-start 3 --r-warm 0.5
+n20_s2_s1 --modulus 91 --slots 2 --train-x 60 --steps 20 --lr 0.3 --seed 1
+n20_s2_s2 --modulus 91 --slots 2 --train-x 60 --steps 20 --lr 0.3 --seed 2
+n20_s3_s1 --steps 20 --lr 0.3 --seed 1
+n20_s3_s2 --steps 20 --lr 0.3 --seed 2
+n150_s2_s1 --modulus 91 --slots 2 --train-x 60 --steps 150 --lr 0.3 --seed 1 --log-every 50
+n150_s2_s2 --modulus 91 --slots 2 --train-x 60 --steps 150 --lr 0.3 --seed 2 --log-every 50

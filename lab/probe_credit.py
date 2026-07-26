@@ -475,6 +475,9 @@ def main() -> int:
                     help="report per-module grad norms + table accuracy")
     ap.add_argument("--dump-tables", action="store_true",
                     help="print learned vs true argmax grids at the end")
+    ap.add_argument("--basin", action="store_true",
+                    help="corrupt k entries of the construction and measure "
+                         "what survives -- how wide is the basin?")
     ap.add_argument("--flow", action="store_true",
                     help="print the across-batch register spread at every step")
     ap.add_argument("--jsonl", default="")
@@ -598,6 +601,42 @@ def main() -> int:
                               args.reduce, device)
         if args.teacher_force > 0:
             model.tf, model.tf_p = deep, args.teacher_force
+
+    if args.basin:
+        # How wide is the basin around the exact solution?  Corrupt k randomly
+        # chosen table entries of the construction and measure what is left.
+        # If a single wrong entry already destroys the output, no local search
+        # -- gradient or otherwise -- can find the solution from outside it.
+        model.eval()
+        cells = []
+        for name in ("Tmul", "Tadd", "Tsub"):
+            T = getattr(model, name)
+            for idx in range(T[..., 0].numel()):
+                cells.append((name, idx))
+        for k in (0, 1, 2, 3, 5, 10, 20, 50, 100):
+            accs, ces = [], []
+            for rep in range(3 if k else 1):
+                model.construct()
+                g = torch.Generator().manual_seed(1000 * k + rep)
+                pick = torch.randperm(len(cells), generator=g)[:k]
+                with torch.no_grad():
+                    for p in pick.tolist():
+                        name, idx = cells[p]
+                        T = getattr(model, name)
+                        flat = T.view(-1, T.shape[-1])
+                        n_out = 10 if name == "Tmul" else 10
+                        j = int(torch.randint(0, n_out, (1,), generator=g))
+                        flat[idx, :n_out] = -BIG
+                        flat[idx, j] = BIG
+                with torch.no_grad():
+                    lg = model(xin, ndig)
+                accs.append((lg.argmax(-1) == xt).all(dim=1).float().mean().item())
+                ces.append(F.cross_entropy(lg.reshape(-1, 10),
+                                           xt.reshape(-1)).item())
+            print(f"[{args.tag}] basin k={k:>3} of {len(cells)} cells  "
+                  f"train_exact={sum(accs)/len(accs):.3f}  "
+                  f"train_ce={sum(ces)/len(ces):.3f}", flush=True)
+        return 0
 
     if args.flow:
         model.trace = True
