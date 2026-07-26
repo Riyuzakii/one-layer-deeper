@@ -417,6 +417,7 @@ The brief asked for this explicitly, and the step budget sharpens it.
 | straight-through, scheduled hardening | relaxation choice in `forward` | yes |
 | **chain-length warm-up on `R`** | `R_eff = f(step)` in `forward`; eval at full `R`, so the constructed ceiling is unchanged | yes — and it makes early steps *cheaper*, which matters now |
 | staged gradient release (`mul → add → sub`) | `T.detach()` under a step condition | no — needs stages |
+| **truncated BPTT** (`--trunc`, detach the register every *k* Horner places) | `r.detach()` in `forward`; forward is unchanged, so the constructed ceiling is unchanged | yes, and it makes the backward *cheaper* |
 | magnitude curriculum on \|x\| | per-example loss weight from `input_ids` | marginal — needs a ramp |
 | entropy / commutativity / `Tsub ∘ Tadd = id` | pure `training_loss` terms | yes |
 | every init family here | `build_model` | yes (free) |

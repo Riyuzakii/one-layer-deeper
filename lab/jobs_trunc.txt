@@ -1,0 +1,4 @@
+f_trunc1 --trunc 1 --steps 1000 --lr 0.3 --log-every 500
+f_trunc1_3k --trunc 1 --steps 3000 --lr 0.3 --log-every 1000
+f_trunc2 --trunc 2 --steps 1000 --lr 0.3 --log-every 500
+f_trunc1_s2 --modulus 91 --slots 2 --train-x 60 --trunc 1 --steps 1000 --lr 0.3 --log-every 500
