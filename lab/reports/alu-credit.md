@@ -663,9 +663,12 @@ over-sharpen — does preserve `train_exact` better (0.152–0.220 against
 `train_exact_hard` 0.000–0.008. Preserving the soft solution does not help
 either.
 
-Long runs (12,000 steps, 6× the sweep) are in `lab/logs/i_long_*.log`; at step
-4,000 they read `train_exact` 0.48 / 0.40 with `train_exact_hard` 0.004 / 0.008
-for baseline / entropy pressure — the same picture, not a slow transition.
+Long runs at 12,000 steps (6× the sweep) confirm it is not a slow transition:
+`--tau-final 0.05` finishes at `train_exact` 0.004, **`train_exact_hard` 0.020**,
+sharpness **0.967** — the best hard number of the state-pressure family and still
+at the floor, with the soft solution destroyed. Baseline and entropy pressure
+read `train_exact` 0.604 / 0.400 with `train_exact_hard` 0.008 at step 8,000 /
+4,000. Full traces in `lab/logs/i_long_*.log`.
 
 ### 9.1 Which of my earlier conclusions survive the metric change
 
