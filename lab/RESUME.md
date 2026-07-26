@@ -205,6 +205,12 @@ the relational increment law, dual-path agreement, and the algebraic re-screen
   at both scales). "e1 negatives do not survive" is NOT universal — check, don't assume.
 - `--assoc` collapses the map to a constant (`out_div` 0.002); `--cancel` blocks the
   collapse and buys nothing.
+- **The agreement-law dichotomy (closes the class, not just the instances):** any
+  agreement-style law either **tolerates** the maximum-entropy solution (KL form —
+  already satisfied at init, so no gradient) or **prices** it (CE form — starts at
+  `2 ln 10` and does not descend in 4,000 steps even with no competing loss). There is
+  no third framing. Straight-through, the direct test of "graded discrete landscape,
+  bad estimator", is actively destructive (`local_ce` 13.83, the worst in the report).
 - **Structural closure argument:** `Tmul`'s 200 cells are unidentifiable — not from the
   end-of-chain label, not from any generic algebraic law, and the only law that *would*
   identify them (multiplication as repeated addition) is the definition of the
