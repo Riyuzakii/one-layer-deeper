@@ -28,7 +28,7 @@ arithmetic, so it is a **LAB DIAGNOSTIC, not a legal submission** (rule 2).
 
 **3. The 4,000-step figure is the cost of the rollout, not of the tables.** This
 is the finding that matters most under the coordinator's step famine. Given
-per-step *inputs*, six thousand table cells are learned in tens of steps. Given
+per-step *inputs*, all 500 table cells are learned in tens of steps. Given
 only the end-of-chain loss, they never leave chance at 600, 3,000 or 20,000
 steps. **Step budget is not the binding constraint on this architecture;
 rollout depth is.** If `alu-depth` gets the loss to within a few ops of every
@@ -303,8 +303,8 @@ lr 0.3, teacher forcing:
 
 **At five optimizer steps `sub_shift` is already 0.60 against a random baseline of
 0.233. At twenty — the tier-faithful Easy budget — it is 0.78 and `mul_lo` is
-0.77.** The six thousand table cells are most of the way learned inside the
-budget. What takes another 300 steps is turning ~80%-correct tables into an
+0.77.** All 500 table cells (6,817 parameters) are most of the way learned
+inside the budget. What takes another 300 steps is turning ~80%-correct tables into an
 end-to-end exact 280-step rollout, which is an all-or-nothing composition
 problem, not a learning problem.
 
