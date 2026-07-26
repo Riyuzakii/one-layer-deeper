@@ -1,0 +1,10 @@
+e_lin20 --steps 20 --lr 0.3 --loss linear
+e_lin150 --steps 150 --lr 0.3 --loss linear --log-every 50
+e_lin1k --steps 1000 --lr 0.3 --loss linear --log-every 250
+e_bri20 --steps 20 --lr 0.3 --loss brier
+e_bri150 --steps 150 --lr 0.3 --loss brier --log-every 50
+e_bri1k --steps 1000 --lr 0.3 --loss brier --log-every 250
+e_lin20_s2 --modulus 91 --slots 2 --train-x 60 --steps 20 --lr 0.3 --loss linear
+e_lin1k_s2 --modulus 91 --slots 2 --train-x 60 --steps 1000 --lr 0.3 --loss linear --log-every 250
+e_lin1k_lr1 --steps 1000 --lr 1.0 --loss linear --log-every 250
+e_bri1k_lr1 --steps 1000 --lr 1.0 --loss brier --log-every 250

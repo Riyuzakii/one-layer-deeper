@@ -440,6 +440,12 @@ def main() -> int:
     ap.add_argument("--sym", type=float, default=0.0)
     ap.add_argument("--inv", type=float, default=0.0)
     ap.add_argument("--ent", type=float, default=0.0)
+    ap.add_argument("--loss", default="ce", choices=["ce", "linear", "brier"],
+                    help="BOUNDED losses.  --basin shows CE saturates near 17 "
+                         "nats for a sharp-but-wrong table against 2.25 for a "
+                         "soft random init, so CE actively pushes the model to "
+                         "stay maximum-entropy.  linear (1 - p_correct) and "
+                         "brier are bounded and remove that pressure.")
     ap.add_argument("--tprop", type=float, default=0.0,
                     help="target-propagation weight (LEGAL: learned latents)")
     ap.add_argument("--tprop-hidden", type=int, default=128)
@@ -720,8 +726,13 @@ def main() -> int:
                 per = F.cross_entropy(logits.reshape(-1, 10), bt_.reshape(-1),
                                       reduction="none").view(bi.shape[0], -1)
                 loss = (per.mean(1) * w).sum() / w.sum()
-            else:
+            elif args.loss == "ce":
                 loss = F.cross_entropy(logits.reshape(-1, 10), bt_.reshape(-1))
+            else:
+                p = logits.reshape(-1, 10).exp()
+                oh = F.one_hot(bt_.reshape(-1), 10).to(p.dtype)
+                loss = (1.0 - (p * oh).sum(-1)).mean() if args.loss == "linear" \
+                    else ((p - oh) ** 2).sum(-1).mean()
             main_ce = loss.item()
             if latent is not None:
                 if args.main_warm > 0:

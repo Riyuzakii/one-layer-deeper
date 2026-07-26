@@ -46,7 +46,8 @@ will raise `train_exact` and will not certify a rung.**
 **5. Three falsifications, one of a premise in my own brief.**
 
 * **"For `DigitALU`, `train_exact` → 1.000 implies `held_exact` → 1.000."**
-  **False.** Teacher-forced: `train_exact` 1.000, held 0.63–0.79. Short chain:
+  **False.** Teacher-forced: `train_exact` 1.000, held 0.500 on a 138-example
+  cohort (0.816 on the 38-example one). Short chain:
   `train_exact` 0.75, held 0.000, held CE 9.06. `DigitALU` overfits.
 * **"The 0.2 plateau is a partially-learned table."** **False.** It is a
   degenerate non-arithmetic solution — structure score 0.23–0.29 against a
@@ -195,6 +196,8 @@ Baseline band across three seeds: **0.016 / 0.020 / 0.036.**
 | `--sym 1.0` (commutativity) | 0.016 | 0.25 |
 | `--xcurr 0.5` (magnitude curriculum) | 0.016 | 0.283 |
 | `--opt sign` | 0.012 | 0.233 |
+| `--loss linear` (`1 − p_correct`, bounded) | 0.016 | 0.183 |
+| `--loss brier` (bounded) | 0.016 | 0.267 |
 
 **Not one of them is outside the seed band, and not one moves the structure score
 off chance.** Chain length is the only thing that moves the number at all:
@@ -224,8 +227,23 @@ off chance.** Chain length is the only thing that moves the number at all:
 | `--inv 1.0` / `--ent 0.05` | 1000 | 0.096 / 0.096 | — |
 | lr 0.01 / 0.1 | 3000 | 0.096 / 0.184 | 0.367 / 0.267 |
 | `--opt sign` | 3000 | 0.060 | 0.367 |
+| `--wd 0.1` | 3000 | 0.044 | 0.417 |
+| `--batch 32` (minibatch rather than full batch) | 3000 | 0.200 | 0.25 |
+| `--perm-init 8 --gate-off −6` (annealed to 0) | 3000 | 0.056 | 0.30 |
+| `--loss linear` / `--loss brier` | 1000 | 0.016 / 0.036 | 0.15 / 0.233 |
+| `--loss linear`, lr 1.0 | 1000 | 0.016 | 0.15 |
 | **`--xcurr 0.5`** (best legal number anywhere) | 3000 | **0.224** | **0.417** |
+| baseline | 3000 | 0.132 | 0.317 |
 | N=91 S=2 (short chain) | 3000 | 0.750 | 0.45 |
+| N=91 S=2, `--loss linear` | 1000 | 0.167 | 0.333 |
+
+The bounded losses deserve a note because §2.3 predicted they would help and they
+do not. If cross-entropy's 17-nat penalty for confident error is what pins the
+model in the maximum-entropy region, a loss bounded by 1 should release it. It
+does not — and at the short chain it makes things distinctly *worse* (0.167
+against 0.750). So the CE saturation in §2.3 explains why sharpening levers fail,
+but removing it does not supply the missing information; the model simply has no
+gradient telling it *which* sharp table to pick.
 
 The `tau`/init-scale rows were co-varied deliberately: the per-step softmax
 Jacobian is `(1/tau)(diag p − p pᵀ)`, so holding `logits/tau` fixed while lowering
@@ -350,13 +368,28 @@ Read through the gauge of §3 (`--dump-tables`):
 the gauge.** The target is reachable in this parameterisation; the rollout is the
 whole problem.
 
-Held-out stops at 0.63–0.79 rather than 1.000. I tested the obvious coverage
-explanation by varying the train split (150 / 250 / 280 of 288 units) and the
-held-out numbers are 0.63 (n=8) and 0.79 (n=38) — **the held cohorts are too
-small to separate coverage from noise, so I am not claiming a cause.** What is
-solid is that it is not 1.000, which is what the metric needs.
+### 6.4 Held-out under teacher forcing, and the coverage question
 
-### 6.4 Target propagation — the legal analogue
+The best held-out exactness anywhere in this repo, and still not 1.000:
+
+| train operands (of 288 units) | held cohort | steps | `train_exact` | `held_exact` |
+|---|---|---|---|---|
+| 150 | **138** | 3000 | 1.000 | **0.500** |
+| 250 | 38 | 1000 | 1.000 | 0.789 |
+| 250 | 38 | 3000 | 1.000 | **0.816** |
+| 280 | 8 | 2000 | 1.000 | 0.625 (n=8, not usable) |
+
+The 138-example row is the only trustworthy held-out estimate here, and it says
+**0.500**. Held-out improves with the number of training operands (150 → 250
+takes it from 0.50 to 0.82 on their respective cohorts), which is *consistent
+with* the coverage story — `Tsub`'s column for `N`'s leading zero digit is
+exercised almost nowhere, and `digit-carry` §2.3's closed form put digit coverage
+at 0.95–0.99 — but the two rows use different held cohorts, so I am **not**
+claiming coverage is proven to be the cause. What is solid: even the procedure
+that reaches `train_exact` 1.000 does not reach `held_exact` 1.000, and 1.000 is
+what `MAX_T ≥ 1` requires.
+
+### 6.5 Target propagation — the legal analogue
 
 Teacher forcing works because it supplies per-step *inputs*. The legal way to get
 those without computing them is to make them **learned latents**: `LatentTrace`
@@ -388,7 +421,7 @@ The brief asked for this explicitly, and the step budget sharpens it.
 | entropy / commutativity / `Tsub ∘ Tadd = id` | pure `training_loss` terms | yes |
 | every init family here | `build_model` | yes (free) |
 | every optimiser / lr / wd / schedule | `build_optimizer` | yes |
-| target propagation (§6.4) | latents in `aux`, terms in `training_loss` | **no** — ~12× cost per step |
+| target propagation (§6.5) | latents in `aux`, terms in `training_loss` | **no** — ~12× cost per step |
 
 **Not expressible — and these are exactly the ones that worked:**
 
@@ -437,7 +470,7 @@ margin no schedule closes.**
    is false in both directions of evidence I have (§0.5). Whatever finally trains
    still has to be checked on held-out.
 5. **If anyone wants one more shot from the training side**, target propagation
-   (§6.4) is the only legal construction that supplies per-step inputs, which is
+   (§6.5) is the only legal construction that supplies per-step inputs, which is
    the exact thing shown to be sufficient — but its ~12× per-step cost probably
    disqualifies it under the new budget, so I would spend the GPU on
    `alu-depth`'s lane instead.
