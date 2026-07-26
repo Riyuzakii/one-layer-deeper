@@ -147,10 +147,11 @@ quotient. **No index ranges over `Z_N` in any row**, and the parameter count is
 the same at every modulus.
 
 **Read the table by column, not by row order: `train_exact` is not monotone in
-depth.** A 3.1× shortening (257 → 83) moves it by nothing (0.190 → 0.167). The
-whole gain arrives with the *form* of the reduction: every `serial`/`binary`
-cell, spanning depths 257 to 83, sits at 0.17–0.21, and both `quotient` cells sit
-at 0.30–0.40. Within the quotient family the remaining 1.6× depth reduction
+depth.** A 3.1× shortening (257 → 83) moves it *down* (0.211 → 0.167), and the
+deepest shape of all beats two shallower ones. The gain arrives with the *form*
+of the reduction: the four `serial`/`binary` cells span depths 257 to 83 and sit
+at 0.12–0.21 with no ordering by depth, while both `quotient` cells sit at
+0.30–0.40. Within the quotient family the remaining 1.6× depth reduction
 (62 → 39) is worth +0.09, which is a real but second-order depth term.
 
 So the first-order variable is **not** the chain length; it is that a chain of
@@ -166,6 +167,8 @@ Longer training at the shallowest depth (39), same cell, `--steps 20000`:
 ### 2.2 A smaller operand (N=91, S=2, 50 train / 22 held), 4,000 steps, 3 seeds
 
 The regime `digit-carry` §2.4 used for its "shorter chain → 0.72–0.78" result.
+My `horner:serial` row reproduces its published 0.780 / 0.720 exactly, which is
+the check that this ladder and that one are measuring the same thing.
 
 | variant | depth | ceiling | train_exact (3 seeds) | mean | held_exact |
 |---|---|---|---|---|---|
@@ -470,6 +473,17 @@ OUT=lab/logs/hard EXTRA="--hard" SUF="_hard" CELLS="tree:quotient" \
 $VENV lab/probe_coverage.py --configs 323:3 899:3 2021:4 10403:5
 $VENV lab/probe_coverage.py --radix 100  --configs 323:2 899:2 2021:2 10403:3
 $VENV lab/probe_coverage.py --radix 1000 --configs 323:1 899:1 2021:2 10403:2
+
+# throughput -- the step-famine number, per shape, three scales
+$VENV lab/depth_bench.py --slots 3 5 8 --modulus 323 10403 10000019 \
+  --cells horner:serial:serial tree:serial:serial horner:binary:serial \
+          tree:binary:serial horner:quotient:serial tree:quotient:serial \
+          tree:quotient:prefix
+
+# parallel-prefix carries: exact, and worth it only above Easy
+for cfg in "323 3" "899 3" "2021 4" "10403 5"; do set -- ${=cfg}
+  $VENV lab/probe_alu.py --modulus $1 --slots $2 --mul-mode tree \
+      --reduce-mode quotient --scan-mode prefix --construct --eval-hard; done
 
 # collect everything
 $VENV lab/depth_table.py lab/logs/*
