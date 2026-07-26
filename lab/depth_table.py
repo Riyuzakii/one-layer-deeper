@@ -10,7 +10,8 @@ import sys
 
 # `mul=` was added mid-session; logs written before it are read as horner.
 HEAD = re.compile(r"modulus=(\d+) S=(\d+) K=\d+ W=(\d+) (?:mul=(\w+) )?"
-                  r"mode=(\w+) R=(\d+) Q=(\d+) .*params=([\d,]+)")
+                  r"(?:scan=(\w+) )?mode=(\w+) R=(\d+) Q=(\d+) "
+                  r".*params=([\d,]+)")
 DEPTH = re.compile(r"DEPTH main=(\d+) \(adds=(\d+) reduce=(\d+)\) "
                    r"N-prefix=(\d+) alphabet=(\{[^}]*\})")
 STEP = re.compile(r"step=\s*(\d+) loss=([\d.naif-]+) train_exact=([\d.]+) "
@@ -40,8 +41,8 @@ def main() -> int:
                          f.stem)
             var = re.sub(r"_s\d+$", "", re.sub(r"_n\d+$", "", var)) or "-"
             key = (int(h.group(1)), int(h.group(2)), h.group(4) or "horner",
-                   h.group(5),
-                   int(dp.group(1)), h.group(8), int(last[0]), var.lstrip("_"))
+                   h.group(6), int(dp.group(1)), h.group(9), int(last[0]),
+                   ((h.group(5) or "serial") + "/" + var.lstrip("_")).rstrip("/"))
             rows.setdefault(key, []).append(
                 (float(last[2]), float(last[3]),
                  float(hh.group(1)) if hh else None,

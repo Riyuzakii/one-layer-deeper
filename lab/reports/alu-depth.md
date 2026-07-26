@@ -520,3 +520,43 @@ graph; no Python control flow reads `input_ids`; there is no custom training loo
 and no participant-controlled backward. No evaluator run was made on this branch
 and `lab/archive.jsonl` is untouched. Nothing was submitted to the hosted service
 and no `one-layer login`/`submit` was run.
+
+---
+
+---
+
+## 7. Appendix — every training run, as collected
+
+`lab/logs/` is gitignored (repo convention), so the raw logs do not survive the
+branch; this is `lab/depth_table.py`'s output over all of them at the end of
+the session. `var` is scan-mode plus the cell suffix: `tx50` = the N=91 split,
+`hard` = `--hard` straight-through TRAINING, `eh` = `--eval-hard` diagnostic,
+`n20000`/`qs` = long runs.
+
+| N | S | mul | reduce | depth | params | steps | var | seeds | train_exact | held_exact | train_hard | sharp |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 91 | 2 | tree | quotient | 21 | 6,820 | 4000 | serial/tx50 | 3 | 0.820/0.860/0.760 (mu=0.813) | 0.000/0.000/0.000 | -/-/- | -/-/- |
+| 91 | 2 | tree | quotient | 21 | 6,820 | 4000 | serial/tx50_hard | 2 | 0.040/0.080 (mu=0.060) | 0.000/0.045 | -/- | -/- |
+| 91 | 2 | horner | quotient | 25 | 6,820 | 4000 | serial/tx50 | 3 | 0.840/0.840/0.740 (mu=0.807) | 0.000/0.000/0.000 | -/-/- | -/-/- |
+| 91 | 2 | tree | binary | 45 | 6,818 | 4000 | serial/tx50 | 3 | 0.800/0.920/0.900 (mu=0.873) | 0.136/0.000/0.000 | -/-/- | -/-/- |
+| 91 | 2 | horner | serial | 112 | 6,818 | 4000 | serial/tx50 | 3 | 0.780/0.720/0.780 (mu=0.760) | 0.045/0.000/0.045 | -/-/- | -/-/- |
+| 91 | 2 | tree | quotient | 21 | 6,820 | 6000 | serial/tx50_eh | 2 | 0.820/0.860 (mu=0.840) | 0.000/0.000 | 0.100/0.220 | 0.832/0.849 |
+| 91 | 2 | tree | quotient | 21 | 6,820 | 20000 | serial/tx50_eh_n20000 | 2 | 0.820/0.860 (mu=0.840) | 0.045/0.000 | 0.120/0.040 | 0.838/0.844 |
+| 323 | 3 | tree | quotient | 39 | 6,820 | 2000 | serial/- | 3 | 0.380/0.368/0.440 (mu=0.396) | 0.026/0.000/0.000 | -/-/- | -/-/- |
+| 323 | 3 | tree | quotient | 39 | 6,820 | 2000 | serial/eh | 2 | 0.380/0.368 (mu=0.374) | 0.026/0.000 | 0.004/0.000 | 0.765/0.775 |
+| 323 | 3 | horner | quotient | 62 | 6,820 | 2000 | serial/- | 3 | 0.340/0.332/0.236 (mu=0.303) | 0.000/0.000/0.000 | -/-/- | -/-/- |
+| 323 | 3 | horner | quotient | 62 | 6,820 | 2000 | serial/eh | 2 | 0.340/0.332 (mu=0.336) | 0.000/0.000 | 0.000/0.000 | 0.812/0.831 |
+| 323 | 3 | tree | binary | 83 | 6,818 | 2000 | serial/- | 3 | 0.140/0.280/0.080 (mu=0.167) | 0.000/0.000/0.000 | -/-/- | -/-/- |
+| 323 | 3 | tree | binary | 83 | 6,818 | 2000 | serial/eh | 2 | 0.140/0.280 (mu=0.210) | 0.000/0.000 | 0.000/0.000 | 0.770/0.798 |
+| 323 | 3 | horner | binary | 117 | 6,818 | 2000 | serial/- | 3 | 0.044/0.416/0.120 (mu=0.193) | 0.000/0.000/0.000 | -/-/- | -/-/- |
+| 323 | 3 | horner | binary | 117 | 6,818 | 2000 | serial/eh | 2 | 0.044/0.416 (mu=0.230) | 0.000/0.000 | 0.012/0.004 | 0.784/0.856 |
+| 323 | 3 | tree | serial | 195 | 6,818 | 2000 | serial/- | 3 | 0.212/0.068/0.084 (mu=0.121) | 0.000/0.000/0.000 | -/-/- | -/-/- |
+| 323 | 3 | tree | serial | 195 | 6,818 | 2000 | serial/eh | 2 | 0.212/0.068 (mu=0.140) | 0.000/0.000 | 0.008/0.000 | 0.777/0.759 |
+| 323 | 3 | horner | serial | 257 | 6,818 | 2000 | serial/- | 3 | 0.132/0.248/0.252 (mu=0.211) | 0.000/0.000/0.000 | -/-/- | -/-/- |
+| 323 | 3 | horner | serial | 257 | 6,818 | 2000 | serial/eh | 2 | 0.132/0.248 (mu=0.190) | 0.000/0.000 | 0.008/0.004 | 0.778/0.822 |
+| 323 | 3 | tree | quotient | 39 | 6,820 | 4000 | serial/hard | 2 | 0.000/0.004 (mu=0.002) | 0.000/0.000 | -/- | -/- |
+| 323 | 3 | tree | quotient | 39 | 6,820 | 6000 | serial/eh | 2 | 0.556/0.520 (mu=0.538) | 0.000/0.000 | 0.004/0.000 | -/0.786 |
+| 323 | 3 | tree | quotient | 39 | 6,820 | 8000 | serial/qs | 1 | 0.604 (mu=0.604) | 0.000 | 0.008 | 0.765 |
+| 323 | 3 | tree | quotient | 39 | 6,820 | 19000 | serial/n20000 | 1 | 0.564 (mu=0.564) | 0.000 | - | - |
+| 323 | 3 | tree | quotient | 39 | 6,820 | 20000 | serial/eh_n20000 | 1 | 0.620 (mu=0.620) | 0.000 | 0.000 | 0.767 |
+| 323 | 3 | tree | quotient | 39 | 6,820 | 20000 | serial/n20000 | 2 | 0.620/0.576 (mu=0.598) | 0.000/0.000 | -/- | -/- |
