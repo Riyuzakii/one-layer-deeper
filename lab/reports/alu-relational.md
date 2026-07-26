@@ -19,7 +19,7 @@ generated from `math.gcd` over `range(1, N)` or from `torch.randint`.
 
 **No legal training signal with intra-squaring content moves `train_exact_hard`
 off the floor.** All three mandated families are null, and the strongest of them
-is null *even in its illegal form*. Across **37 completed training runs**, the
+is null *even in its illegal form*. Across **38 completed training runs**, the
 highest `train_exact_hard` anywhere is **0.001** (`b_sym_s1`, one example in
 1,024) and every `held_exact_hard` is 0.000 or 0.001. The floor is untouched.
 
@@ -44,10 +44,16 @@ the tables*, not by how much information it carries.
   dual-path agreement, multiplicative associativity — inherit the chain's
   ruggedness exactly and saturate at the same Hamming radius as the label.
 
-Both classes still fail from random init, so this buys no submission. It is a
-quantitative handle on `discrete-search` §10's open item 2 ("a graph whose
-end-of-chain objective is not a random CSP"), and it is what I would hand to
-whoever designs the next architecture.
+Both classes still fail from random init, so this buys no submission — and the
+"search harder" escape is measured shut: basin hopping at 38× greedy's compute
+cuts the algebraic objective 3.7× (0.786 → 0.211) while driving the structure
+score *below* chance (0.285 → 0.205). Over that range the objective and the
+structure are **anticorrelated**, which is one more row for `RESUME.md`'s
+metric-fooling table (§6.3).
+
+The measurement is a quantitative handle on `discrete-search` §10's open item 2
+("a graph whose end-of-chain objective is not a random CSP"), and it is what I
+would hand to whoever designs the next architecture.
 
 **I did not ship a submission.** Nothing here beats the baseline seed band, and
 `alu-credit` and `discrete-search` both established that an extra `MAX_T = 0`
@@ -492,35 +498,60 @@ adders, not degenerate ones.
 
 | search | `obj` (truth = 0) | `add_shift` | `n_shifts` | verdict |
 |---|---|---|---|---|
-| greedy, 5 seeds | 0.469–0.813 | 0.255–0.320 | 4–8 | chance |
+| greedy, **7 seeds** | 0.469–0.813 | 0.250–0.320 | 5–8 | chance |
 | greedy, registers resampled each sweep | 0.462 | 0.340 | 4 | chance |
-| basin hopping, 60 hops × 20 cells, seed 0 | 0.620 (from 0.726) | 0.325 | 5 | chance |
-| basin hopping, seed 1 | **0.412** (from 0.786) | 0.235 | 9 | chance |
+| **basin hopping**, 60 hops × 20 cells, seed 0 | **0.313** (from 0.726) | 0.300 | 4 | chance |
+| **basin hopping**, seed 1 | **0.211** (from 0.786) | **0.205** | 7 | chance |
 | **associativity ALONE** (no comm, no cancel) | **0.00423** | 0.555 | **1** | **degenerate** |
+
+Held-out check: the hopped tables are not overfitting the evaluation registers —
+seed 1 reads `obj` 0.211 on the search set and 0.217 on 512 fresh register
+triples. The objective really is that low; the adder really is that wrong.
 
 Three things to take from this.
 
-**The `assoc`-only row is the most instructive.** Search satisfies associativity
-almost perfectly (0.004) and does it by collapsing the adder to a **single
-shift** — `n_shifts` 1 against the truth's 10. That is the integer-transducer
-counterpart of §5.1's `out_div` 0.002, found by a completely different
-optimiser, and it establishes that the collapse is a property of the *law*, not
-of gradient descent. Cancellativity excludes it, and adding it makes the
-objective genuinely hard (0.73) rather than trivially satisfiable.
+**Basin hopping cuts the objective by 73 % and moves the structure the wrong
+way.** Seed 1 goes 0.786 → **0.211**, a 3.7× reduction in the violation rate,
+while `add_shift` goes 0.285 → **0.205** — i.e. *down*, to below the 0.285
+chance level. Seed 0 does the same (0.726 → 0.313, `add_shift` 0.320 → 0.300).
+**The objective and the structure are not merely uncorrelated far from the
+solution; over this range they are anticorrelated.** A search that is told only
+"be more associative, commutative and cancellative" gets steadily better at
+that and steadily *less* like an adder.
 
-**Basin hopping improves the objective and not the structure.** Seed 1 goes
-0.786 → 0.412, nearly halving the violation rate, while `add_shift` goes
-0.285 → 0.235 — i.e. *down*, to below chance. **The objective and the structure
-are decoupled far from the solution.** This is the same metric-fooling pattern
-`RESUME.md` tabulates for every other metric in this repo, now for the algebraic
-objective, and it belongs in that table.
+This is the same metric-fooling pattern `RESUME.md` tabulates for every other
+metric in this repo, and it earns a row in that table:
 
-**Greedy converges in 3–4 sweeps.** It is not a budget problem; the landscape
-has many deep local minima that are structurally at chance.
+| metric | fooled by | reads | but |
+|---|---|---|---|
+| algebraic-law violation rate | basin hopping, 60 hops | 0.211 (truth 0.000) | `add_shift` 0.205, *below* the 0.285 chance level |
 
-**Net:** the algebraic objective is much better conditioned than anything
+It also sharpens §6.2 rather than contradicting it. The **repair** ladder shows
+the objective's minimum is in the right place and its basin is wide (exact
+recovery at `k = 50`); the **hopping** result shows the space outside that basin
+contains minima that are far lower than a random table and structurally worse
+than one. Both facts are needed: a wide basin you cannot find is still a basin
+you cannot find.
+
+**The `assoc`-only row is the most instructive about *why*.** Search satisfies
+associativity almost perfectly (0.004) and does it by collapsing the adder to a
+**single shift** — `n_shifts` 1 against the truth's 10. That is the
+integer-transducer counterpart of §5.1's `out_div` 0.002, found by a completely
+different optimiser, and it establishes that the collapse is a property of the
+*law*, not of gradient descent. Cancellativity excludes that particular
+degenerate family and makes the objective genuinely hard (0.73 from greedy)
+rather than trivially satisfiable — but the hopping result says it does not
+exclude *all* of them.
+
+**Greedy converges in 3–4 sweeps.** It is not a budget problem. Hopping spent
+~1,900 s against greedy's ~50 s — 38× the compute — and bought a much better
+objective value and no structure at all.
+
+**Net:** the algebraic objective is far better conditioned than anything
 previously measured on this architecture, and that is still not enough to find
-the adder from random init.
+the adder from random init. Spending more search on it is now a *measured*
+dead end rather than an untested one, which is why §9 does not recommend it.
+
 ## 7. Compliance — where I put the line, and why
 
 My mandate asked me to flag the judgement call explicitly, keep a conservative
@@ -562,8 +593,8 @@ argument has four steps, three measured and one structural.
 
 **1. The gap is not marginal, it is three orders of magnitude.** The legal
 baseline at Stage-1 conditions sits at `local_ce` 3.5–4.2 against a cliff at
-0.005–0.0073 (§2). Nothing in this report — **37 completed training runs**
-across three families, plus **21 discrete searches** and 3 basin ladders —
+0.005–0.0073 (§2). Nothing in this report — **38 completed training runs**
+across three families, plus **23 discrete searches** and 3 basin ladders —
 moved it below 2.34. The best `local_ce`
 anywhere here (`--assoc`, 2.34) belongs to a run whose composed map had
 collapsed to a *constant*, so it is not even progress in the right direction.
@@ -625,14 +656,17 @@ procedures, direct discrete search, and constraint design — and this branch ad
 the argument in §8.4 that says the remaining gap is not searchable because the
 constraint that would close it is not admissible.
 
-If that recommendation is overruled and someone does spend more, the *only*
-thread with a measured anomaly behind it is §6.2 — the algebraic objective's
-~14× wider exact-repair basin, attacked by a stronger discrete searcher
-(annealing with restarts; one objective evaluation is 2–4 register scans rather
-than a 39-step chain, so it is ~50× cheaper than anything `discrete-search`
-ran). I want to be explicit that **I do not expect this to produce a
-submission**, because even a perfect `Tadd` leaves `Tmul` blocked by §8.4. It
-would produce a *result* — "generic algebra identifies the adder" — not a rung.
+**The obvious "but have you tried harder search" objection is now closed too.**
+When I drafted this section the honest position was "if you overrule me, the one
+thread with a measured anomaly is §6.2's wide basin, attacked by a stronger
+discrete searcher". That searcher has since been run (§6.3, basin hopping, 38×
+greedy's compute) and it makes the case *worse*, not better: it cuts the
+objective 3.7× and drives the structure score *below* chance. So the anomaly is
+real and the search is not the missing ingredient. I would not spend the run.
+
+If someone spends it anyway, the honest framing is that it would produce a
+*result* — "generic algebra does or does not identify the adder" — and not a
+rung, because even a perfect `Tadd` leaves `Tmul` blocked by §8.4.
 
 **The transferable methodological point**, which is architecture-independent and
 the thing I would put in `RESUME.md`:
@@ -737,8 +771,8 @@ weight sweep); dual-path agreement on all three paths (`fold` 3 seeds,
 the algebraic re-screen (`--sym`, `--inv`, `--assoc`, combinations, 2 seeds
 each); algebra-only (3 runs); the basin ladder
 to `k = 100`; the discrete-search repair ladder (10/20/50/100/150/200) and
-from-random init (5 seeds + a resampled control + the assoc-only control);
-basin hopping (2 seeds).
+from-random init (7 seeds + a resampled control + the assoc-only control);
+basin hopping (2 seeds, run to completion).
 
 **Not measured / partial**, with resume commands:
 
