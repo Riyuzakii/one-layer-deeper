@@ -189,6 +189,53 @@ def inv_loss(model):
     return l_dig + l_bor
 
 
+@torch.no_grad()
+def structure_scores(model, ndigits):
+    """GAUGE-INVARIANT "did it learn the algorithm" scores.
+
+    Raw argmax-vs-truth is meaningless here: `Tmul`'s output alphabet is
+    consumed only by `Tadd`'s addend index, so any permutation pi of the digit
+    symbols fixing the zero symbol can be applied to both without changing the
+    function, and the two borrow states can be swapped.  These scores are
+    invariant to all of that.
+
+      mul_lo/mul_hi : is the Tmul argmax a well-defined FUNCTION of (a*b)%10
+                      / (a*b)//10?  (any relabelling still passes)
+      add_shift     : for each addend column, is u -> out a cyclic shift of the
+                      identity?  addition by a constant is exactly that.
+      sub_shift     : the same, restricted to the columns N's digits reach --
+                      the only Tsub entries training can ever touch.
+
+    Random-table baseline for the shift scores is ~0.27 (best of 10 shifts on
+    10 cells); 1.000 means every column is exactly an add/subtract-a-constant.
+    """
+    out = {}
+    for sl, name, fn in ((slice(0, 10), "mul_lo", lambda a, b: (a * b) % 10),
+                         (slice(10, 20), "mul_hi", lambda a, b: (a * b) // 10)):
+        am = model.Tmul[..., sl].argmax(-1)
+        groups = {}
+        for a in range(10):
+            for b in range(10):
+                groups.setdefault(fn(a, b), []).append(int(am[a, b]))
+        ok = tot = 0
+        for vs in groups.values():
+            ok += vs.count(max(set(vs), key=vs.count))
+            tot += len(vs)
+        out[name] = round(ok / tot, 3)
+    for name in ("add", "sub"):
+        T = model.Tadd if name == "add" else model.Tsub
+        cols = range(10) if name == "add" else sorted(set(ndigits))
+        ok = tot = 0
+        for v in cols:
+            for c in range(T.shape[2]):
+                am = T[:, v, c, :10].argmax(-1)
+                ok += max(sum(1 for u in range(10)
+                              if int(am[u]) == (u + s) % 10) for s in range(10))
+                tot += 10
+        out[name + "_shift"] = round(ok / tot, 3)
+    return out
+
+
 class LatentTrace(torch.nn.Module):
     """Amortised predictor of the register trace -- the LEGAL analogue of
     teacher forcing.
@@ -304,8 +351,21 @@ def horner_targets(xs, modulus, slots, reduce_steps, device):
 
 
 @torch.no_grad()
-def table_accuracy(model):
-    """Fraction of table rows whose argmax equals the constructed truth."""
+def table_accuracy(model, ndigits=None):
+    """Fraction of table rows whose argmax equals the constructed truth.
+
+    CAVEAT -- there is a gauge freedom.  `Tmul`'s output alphabet is consumed
+    only by `Tadd`'s addend index, so any permutation pi of the digit symbols
+    with pi(zero) = zero can be applied to Tmul's outputs and Tadd's `v` index
+    together without changing the function.  So Tmul and Tadd accuracy are
+    uninformative (chance is the expected reading for a correct model).
+
+    `Tsub` has NO gauge freedom: its `u` index is the register, its `v` index
+    is a digit of N supplied as a fixed one-hot, and its output is the
+    register.  `Tsub_N` restricts it to the `v` columns that N actually uses --
+    the only entries any amount of training can reach -- and is therefore the
+    one honest "did it find the intended solution" number.
+    """
     ref = CreditALU(model.S, model.Ca, model.Cb, model.R).to(model.Tmul.device)
     ref.construct()
     out = {}
@@ -313,7 +373,13 @@ def table_accuracy(model):
         got, want = getattr(model, name), getattr(ref, name)
         lo = (got[..., :10].argmax(-1) == want[..., :10].argmax(-1)).float().mean()
         hi = (got[..., 10:].argmax(-1) == want[..., 10:].argmax(-1)).float().mean()
-        out[name] = (lo.item(), hi.item())
+        out[name] = (round(lo.item(), 3), round(hi.item(), 3))
+    if ndigits:
+        cols = sorted(set(ndigits))
+        g, w = model.Tsub[:, cols], ref.Tsub[:, cols]
+        lo = (g[..., :10].argmax(-1) == w[..., :10].argmax(-1)).float().mean()
+        hi = (g[..., 10:].argmax(-1) == w[..., 10:].argmax(-1)).float().mean()
+        out["Tsub_N"] = (round(lo.item(), 3), round(hi.item(), 3))
     return out
 
 
@@ -670,11 +736,13 @@ def main() -> int:
     tr, tr_ce = evaluate(xin, xt, ndig)
     he, he_ce = evaluate(hin, ht, ndig)
     best = max(best, tr)
-    ta = table_accuracy(model)
-    tastr = " ".join(f"{k}={v[0]:.2f}/{v[1]:.2f}" for k, v in ta.items())
+    nd_dig = digits_le(args.modulus, args.slots + 1)
+    ta = table_accuracy(model, nd_dig)
+    ss = structure_scores(model, nd_dig)
     print(f"[{args.tag}] FINAL train_exact={tr:.3f} held_exact={he:.3f} "
-          f"best_train={best:.3f} table_acc[lo/hi] {tastr} "
-          f"({time.time()-t0:.0f}s)", flush=True)
+          f"best_train={best:.3f} struct[" +
+          " ".join(f"{k}={v}" for k, v in ss.items()) +
+          f"] ({time.time()-t0:.0f}s)", flush=True)
     if args.dump_tables:
         with torch.no_grad():
             print(f"[{args.tag}] Tmul lo argmax (row=a, col=b), true = a*b%10")
@@ -694,6 +762,7 @@ def main() -> int:
                                  "train_exact": tr, "held_exact": he,
                                  "best_train": best, "train_ce": tr_ce,
                                  "held_ce": he_ce, "table_acc": ta,
+                                 "struct": ss,
                                  "secs": round(time.time() - t0, 1)}) + "\n")
     return 0
 

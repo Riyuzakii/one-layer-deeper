@@ -1,0 +1,7 @@
+z_xcurr05 --xcurr 0.5 --steps 3000 --log-every 500
+z_lr1e2 --lr 0.01 --steps 3000 --log-every 1000
+z_lr1e1 --lr 0.1 --steps 3000 --log-every 1000
+z_sign --opt sign --lr 0.003 --steps 3000 --log-every 1000
+z_wd01 --lr 0.03 --wd 0.1 --steps 3000 --log-every 1000
+z_batch32 --batch 32 --steps 3000 --log-every 1000
+z_gateoff --gate-off -6 --gate-warm 0.3 --perm-init 8 --steps 3000 --log-every 500
