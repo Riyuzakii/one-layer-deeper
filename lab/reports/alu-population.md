@@ -755,7 +755,12 @@ recipe search.
   `ModelSpec(maximum_model_state_elements=500_000_000)` in every run of
   `lab/probe_pop.py`, and the count is printed (§1.2).
 * Negative results are all here, including the ones that contradict the
-  premise of my own brief.
+  premise of my own brief. §6.1-6.3 is a deliberate attempt to *break* a
+  sibling's closure that failed to break it, reported as such.
+* `explore/alu-relational` was read only. Nothing in that worktree was edited
+  or executed; its loss terms were re-implemented in this branch's own probe,
+  and `--rel affine` (which its §7 flags) and `--rel true` (illegal) were not
+  implemented at all.
 * No evaluator cells were run (`lab/archive.jsonl` is untouched by this
   branch): there is no legal end-to-end candidate to run, and running the
   evaluator on a DIAGNOSTIC model would produce a number that could be
@@ -792,11 +797,19 @@ bash lab/pop_sweep.sh lab/jobs_pop_var.txt 3
 # selection variants                                       [DIAGNOSTIC]
 bash lab/pop_sweep.sh lab/jobs_pop_sel.txt 3
 
+# alu-relational's LEGAL candidates re-screened at P=32/64   [LEGAL]
+bash lab/pop_legal_sweep.sh lab/jobs_pop_legal32.txt 3
+bash lab/pop_legal_sweep.sh lab/jobs_pop_legal32b.txt 3
+
 # render the tables
 $V lab/pop_table.py lab/pop_runs.jsonl
 ```
 
-Job files: `lab/jobs_pop_{ctl,basin,legal,var,sel}.txt`. One JSON line per run
+Job files: `lab/jobs_pop_{ctl,basin,legal,var,sel}.txt` and
+`lab/jobs_pop_legal32{,b}.txt`; legal-re-screen results in
+`lab/pop_legal_runs.jsonl` (per-replica `local_ce` quantiles, the sorted
+12 lowest, the counts below each threshold, and the output-diversity collapse
+detector). One JSON line per run
 in `lab/pop_runs.jsonl` with the full argv, the per-replica accuracy and
 `local_ce` vectors, the mixture / argmax / CE-argmin results, `n_basin`,
 `ms_per_step` and peak memory. Per-run logs in `lab/logs/<tag>.log`.
