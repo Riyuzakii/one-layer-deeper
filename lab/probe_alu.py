@@ -453,7 +453,8 @@ def main() -> int:
 
     torch.manual_seed(args.seed)
     modulus, S = args.modulus, args.slots
-    units = [x for x in range(1, modulus) if math.gcd(x, modulus) == 1]
+    units = [] if args.depth_only else \
+        [x for x in range(1, modulus) if math.gcd(x, modulus) == 1]
     g = torch.Generator().manual_seed(args.split_seed)
     perm = torch.randperm(len(units), generator=g).tolist()
     train_x = [units[i] for i in perm[: args.train_x]]
@@ -506,7 +507,7 @@ def main() -> int:
     # the largest quotient this reduction is asked to produce -- a structural
     # sizing check on self-generated values, printed as a diagnostic only
     qmax = rmax = 0
-    for x in units:
+    for x in (() if args.depth_only else units):
         rr = 0
         if args.mul_mode == "tree":
             pd = digits_le(x * x, 2 * S)
