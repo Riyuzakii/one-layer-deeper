@@ -170,13 +170,18 @@ class CounterSel2(nn.Module):
     """
 
     def __init__(self, n_t: int, init_scale: float = 0.5,
-                 dump: bool = True) -> None:
+                 dump: bool = True, thresh_init: float | None = None) -> None:
         super().__init__()
         self.n_t = n_t
         self.dump = dump
         self.one = nn.Parameter(torch.randn(10) * init_scale)
         self.gain = nn.Parameter(torch.tensor(2.0))
-        self.thresh = nn.Parameter(torch.tensor(float(n_t) - 0.5))
+        # `thresh_init = 0` is the SHALLOW init: an untrained detector then
+        # fires with probability ~0.6, so an untrained model costs ~2 loops at
+        # eval instead of ~37, which is what decides whether the run finishes
+        # inside the Easy evaluation budget at all.  Training must earn depth.
+        self.thresh = nn.Parameter(torch.tensor(
+            float(n_t) - 0.5 if thresh_init is None else thresh_init))
 
     @torch.no_grad()
     def construct(self) -> None:
@@ -214,11 +219,12 @@ class Depth(Composed):
     the self-consistency orbit."""
 
     def __init__(self, slots, n_t=2, reduce_steps=11, tau=1.0,
-                 sel_kind="counter2", one_init=0.5, dump=True):
+                 sel_kind="counter2", one_init=0.5, dump=True,
+                 thresh_init=None):
         super().__init__(slots, n_t, reduce_steps, tau,
                          "construct" if sel_kind == "counter2" else sel_kind)
         if sel_kind == "counter2":
-            self.sel = CounterSel2(n_t, one_init, dump)
+            self.sel = CounterSel2(n_t, one_init, dump, thresh_init)
             self.sel_kind = "counter2"
         # a learned unit digit for the consistency orbit; for the counters it
         # IS the counter's own `one`, so the orbit and the countdown are tied.
@@ -344,8 +350,11 @@ def run_cell(args, model, train, held, device, S):
             if args.halt_pen > 0:
                 loss = loss + args.halt_pen * ((1.0 - w.sum(-1)) ** 2).mean()
         if args.cons > 0:
-            # registers depend only on T, so one representative row per T
-            for st, _, _, _ in pre:
+            # Registers depend only on T, so one representative row per T -- and
+            # ONE anchor is enough: the law is a chain, so anchoring the
+            # smallest training T and walking the orbit up reaches every
+            # register the ladder needs.  Using all of them costs 3x.
+            for st, _, _, _ in (pre if args.cons_all else pre[:1]):
                 reg = st[:1, : model.n_t]
                 regs = orbit_regs(reg, model, args.cons_j, args.cons_jd,
                                   args.cons_hard)
@@ -490,6 +499,10 @@ def main() -> int:  # noqa: C901
                          "exactly discrete over 64 steps while the gradient "
                          "still reaches `one` (attacks cause (b) at its source)")
     ap.add_argument("--one-init", type=float, default=0.5)
+    ap.add_argument("--thresh-init", type=float, default=None,
+                    help="halting threshold at init; 0.0 is the SHALLOW init "
+                         "that keeps an untrained model inside the Easy eval "
+                         "budget (default: n_t - 0.5)")
     ap.add_argument("--eval-hard", action="store_true",
                     help="snap every ALU inter-step state to argmax at eval "
                          "(alu-depth: a *trained* ALU collapses under this; the "
@@ -501,6 +514,9 @@ def main() -> int:  # noqa: C901
     ap.add_argument("--cons-loops", type=int, default=0)
     ap.add_argument("--cons-space", default="w", choices=("w", "loc"))
     ap.add_argument("--cons-hard", action="store_true")
+    ap.add_argument("--cons-all", action="store_true",
+                    help="run the consistency chain from every training T "
+                         "instead of only the smallest")
     ap.add_argument("--sigma", type=float, default=0.15)
     ap.add_argument("--sel-steps", type=int, default=1500)
     ap.add_argument("--sel-lr", type=float, default=0.1)
@@ -525,7 +541,8 @@ def main() -> int:  # noqa: C901
         train, held, S = build_pool(args, rng)
         n_t = max(2, max(len(str(t)) for t in args.ladder))
         model = Depth(S, n_t, args.reduce, args.tau, args.selector,
-                      args.one_init, not args.no_dump).to(device)
+                      args.one_init, not args.no_dump,
+                      args.thresh_init).to(device)
         # parser + ALU constructed (LAB DIAGNOSTIC); the controller is random
         model.construct(parse=True, alu=True, sel=False)
         model.eval()

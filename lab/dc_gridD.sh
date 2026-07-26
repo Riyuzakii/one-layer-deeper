@@ -1,27 +1,32 @@
 #!/usr/bin/env bash
-# Grid D -- confirm the winners at m1's real modulus, N=10403 = 101*103,
-# lambda = lcm(100,102) = 5100, 7/7 distinct ladder classes (no rung collapses).
-# S = 5, so the ALU chain is ~14x the N=329 screen; 2 seeds, 128 held-out x.
-# $1 selects the tier: easy (train T = 1,2,3) or medium (train T = 4,8,16).
+# Grid D -- the recipe at m1's real modulus and at a 22-bit Hard-proxy modulus.
+#   m1  : N = 10403 = 101*103, lambda = lcm(100,102) = 5100, 7/7 distinct.
+#   hp1 : N = 4028033 = 2003*2011, lambda = 2012010, 7/7 distinct (S = 7).
+# Both tiers' T values are run at each, because certification is a prefix from
+# T = 1 and Medium/Hard never see T = 1 or T = 2 in training.
 set -u
 V=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
 cd "$(dirname "$0")/.." || exit 1
 mkdir -p lab/logs lab/runs
-TIER=${1:-easy}
-if [ "$TIER" = easy ]; then TT="1 2 3"; LMAX=3; else TT="4 8 16"; LMAX=16; fi
 OUT=lab/runs/gridD.jsonl
-common="--modulus 10403 --train-t $TT --sel-steps 2000 --sel-anneal 1200 --sel-log 1000 --seeds 0 1 --eval-loops 64 --n-train 250 --n-eval 128 --out $OUT"
+CONS="--cons 0.1 --cons-space w --cons-j 8 --cons-loops 4"
+R="--no-dump --reg-hard $CONS"
+base="--sel-steps 1500 --sel-anneal 900 --sel-log 1500 --seeds 0 1 2 --eval-loops 64 --out $OUT"
 
 run () {
   tag=$1; shift
   echo "=== $tag"
-  $V lab/probe_depth.py $common --tag "$tag" "$@" > "lab/logs/D_$tag.log" 2>&1
-  grep -E "MAX_T =|fitted loc" "lab/logs/D_$tag.log"
+  $V lab/probe_depth.py $base --tag "$tag" "$@" > "lab/logs/D_$tag.log" 2>&1
+  grep -E "fitted loc|lambda" "lab/logs/D_$tag.log" | head -4
   sed -n '/=== summary ===/,$p' "lab/logs/D_$tag.log"
 }
 
-run D_${TIER}_counter2_Lmax    --selector counter2 --train-loops $LMAX
-run D_${TIER}_counter2_nodump  --selector counter2 --train-loops $LMAX --no-dump
-run D_${TIER}_counter2_L64     --selector counter2 --train-loops 64
-run D_${TIER}_placev_cons      --selector placev --train-loops $LMAX --cons 1.0 --cons-space loc --cons-j 63 --cons-jd 3
-echo ALL_DONE_GRIDD_$TIER
+M1="--modulus 10403 --n-train 250 --n-eval 128"
+run D1_m1_easy_R      $M1 --selector counter2 --train-t 1 2 3  --train-loops 3  $R
+run D2_m1_med_R       $M1 --selector counter2 --train-t 4 8 16 --train-loops 16 $R --cons-jd 3
+run D3_m1_med_nocons  $M1 --selector counter2 --train-t 4 8 16 --train-loops 16 --no-dump --reg-hard
+run D4_m1_med_R_hard  $M1 --selector counter2 --train-t 4 8 16 --train-loops 16 $R --cons-jd 3 --eval-hard
+
+HP="--modulus 4028033 --n-train 200 --n-eval 64"
+run D5_hp1_med_R      $HP --selector counter2 --train-t 4 8 16 --train-loops 16 $R --cons-jd 3
+echo ALL_DONE_GRIDD
