@@ -111,29 +111,52 @@ class CreditALU(DigitALU):
         g = g[:, :, None]
         return g * t + (1 - g) * r
 
-    def forward(self, s, ndig):
-        b = s.shape[0]
-        z = self._sm(self.zero).expand(b, 10)
+    # ---- the chain as an explicit op list, so a single op can be applied to an
+    # ---- arbitrary register (needed by target propagation)
+    def op_schedule(self):
+        ops = []
+        for k in range(self.K - 1, -1, -1):
+            first = True
+            for i in range(self.S):
+                j = k - i
+                if 0 <= j < self.S:
+                    ops.append(("add", (i, j), first))
+                    first = False
+            for t in range(self.R):
+                ops.append(("sub", None, first and t == 0))
+        return ops
+
+    def apply_op(self, r, op, prod, z, ndig):
+        kind, arg, shift = op
+        if shift:
+            r = torch.cat([z[:, None], r[:, : self.W - 1]], dim=1)   # x10
+        if kind == "add":
+            lo, hi = prod[arg]
+            slots = [lo[:, None], hi[:, None]] + [z[:, None]] * (self.W - 2)
+            return self.add_scan(r, torch.cat(slots, dim=1))
+        return self.cond_sub(r, ndig)
+
+    def products(self, s):
         prod = {}
         for i in range(self.S):
             for j in range(self.S):
                 o = torch.einsum("bu,bv,uvo->bo", s[:, i], s[:, j], self.Tmul)
                 prod[(i, j)] = (self._sm(o[:, :10]), self._sm(o[:, 10:]))
+        return prod
+
+    def forward(self, s, ndig):
+        b = s.shape[0]
+        z = self._sm(self.zero).expand(b, 10)
+        prod = self.products(s)
         r = z[:, None].expand(b, self.W, 10)
         self.inter, self.flow, self._op = [], [], 0
-        for k in range(self.K - 1, -1, -1):
-            r = torch.cat([z[:, None], r[:, : self.W - 1]], dim=1)  # x10
-            for i in range(self.S):
-                j = k - i
-                if 0 <= j < self.S:
-                    lo, hi = prod[(i, j)]
-                    slots = [lo[:, None], hi[:, None]] + \
-                            [z[:, None]] * (self.W - 2)
-                    r = self._record(self.add_scan(r, torch.cat(slots, dim=1)))
-            for _ in range(self.R):
-                r = self._record(self.cond_sub(r, ndig))
-            if self.trunc and k > 0 and (self.K - k) % self.trunc == 0:
-                r = r.detach()
+        place = 0
+        for op in self.op_schedule():
+            if op[2]:
+                place += 1
+                if self.trunc and place > 1 and (place - 1) % self.trunc == 0:
+                    r = r.detach()
+            r = self._record(self.apply_op(r, op, prod, z, ndig))
         return torch.log(r[:, : self.S] + 1e-9)
 
 
@@ -164,6 +187,58 @@ def inv_loss(model):
     l_dig = -(tgt * dig.log()).sum(-1).mean()
     l_bor = -(pc.detach() * bor.log()).sum(-1).mean()
     return l_dig + l_bor
+
+
+class LatentTrace(torch.nn.Module):
+    """Amortised predictor of the register trace -- the LEGAL analogue of
+    teacher forcing.
+
+    Teacher forcing (below) needs the TRUE trace and is therefore a lab
+    diagnostic.  Here the trace is a *learned latent* predicted from the same
+    inputs the model already sees, trained jointly with the tables under
+    (a) local consistency -- one op applied to latent t must reproduce latent
+    t+1 -- and (b) two boundary conditions that use only the given label:
+    the last latent is the answer, the first input is the model's own `zero`.
+    Nothing about arithmetic is supplied.  This is method-of-auxiliary-
+    coordinates / target propagation, and it is discarded at eval.
+    """
+
+    def __init__(self, slots, width, n_ops, hidden=128):
+        super().__init__()
+        self.W, self.P = width, n_ops
+        self.pos = torch.nn.Parameter(torch.randn(n_ops, hidden) * 0.05)
+        self.inp = torch.nn.Linear(slots * 10, hidden)
+        self.out = torch.nn.Linear(hidden, width * 10)
+
+    def forward(self, s):
+        h = torch.tanh(self.inp(s.flatten(1))[:, None] + self.pos[None])
+        return self.out(h).view(s.shape[0], self.P, self.W, 10)
+
+
+def tprop_loss(model, latent, s, ndig, label, tau):
+    ops = model.op_schedule()
+    L = F.softmax(latent(s) / tau, -1)                 # (B,P,W,10)
+    prod = model.products(s)
+    z = model._sm(model.zero).expand(s.shape[0], 10)
+    prev = z[:, None].expand(s.shape[0], model.W, 10)
+    tot = 0.0
+    for t, op in enumerate(ops):
+        pred = model.apply_op(prev, op, prod, z, ndig).clamp_min(1e-9)
+        tgt = L[:, t]
+        tot = tot + -(tgt.detach() * pred.log()).sum(-1).mean() \
+                  + -(pred.detach() * tgt.clamp_min(1e-9).log()).sum(-1).mean()
+        prev = tgt
+    tot = tot / len(ops)
+    # boundary: the final latent IS the answer.  Slots >= S are zero because
+    # the result is < N and N has S digits -- that is the digit count of the
+    # modulus, which the model is given.
+    fin = L[:, -1].clamp_min(1e-9).log()
+    anchor = F.cross_entropy(fin[:, :model.S].reshape(-1, 10), label.reshape(-1))
+    if model.W > model.S:
+        hi = fin[:, model.S:].reshape(-1, 10)
+        anchor = anchor + F.cross_entropy(
+            hi, torch.zeros(hi.shape[0], dtype=torch.long, device=hi.device))
+    return tot + anchor
 
 
 def entropy_loss(model):
@@ -283,6 +358,13 @@ def main() -> int:
                     help="fraction of steps over which R reaches --reduce")
     ap.add_argument("--curr", default="",
                     help="LAB ONLY cross-task curriculum 'N:S:steps,N:S:steps'")
+    ap.add_argument("--xcurr", type=float, default=0.0,
+                    help="LEGAL magnitude curriculum: weight training examples "
+                         "by |x| <= a threshold that grows from 10 to N over "
+                         "this fraction of the run.  Small x need no reduction "
+                         "and only the last Horner place is non-trivial, so "
+                         "this is a chain-length curriculum expressed purely as "
+                         "a per-example loss weight on the GIVEN data.")
     ap.add_argument("--trunc", type=int, default=0,
                     help="detach the register every this many Horner places")
     ap.add_argument("--stage", default="",
@@ -292,6 +374,12 @@ def main() -> int:
     ap.add_argument("--sym", type=float, default=0.0)
     ap.add_argument("--inv", type=float, default=0.0)
     ap.add_argument("--ent", type=float, default=0.0)
+    ap.add_argument("--tprop", type=float, default=0.0,
+                    help="target-propagation weight (LEGAL: learned latents)")
+    ap.add_argument("--tprop-hidden", type=int, default=128)
+    ap.add_argument("--tprop-tau", type=float, default=1.0)
+    ap.add_argument("--main-warm", type=float, default=0.0,
+                    help="ramp the free-running CE in over this fraction")
     ap.add_argument("--deep-sup", type=float, default=0.0,
                     help="LAB ONLY: CE on the true intermediate Horner registers")
     ap.add_argument("--teacher-force", type=float, default=0.0,
@@ -409,7 +497,12 @@ def main() -> int:
 
     apply_stages(0)
 
-    params = list(model.parameters())
+    latent = None
+    if args.tprop > 0:
+        latent = LatentTrace(args.slots, model.W, len(model.op_schedule()),
+                             args.tprop_hidden).to(device)
+    params = list(model.parameters()) + (
+        list(latent.parameters()) if latent is not None else [])
     if args.opt == "adamw":
         opt = torch.optim.AdamW(params, lr=args.lr, weight_decay=args.wd,
                                 betas=(0.9, 0.95))
@@ -470,6 +563,7 @@ def main() -> int:
         model.train()
         return ok, ce
 
+    xmag = torch.tensor([float(x) for x in train_x], device=device)
     t0 = time.time()
     step = 0
     best = 0.0
@@ -513,8 +607,22 @@ def main() -> int:
                     model.tf = None
             model.collect = deep is not None and args.deep_sup > 0
             logits = model(bi, nd)
-            loss = F.cross_entropy(logits.reshape(-1, 10), bt_.reshape(-1))
+            if args.xcurr > 0 and xmag is not None and bi.shape[0] == xmag.shape[0]:
+                thr = 10.0 * (args.modulus / 10.0) ** min(1.0, f / args.xcurr)
+                w = (xmag <= thr).float()
+                if w.sum() < 4:
+                    w = torch.ones_like(w)
+                per = F.cross_entropy(logits.reshape(-1, 10), bt_.reshape(-1),
+                                      reduction="none").view(bi.shape[0], -1)
+                loss = (per.mean(1) * w).sum() / w.sum()
+            else:
+                loss = F.cross_entropy(logits.reshape(-1, 10), bt_.reshape(-1))
             main_ce = loss.item()
+            if latent is not None:
+                if args.main_warm > 0:
+                    loss = loss * min(1.0, f / args.main_warm)
+                loss = loss + args.tprop * tprop_loss(
+                    model, latent, bi, nd, bt_, args.tprop_tau)
             if model.collect and (args.batch == 0 or args.batch >= ain.shape[0]):
                 w = args.deep_sup
                 if args.deep_sup_decay is not None:
