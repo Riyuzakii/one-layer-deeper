@@ -337,11 +337,84 @@ it is discarded at eval, and it is expressible under the evaluator's fixed loop
 
 *(result in §4.6)*
 
-## 7. Recommendation
+## 7. Which procedures a submission could actually express
 
-*(to be written)*
+The brief asked for this explicitly. `build_model` / `build_optimizer` /
+`training_loss` under an evaluator-owned loop with one `optimizer.step()` per
+batch admits more than it looks like it does.
 
-## 8. Compliance
+**Expressible (all of these were tested; all are null):**
+
+| procedure | how it fits the fixed loop |
+|---|---|
+| temperature / noise / gate-offset annealing | step counter in a **non-persistent** buffer (excluded from the 5e8 state ceiling, `api.py:26-42`), read inside `forward` |
+| straight-through, and *scheduled* hardening (`--hard-at`) | a relaxation choice inside `forward`; the estimator is differentiable |
+| **chain-length warm-up on `R`** | `R_eff = f(step)` inside `forward`; eval runs at the final `R`, so the reported configuration's constructed ceiling is unchanged |
+| staged gradient release (`mul → add → sub`) | `T.detach()` under a step condition, or `requires_grad_` toggling; Adam skips params with no grad |
+| magnitude curriculum on `\|x\|` | a per-example loss weight computed from `input_ids` in `training_loss` — data *ordering*, not new data |
+| entropy pressure, commutativity, `Tsub ∘ Tadd = id` | pure `training_loss` terms over parameters; no forward-pass arithmetic |
+| every init family here | `build_model` |
+| every optimiser / lr / wd / schedule here | `build_optimizer` |
+| **target propagation** (§6.3) | latents returned in `aux`, consistency + boundary terms in `training_loss` |
+
+**Not expressible, and these are exactly the ones that worked:**
+
+| procedure | why not |
+|---|---|
+| `--construct` | sets tables to the truth — rule 7, and `digit-carry` already flagged it |
+| `--deep-sup` | targets are `(10·r + Σ dᵢdⱼ) mod N`, computed by me — rule 2 |
+| `--teacher-force` | same trace, used as *input* — rule 2 |
+| cross-`(modulus, slots)` curriculum | a submission sees one modulus; manufacturing a second with known answers is doing the arithmetic |
+
+## 8. Recommendation
+
+**Stop looking for a training trick. The rollout is the problem and it cannot be
+reached from the loss.**
+
+The four facts that force this conclusion:
+
+1. Per-step *inputs* take `train_exact` from 0.24 to **1.000**; per-step
+   *targets* alone only reach 0.24. The gap is credit assignment through the
+   rollout, nothing else.
+2. Every legal knob — five init families, four relaxation schedules,
+   straight-through on states and gate, three curricula, four regularisers,
+   the optimiser sweep — lands inside the 0.10–0.21 seed band of the untouched
+   baseline.
+3. **Halving the chain does not help.** At ~117 ops (N=91, S=2) the model
+   reaches `train_exact` 0.75 with `held_exact` 0.000 and held-out CE rising
+   monotonically 2.31 → 9.06. Shorter makes the *degenerate* solution easier to
+   fit, not the algorithm.
+4. Fixing the forward pass's information collapse (300× more register spread
+   via straight-through everywhere) makes training strictly worse.
+
+**Concretely, for `alu-depth` and `alu-compose`:**
+
+* Fact 3 is a falsifiable prediction against your plan. `digit-carry` §6's
+  "one learned quotient digit + a single subtraction, ~60 ops" is a 4.7×
+  reduction from 280. A 2.4× reduction to 117 ops already fails, and fails in a
+  way (overfitting, not under-fitting) that more depth reduction does not
+  obviously cure. I would design for **O(10) sequential learned ops**, not
+  O(60) — e.g. make the per-place reduction a single table lookup rather than a
+  `W`-slot scan, so that every learned table sits a handful of ops from the loss.
+* **Change the screening metric.** `train_exact` is not safe here: 0.75 is
+  reachable with tables at chance. `structure_scores()` in `lab/probe_credit.py`
+  is gauge-invariant, free, reads 1.000 on the construction and 0.24–0.28 on
+  random init, and would have caught every false positive in this report. Screen
+  on it, then on `train_exact`, then on held-out.
+* **The next binding constraint after the rollout is coverage, not
+  optimisation.** Even the teacher-forced model caps at held 0.71–0.79, because
+  `Tsub`'s column for `N`'s leading zero digit is exercised almost nowhere. That
+  is `digit-carry` §2.3's closed form showing up as a real ceiling, and it wants
+  a structural tie between table entries (e.g. tying `Tsub` to `Tadd` by
+  construction rather than by a regulariser), not more steps.
+
+**If someone does want one more shot from the training side**, the only idea
+left with a mechanism behind it is target propagation (§6.3, §7) — it is the
+one legal construction that supplies per-step inputs, which is the exact thing
+teacher forcing showed to be sufficient. My result for it is in §4.6; treat a
+null there as closing the training-procedure lane entirely.
+
+## 9. Compliance
 
 * Nothing under `data/generated/` was read, printed, sampled or summarised. All
   probes generate their own operands from `math.gcd` over `range(1, N)`.
