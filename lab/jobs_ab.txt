@@ -1,0 +1,21 @@
+# Block A -- the LEGAL control at Stage-1 conditions (m1, tree:quotient).
+# alu-credit never reported train_exact_hard for the plain legal baseline here.
+a_base_s0 --steps 2000 --log-every 500 --seed 0
+a_base_s1 --steps 2000 --log-every 500 --seed 1
+a_base_s2 --steps 2000 --log-every 500 --seed 2
+a_tied_s0 --steps 2000 --log-every 500 --seed 0 --tie --tie-sub
+a_tied_s1 --steps 2000 --log-every 500 --seed 1 --tie --tie-sub
+a_tied_s2 --steps 2000 --log-every 500 --seed 2 --tie --tie-sub
+# Block B -- the algebraic re-screen at Stage-1 conditions.  alu-credit called
+# these null at e1 scale on the 257-step untied graph.
+b_sym_s0 --steps 2000 --log-every 500 --seed 0 --sym 1.0
+b_sym_s1 --steps 2000 --log-every 500 --seed 1 --sym 1.0
+b_inv_s0 --steps 2000 --log-every 500 --seed 0 --inv 1.0
+b_inv_s1 --steps 2000 --log-every 500 --seed 1 --inv 1.0
+b_asc_s0 --steps 2000 --log-every 500 --seed 0 --assoc 1.0
+b_asc_s1 --steps 2000 --log-every 500 --seed 1 --assoc 1.0
+b_asc3_s0 --steps 2000 --log-every 500 --seed 0 --assoc 0.3
+b_alg3_s0 --steps 2000 --log-every 500 --seed 0 --sym 1.0 --inv 1.0 --assoc 1.0
+b_alg3_s1 --steps 2000 --log-every 500 --seed 1 --sym 1.0 --inv 1.0 --assoc 1.0
+b_tieasc_s0 --steps 2000 --log-every 500 --seed 0 --tie --tie-sub --assoc 1.0
+b_tieasc_s1 --steps 2000 --log-every 500 --seed 1 --tie --tie-sub --assoc 1.0

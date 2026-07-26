@@ -1,0 +1,13 @@
+# Block D2 -- the LEGAL variants of the relational increment law.  Run for the
+# record after D1 (the illegal ceiling) came back at the floor: the legal forms
+# cannot beat a version that is handed the true constants, but the mandate asks
+# for both the flagged and the conservative variant to be measured and reported.
+#   affine = D(x) = (a (x) x) (+) b, a and b learned.  LEGAL-BUT-FLAGGED:
+#            asserts the map is quadratic, a task-specific structural fact.
+#   free   = D a free learned MLP.  LEGAL (conservative): asserts only that
+#            SOME additive-increment structure exists.
+d_aff_s0 --steps 2000 --log-every 500 --seed 0 --rel affine --rel-w 1.0 --rel-nondeg 1.0
+d_aff_s1 --steps 2000 --log-every 500 --seed 1 --rel affine --rel-w 1.0 --rel-nondeg 1.0
+d_aff_nd0_s0 --steps 2000 --log-every 500 --seed 0 --rel affine --rel-w 1.0
+d_free_s0 --steps 2000 --log-every 500 --seed 0 --rel free --rel-w 1.0 --rel-nondeg 1.0
+d_free_s1 --steps 2000 --log-every 500 --seed 1 --rel free --rel-w 1.0 --rel-nondeg 1.0

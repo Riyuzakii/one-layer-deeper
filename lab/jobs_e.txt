@@ -1,0 +1,21 @@
+# Block E -- ALGEBRA ONLY (--label-w 0).  Can the learned adder be identified
+# from generic algebraic laws alone, with no labels at all?  Parameter-level
+# question; score is add_shift / sub_shift (gauge-invariant, random = 0.23-0.28).
+# The chain is skipped, so these are ~10x cheaper per step than a task run.
+e_alg_s0 --steps 4000 --log-every 1000 --seed 0 --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_alg_s1 --steps 4000 --log-every 1000 --seed 1 --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_alg_w10_s0 --steps 4000 --log-every 1000 --seed 0 --label-w 0 --assoc 10.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_alg_c10_s0 --steps 4000 --log-every 1000 --seed 0 --label-w 0 --assoc 1.0 --cancel 10.0 --inv 1.0 --sym 1.0
+e_alg_lr3_s0 --steps 4000 --log-every 1000 --seed 0 --lr 0.003 --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_alg_lr300_s0 --steps 4000 --log-every 1000 --seed 0 --lr 0.3 --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_alg_nocan_s0 --steps 4000 --log-every 1000 --seed 0 --label-w 0 --assoc 1.0 --inv 1.0 --sym 1.0
+e_alg_kl_s0 --steps 4000 --log-every 1000 --seed 0 --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0 --div kl
+# straight-through: the basin is measured with HARD states, so this is the
+# direct test of whether SGD can see the graded DISCRETE landscape.
+e_alg_st_s0 --steps 4000 --log-every 1000 --seed 0 --hard --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_alg_st_s1 --steps 4000 --log-every 1000 --seed 1 --hard --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_alg_st_lr3_s0 --steps 4000 --log-every 1000 --seed 0 --hard --lr 0.003 --label-w 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+# with the label loss back on, and the collapse-blocking cancellativity law
+e_full_s0 --steps 2000 --log-every 500 --seed 0 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_full_s1 --steps 2000 --log-every 500 --seed 1 --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0
+e_full_st_s0 --steps 2000 --log-every 500 --seed 0 --hard --assoc 1.0 --cancel 1.0 --inv 1.0 --sym 1.0

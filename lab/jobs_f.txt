@@ -1,0 +1,20 @@
+# Block F -- DIRECT DISCRETE SEARCH on the algebraic laws (no relaxation, no
+# gradient).  The question `probe_rel.py --assoc` cannot answer: is the graded
+# discrete landscape benign, and only the gradient estimator bad?
+# From a uniformly random adder:
+f_rand_s0 --sweeps 25 --n 512 --seed 0
+f_rand_s1 --sweeps 25 --n 512 --seed 1
+f_rand_s2 --sweeps 25 --n 512 --seed 2
+f_rand_rs_s0 --sweeps 25 --n 512 --seed 0 --resample
+f_asc_only_s0 --sweeps 25 --n 512 --seed 0 --comm 0 --cancel 0
+f_nocan_s0 --sweeps 25 --n 512 --seed 0 --cancel 0
+# The REPAIR ladder -- the direct analogue of discrete-search's basin test,
+# which for the LABEL objective repaired only at k <= 3-10 cells.
+f_rep10_s0 --sweeps 25 --n 512 --seed 0 --start corrupt --corrupt 10
+f_rep20_s0 --sweeps 25 --n 512 --seed 0 --start corrupt --corrupt 20
+f_rep50_s0 --sweeps 25 --n 512 --seed 0 --start corrupt --corrupt 50
+f_rep100_s0 --sweeps 25 --n 512 --seed 0 --start corrupt --corrupt 100
+f_rep200_s0 --sweeps 25 --n 512 --seed 0 --start corrupt --corrupt 200
+f_rep50_s1 --sweeps 25 --n 512 --seed 1 --start corrupt --corrupt 50
+f_rep100_s1 --sweeps 25 --n 512 --seed 1 --start corrupt --corrupt 100
+f_rep200_s1 --sweeps 25 --n 512 --seed 1 --start corrupt --corrupt 200

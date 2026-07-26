@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# LAB ONLY.  Run a file of `<tag> <args...>` lines through lab/probe_rel.py
+# with a concurrency cap.  Results append to lab/rel_runs.jsonl.
+#   usage: bash lab/rel_sweep.sh jobs.txt [parallel]
+set -u
+V=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+JOBS="$1"; P="${2:-3}"
+mkdir -p "$ROOT/lab/logs"
+run_one() {
+  local tag="$1"; shift
+  "$V" "$ROOT/lab/probe_rel.py" --tag "$tag" \
+      --jsonl "$ROOT/lab/rel_runs.jsonl" "$@" \
+      > "$ROOT/lab/logs/$tag.log" 2>&1
+  tail -1 "$ROOT/lab/logs/$tag.log"
+}
+export -f run_one
+export V ROOT
+grep -v '^\s*#' "$JOBS" | grep -v '^\s*$' | \
+  xargs -P "$P" -I{} bash -c 'run_one {}'

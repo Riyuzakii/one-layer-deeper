@@ -1,0 +1,22 @@
+# Block C -- DUAL-PATH AGREEMENT (LEGAL).  Same parameters, two structurally
+# different graphs, required to agree at the batch's operands.  Untied
+# throughout, per the coordinator's correction.
+#   fold   = leaf sum by a chained left fold vs the balanced tree
+#   redall = reduce after every product digit vs only the last S+1
+#   horner = the 257-step Horner graph vs the 39-step tree (5.5x cost)
+c_fold_s0 --steps 2000 --log-every 250 --seed 0 --dual fold --dual-w 1.0
+c_fold_s1 --steps 2000 --log-every 250 --seed 1 --dual fold --dual-w 1.0
+c_fold_s2 --steps 2000 --log-every 250 --seed 2 --dual fold --dual-w 1.0
+c_red_s0 --steps 2000 --log-every 250 --seed 0 --dual redall --dual-w 1.0
+c_red_s1 --steps 2000 --log-every 250 --seed 1 --dual redall --dual-w 1.0
+c_red_s2 --steps 2000 --log-every 250 --seed 2 --dual redall --dual-w 1.0
+c_horn_s0 --steps 2000 --log-every 500 --seed 0 --dual horner --dual-w 1.0
+c_horn_s1 --steps 2000 --log-every 500 --seed 1 --dual horner --dual-w 1.0
+# weight sweep and the divergence control (kl prices agreement only, no
+# sharpening pressure) -- the two ways this could be an artefact
+c_fold_w3_s0 --steps 2000 --log-every 500 --seed 0 --dual fold --dual-w 3.0
+c_fold_w03_s0 --steps 2000 --log-every 500 --seed 0 --dual fold --dual-w 0.3
+c_fold_kl_s0 --steps 2000 --log-every 500 --seed 0 --dual fold --dual-w 1.0 --div kl
+c_red_kl_s0 --steps 2000 --log-every 500 --seed 0 --dual redall --dual-w 1.0 --div kl
+# no label loss on path B: is the agreement term alone doing anything?
+c_fold_nl_s0 --steps 2000 --log-every 500 --seed 0 --dual fold --dual-w 1.0 --dual-label 0

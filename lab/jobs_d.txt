@@ -1,0 +1,11 @@
+# Block D1 -- the relational family's CEILING.  `--rel true` pins the increment
+# constants to the digits of (1, 2, 1), i.e. it writes the TRUE identity
+# (x+1)^2 = x^2 + 2x + 1 into the loss.  ILLEGAL / DIAGNOSTIC ONLY (rule 2/7).
+# Measured first, exactly as alu-credit measured teacher forcing first: if the
+# ideal illegal version of the signal does not move train_exact_hard, no legal
+# variant of it can.
+d_true_s0 --steps 2000 --log-every 250 --seed 0 --rel true --rel-w 1.0
+d_true_s1 --steps 2000 --log-every 250 --seed 1 --rel true --rel-w 1.0
+d_true_s2 --steps 2000 --log-every 250 --seed 2 --rel true --rel-w 1.0
+d_true_w3_s0 --steps 2000 --log-every 250 --seed 0 --rel true --rel-w 3.0
+d_true_kl_s0 --steps 2000 --log-every 250 --seed 0 --rel true --rel-w 1.0 --div kl
