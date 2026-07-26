@@ -546,6 +546,13 @@ someone wants to revisit that.
 
 ## 8. Recommendation
 
+> **Updated after the re-screen.** §8 was written when `train_exact` was the
+> screen and depth looked like the binding variable. `alu-depth` removed 85% of
+> the chain with no movement in `train_exact_hard`, and §11 shows state pressure
+> does not move it either. The parts of §8 that were about *depth* are
+> superseded by §12; the parts about *per-step inputs* are the ones that
+> survived both metric changes and are restated there.
+
 **Stop looking for a training trick, and re-plan around this: the step budget is
 not what is stopping `DigitALU`. Rollout depth is, and it is stopping it by a
 margin no schedule closes.**
@@ -666,6 +673,53 @@ for baseline / entropy pressure — the same picture, not a slow transition.
 ### 11.2 Does teacher forcing survive snapping?
 
 *(measured; see `lab/logs/k_*.log`)*
+
+## 12. Updated recommendation
+
+**The relaxation and the discrete target are different problems — and the fix is
+not more pressure on the relaxation. It is to stop optimising a relaxation.**
+
+That is a stronger claim than "state pressure did not work", and §11 is what
+licenses it. Pressure is not a knob that was applied too weakly: sharpness
+reaches 0.975, states are one-hot to three digits, and the model is still wrong
+on 99.6% of *training* examples under snapping. There is no gradient anywhere in
+this family that distinguishes the correct discrete transducer from the
+incorrect one; the soft loss is minimised by a continuous object that has no
+discrete neighbour.
+
+Three things follow, in the order I would spend GPU on them.
+
+1. **The one measurement that still points somewhere is per-step inputs.**
+   Under teacher forcing the *tables* reach `sub_shift` 0.78 (S=3) and 0.967
+   (S=4) in **20 optimizer steps** — a parameter-level metric that snapping does
+   not touch, so the metric change leaves it standing (§11.1). Nothing else in
+   ~110 runs moved the parameters at all. Whatever the eventual architecture, the
+   thing that has to be arranged is that **each learned table gets a target it
+   can be right or wrong about on its own**, rather than through a rollout.
+2. **Search the discrete space directly rather than descending a relaxation.**
+   The basin measurement (§2.3) says the neighbourhood of the solution is
+   informative — 10 of 500 cells wrong still scores `train_exact` 0.555 — so a
+   *discrete* local search has signal where the gradient does not. I did not run
+   this and it is the obvious next probe: greedy coordinate descent over the 500
+   argmax cells, evaluated with states snapped, on the 39-step graph (now ~30 ms
+   per evaluation, so a full sweep of 500×12 candidates is minutes). It answers a
+   question nobody has asked: *is the discrete landscape itself benign, and only
+   the gradient estimator bad?* Either answer is decisive — a success names the
+   legal surrogate to build (a score-function/ES estimator, which needs no
+   Jacobian), and a failure closes the entire `DigitALU` family rather than just
+   the training-procedure lane.
+3. **Do not spend more on relaxation schedules.** Between `alu-depth`'s
+   straight-through results at three depths and §11's nineteen configurations,
+   temperature, entropy, Gumbel, hinge, anneal-into-ST and every combination of
+   them are covered. `--sharp-target` (pressure only while soft) was the last
+   untried *shape* of that idea and it behaves like the rest.
+
+**Method note for whoever picks this up.** Report `train_exact_hard`, state
+sharpness, *and* the gauge-invariant parameter scores together. §11 has
+configurations with sharpness 0.975 and zero correctness, §5.1 has one with
+`sub_shift` 0.600 and zero correctness, and §0.2 has plenty with `train_exact`
+0.38 and chance-level tables. **Each of the three metrics has a configuration
+that fools it. None of them is safe alone.**
 
 ## 9. Compliance
 
