@@ -19,7 +19,7 @@ generated from `math.gcd` over `range(1, N)` or from `torch.randint`.
 
 **No legal training signal with intra-squaring content moves `train_exact_hard`
 off the floor.** All three mandated families are null, and the strongest of them
-is null *even in its illegal form*. Across **41 completed training runs**, the
+is null *even in its illegal form*. Across **42 completed training runs**, the
 highest `train_exact_hard` anywhere is **0.001** (`b_sym_s1`, one example in
 1,024) and every `held_exact_hard` is 0.000 or 0.001. The floor is untouched.
 
@@ -291,7 +291,8 @@ chains per evaluation.
 |---|---|---|---|---|---|---|---|
 | `--massoc 1.0` seed 0 | 0.000 | **0.000** | 0.000 | 3.574 | 0.50 | 0.275 | 0.682 |
 | `--massoc 1.0` seed 1 | 0.000 | **0.000** | 0.000 | 3.582 | 0.80 | 0.305 | 0.629 |
-| all five laws stacked | 0.000 | **0.000** | 0.000 | 4.758 | 0.50 | 0.290 | 0.945 |
+| all five laws stacked, seed 0 | 0.000 | **0.000** | 0.000 | 4.758 | 0.50 | 0.290 | 0.945 |
+| all five laws stacked, seed 1 | 0.000 | **0.000** | 0.000 | 4.592 | 0.40 | 0.275 | 0.959 |
 
 Null, inside the baseline band on every metric, with no collapse. The `massoc`
 term itself falls 4.603 → 3.694 over the run, so the model does learn to agree
@@ -602,7 +603,7 @@ argument has four steps, three measured and one structural.
 
 **1. The gap is not marginal, it is three orders of magnitude.** The legal
 baseline at Stage-1 conditions sits at `local_ce` 3.5–4.2 against a cliff at
-0.005–0.0073 (§2). Nothing in this report — **41 completed training runs**
+0.005–0.0073 (§2). Nothing in this report — **42 completed training runs**
 across three families, plus **23 discrete searches** and 3 basin ladders —
 moved it below 2.34. The best `local_ce`
 anywhere here (`--assoc`, 2.34) belongs to a run whose composed map had
@@ -773,11 +774,11 @@ Job files: `lab/jobs_ab.txt` (baseline + algebraic re-screen), `jobs_c.txt` /
 The session lost its process once mid-branch and the GPU was shared throughout,
 so this is stated explicitly rather than implied.
 
-**Complete and reported above** (41 training runs, 23 discrete searches, one
+**Complete and reported above** (42 training runs, 23 discrete searches, one
 full basin ladder): the correctness gate; the legal baseline
 (3 seeds + 3 tied seeds); the relational ceiling `--rel true` (3 seeds + a
 weight sweep); dual-path agreement on all three paths (`fold` 3 seeds,
-`redall` 3 seeds, `horner` 2 seeds); multiplicative associativity (2 seeds);
+`redall` 3 seeds, `horner` 2 seeds); multiplicative associativity (2 seeds, plus the five-law stack at 2 seeds);
 the algebraic re-screen (`--sym`, `--inv`, `--assoc`, `--cancel`, and the
 full four-law stack, 2 seeds each); algebra-only (3 runs); both legal forms of
 the increment law (`--rel affine` 2 seeds, `--rel free` 2 seeds); the **full**
@@ -805,11 +806,7 @@ V=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
 #    table).  The full ladder in §6.1 is complete; this would only sharpen it.
 $V lab/probe_rel.py --basin --basin-module Tadd --basin-reps 6 --tag basin_tadd
 
-# 2. A second seed of the five-law stack (h_mas_all_s1).  Seed 0 is measured
-#    and null; every individual law is measured at 2 seeds.
-bash lab/rel_sweep.sh lab/jobs_h.txt 3
-
-# 3. The straight-through variants (--hard) of the algebra-only objective, and
+# 2. The straight-through variants (--hard) of the algebra-only objective, and
 #    the affine increment law without its non-degeneracy anchor.  The question
 #    the ST runs ask -- can SGD see the graded DISCRETE landscape? -- is
 #    answered more decisively by the discrete search in §6.2/§6.3, which
