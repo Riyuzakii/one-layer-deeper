@@ -1,0 +1,5 @@
+x_base_ta --steps 1000 --log-every 500
+x_deepfine --deep-sup 1.0 --steps 1000 --log-every 250
+x_tf10 --teacher-force 1.0 --deep-sup 1.0 --steps 1000 --log-every 250
+x_tf05 --teacher-force 0.5 --deep-sup 1.0 --steps 1000 --log-every 250
+x_tf10_hard --teacher-force 1.0 --deep-sup 1.0 --hard --hard-gate --steps 1000 --log-every 250

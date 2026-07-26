@@ -1,0 +1,5 @@
+y_tf10_dump --teacher-force 1.0 --deep-sup 1.0 --steps 1000 --log-every 500 --dump-tables
+y_tf_anneal --teacher-force 1.0 --tf-decay 0.5 --deep-sup 1.0 --steps 2000 --log-every 250
+y_s2_long --modulus 91 --slots 2 --train-x 60 --steps 5000 --log-every 500
+y_s2_long_s1 --modulus 91 --slots 2 --train-x 60 --steps 5000 --log-every 500 --seed 1
+y_base_20k --steps 20000 --log-every 2000

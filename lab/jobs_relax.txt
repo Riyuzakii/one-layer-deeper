@@ -1,0 +1,10 @@
+r_tau03_i03 --tau 0.3 --init-scale 0.3 --steps 1000 --log-every 500
+r_tau01_i01 --tau 0.1 --init-scale 0.1 --steps 1000 --log-every 500
+r_tau003_i003 --tau 0.03 --init-scale 0.03 --steps 1000 --log-every 500
+r_tau01_i10 --tau 0.1 --init-scale 1.0 --steps 1000 --log-every 500
+r_tau10_i01 --tau 1.0 --init-scale 0.1 --steps 1000 --log-every 500
+r_i4 --init-scale 4.0 --steps 1000 --log-every 500
+r_onehot4 --onehot-init 4.0 --steps 1000 --log-every 500
+r_tau03_i03_s1 --tau 0.3 --init-scale 0.3 --steps 1000 --log-every 500 --seed 1
+r_tau01_i01_s1 --tau 0.1 --init-scale 0.1 --steps 1000 --log-every 500 --seed 1
+r_base_s1 --steps 1000 --log-every 500 --seed 1

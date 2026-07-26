@@ -1,0 +1,6 @@
+d_deep1 --deep-sup 1.0 --steps 1000 --log-every 250
+d_deep1_trunc1 --deep-sup 1.0 --trunc 1 --steps 1000 --log-every 250
+c_curr91 --curr 91:2:500 --steps 1500 --log-every 250
+c_rcur3 --r-start 3 --r-warm 0.5 --steps 1500 --log-every 250
+l_inv1 --inv 1.0 --steps 1000 --log-every 250
+l_ent005 --ent 0.05 --steps 1000 --log-every 250

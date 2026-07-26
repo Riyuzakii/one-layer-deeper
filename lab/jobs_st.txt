@@ -1,0 +1,7 @@
+h_st --hard --hard-gate --steps 1000 --log-every 250
+h_st_t01 --hard --hard-gate --tau 0.1 --steps 1000 --log-every 250
+h_st_t03 --hard --hard-gate --tau 0.3 --steps 1000 --log-every 250
+h_st_t3 --hard --hard-gate --tau 3.0 --steps 1000 --log-every 250
+h_st_p4 --hard --hard-gate --perm-init 4 --steps 1000 --log-every 250
+h_hardonly --hard --steps 1000 --log-every 250
+h_p8soft --perm-init 8 --steps 1000 --log-every 250
