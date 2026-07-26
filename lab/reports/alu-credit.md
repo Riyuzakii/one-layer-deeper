@@ -114,6 +114,39 @@ here: the signal is not absent, it is uninformative. The chain is a
 near-permutation dynamical system; the gradient *direction* through 280 of its
 steps is chaotic, not small.
 
+### 2.3 The loss punishes sharpening unless you are already nearly right
+
+`--basin` takes the construction, corrupts `k` of its 500 table cells at random
+(3 repeats) and measures what is left:
+
+| corrupted cells `k` | 0 | 1 | 2 | 3 | 5 | 10 | 20 | 50 | 100 |
+|---|---|---|---|---|---|---|---|---|---|
+| `train_exact` | 1.000 | 0.871 | 0.947 | 0.628 | 0.719 | 0.555 | 0.311 | 0.036 | 0.013 |
+| `train_ce` | 0.000 | 2.08 | 0.80 | 6.06 | 3.59 | 6.87 | 10.65 | 16.62 | **17.13** |
+
+(Non-monotonicity at small `k` is sampling noise — some cells are never
+exercised by the 250 training operands.)
+
+Two things follow, and together they explain the plateau better than anything
+else I measured.
+
+**There *is* a graded signal near the solution.** A model with ten wrong cells
+still scores 0.555. So the landscape is not a cliff, and `digit-carry`'s "no
+partial-credit path" is too strong as stated — it is true *far* from the
+solution, not near it.
+
+**But the cross-entropy saturates at ~17 for a sharp-and-wrong table, while a
+soft random init sits at 2.25.** `ln(10) = 2.30`. So the optimiser starts at CE
+2.25 in the maximum-entropy region, and *any* move toward a confident table it
+has not already got right costs it up to 15 nats. The gradient therefore points
+at staying soft. **This is why entropy pressure, sharp initialisation, permutation
+initialisation and straight-through all make things worse rather than better
+(§4.1, §4.2)** — they all force the model into the region the loss punishes,
+without supplying the information needed to land in the small part of it that is
+correct. It is also the same 18.7-vs-2.30 number `digit-carry` §2.4 saw when it
+froze modules at the truth, now explained: a correct module inside a sharp-wrong
+chain is exactly the `k` ≈ 50 row.
+
 ## 3. The measurement that made the rest interpretable
 
 Raw "does the learned table match the truth" accuracy is **meaningless** for this
