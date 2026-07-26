@@ -386,42 +386,50 @@ objective reach its random-table value?**
 | 20 | 0.244 | **9.5** | 40.3 | 0.0 | 45.9 | 63.6 | 70.4 |
 | 50 | 0.176 | **24.4** | 62.6 | 6.0 | 63.2 | 70.0 | 67.3 |
 | 100 | 0.126 | **41.1** | 58.0 | 22.6 | 63.4 | 74.2 | 72.1 |
+| 200 | 0.098 | **58.7** | 70.6 | 42.0 | 71.0 | 72.1 | 72.3 |
+| 400 | 0.108 | **69.0** | 64.2 | 44.5 | 67.1 | 69.4 | 67.9 |
+| 1000 | 0.108 | **73.7** | 68.5 | 53.0 | 70.6 | 71.7 | 68.2 |
 
-> **Partial:** the ladder reached `k = 100` of 1,000 before the session ended; see §12 for the resume command.
+The ladder runs to a **uniformly random table** at `k = 1000`, so the last row
+is each objective's null value and every column can be read as a fraction of
+its own range. Ordering each objective by how many learned ops separate it from
+the tables it constrains:
 
-Each objective, and how many learned ops separate it from the tables it
-constrains:
+| objective | ops from the tables | fraction of range still unused at `k=100` | at `k=200` | at `k=400` |
+|---|---|---|---|---|
+| **`asc`** — adder associativity | **2 register scans** | **0.44** | **0.20** | **0.06** |
+| `fold` — dual path, left fold | 2 chains | 0.15 | ~0 | ~0 |
+| `horn` — dual path, Horner | 2 chains | 0.10 | ~0 | ~0 |
+| `dig` — end-of-chain label | 39 ops | 0.02 | ~0 | ~0 |
+| `mas` — multiplicative associativity | 4 chains | ~0 | ~0 | ~0 |
+| `rel` — relational increment law | 3 chains + 3 reductions | ~0 | ~0 | ~0 |
 
-| objective | ops from the tables | value at `k=100` | fraction of its range still unused |
-|---|---|---|---|
-| **`asc`** — adder associativity | **2 register scans** | 41.1 / ~74 | **0.44** |
-| `fold` — dual path, left fold | 2 chains | 58.0 / ~72 | 0.19 |
-| `horn` — dual path, Horner | 2 chains | 63.4 / ~72 | 0.12 |
-| `dig` — end-of-chain label | 39 ops | 0.126 (floor 0.088) | 0.04 |
-| `mas` — multiplicative associativity | 4 chains | 72.1 / ~72 | ~0.00 |
-| `rel` — relational increment law | 3 chains + 3 reductions | 74.2 / ~72 | ~0.00 |
-
-**Every objective I invented in families 1 and 2 is in the same class as the
-label**, because each is a composition of full chains and therefore inherits
-the chain's ruggedness. The only objective in a different class is the one
-evaluated **O(1) ops from the table it constrains** — and it is the only one
-still climbing at `k = 100`.
+**`asc` is the only objective still climbing after `k = 100`**, and it climbs
+monotonically across the entire ladder — 0.4, 1.9, 3.3, 7.1, 9.5, 24.4, 41.1,
+58.7, 69.0, 73.7 — with a spread well below its increments. Every other
+objective, including **all three of my own families**, is at its random-table
+value by `k = 100` at the latest. The label saturates at `k ≈ 200`, which
+reproduces `discrete-search` §2 on a different graph and at a different
+modulus.
 
 Three incidental findings from the same table:
 
-* **The relational law is the *worst* of the lot.** By `k = 20` it is at 63.6
-  and by `k = 100` it has passed its own random-table value. Composing three
-  chains makes it *noisier* than the label, not more informative. That is the
-  mechanistic explanation of §3.2's null, and it was predictable before the
-  runs.
-* **Multiplicative associativity is second worst** and saturates fastest of all
-  at small `k` (17.1 at `k = 1`, 44.0 at `k = 2`). Four chains per evaluation.
-* **`redall` has almost no content**: exactly 0.0 out to `k = 20` and 6.0 at
-  `k = 50`. Reducing more often is a no-op whenever the running value is already
-  below `N`, so the "second path" is very nearly the first path. It is the
-  perfect negative control for the dual-path family — its training rows should
-  be read as "a dual path with no disagreement to offer", not as evidence about
-  dual paths in general.
+* **The relational law is the worst of the lot.** It is at 63.6 by `k = 20` and
+  past its own random value by `k = 100`. Composing three chains makes it
+  *noisier* than the label, not more informative. That is the mechanistic
+  explanation of §3.2's null, and it was predictable before the runs were made.
+* **Multiplicative associativity saturates fastest of all** — 17.1 at a *single*
+  corrupted cell and 44.0 at two, against a null of 68.2. Four chains per
+  evaluation buys maximum sensitivity at `k = 1` and no discrimination
+  whatsoever beyond `k = 10`. It is the clearest single illustration that
+  sensitivity near the solution and usable signal far from it are different
+  properties.
+* **`redall` has almost no content**: exactly 0.0 out to `k = 20`, and only 53.0
+  at a fully random table against the others' ~70. Reducing more often is a
+  no-op whenever the running value is already below `N`, so the "second path" is
+  very nearly the first path. It is the perfect negative control for the
+  dual-path family — its training rows should be read as "a dual path with no
+  disagreement to offer", not as evidence about dual paths in general.
 
 ### 6.2 Direct discrete search: the basin is real, and ~14× wider
 
@@ -703,8 +711,9 @@ so this is stated explicitly rather than implied.
 **Complete and reported above:** the correctness gate; the legal baseline
 (3 seeds + 3 tied seeds); the relational ceiling `--rel true` (3 seeds + a
 weight sweep); dual-path agreement on all three paths (`fold` 3 seeds,
-`redall` 3 seeds, `horner` 2 seeds); the algebraic re-screen (`--sym`, `--inv`,
-`--assoc`, combinations, 2 seeds each); algebra-only (3 runs); the basin ladder
+`redall` 3 seeds, `horner` 2 seeds); multiplicative associativity (2 seeds);
+the algebraic re-screen (`--sym`, `--inv`, `--assoc`, combinations, 2 seeds
+each); algebra-only (3 runs); the basin ladder
 to `k = 100`; the discrete-search repair ladder (10/20/50/100/150/200) and
 from-random init (5 seeds + a resampled control + the assoc-only control);
 basin hopping (2 seeds).
@@ -714,17 +723,13 @@ basin hopping (2 seeds).
 ```bash
 V=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
 
-# 1. The basin ladder past k=100 (reached k=100 of the 0..1000 ladder).
-#    Nothing in the argument depends on the k>100 rows -- every chain-composed
-#    objective is already at its random-table value by k=100 -- but the far
-#    field would tighten §6.1's last column.
-$V lab/probe_rel.py --basin --basin-reps 3 --basin-n 96 --tag basin3
+# 1. The module-restricted basin (corrupt only Tadd, so the label and the
+#    algebraic objectives are compared at the same number of cells of the same
+#    table).  The full ladder in §6.1 is complete; this would only sharpen it.
 $V lab/probe_rel.py --basin --basin-module Tadd --basin-reps 6 --tag basin_tadd
 
-# 2. Multiplicative associativity as a TRAINING term (§4.3).  Both seeds
-#    reached step 1000/2000 with train_exact_hard 0.000 and the massoc term
-#    falling 4.60 -> 3.70; the parameter-free version of the same question is
-#    complete in §6.1's `mas` column.
+# 2. All five laws stacked (h_mas_all).  The individual laws are all measured;
+#    this is the only combination not run to completion.
 bash lab/rel_sweep.sh lab/jobs_h.txt 3
 
 # 3. The straight-through variants (--hard) of the algebra-only objective.
