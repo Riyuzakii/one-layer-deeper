@@ -196,6 +196,18 @@ def main() -> int:
     idx = torch.arange(10, device=dev)
 
     @torch.no_grad()
+    def diversity_vec(n=256):
+        """Collapse detector, per replica: fraction of DISTINCT predicted
+        answers.  A map collapsed to a constant reads ~1/n; the truth reads
+        1.0.  (alu-relational's `out_diversity`, per replica.)  A low local_ce
+        with low diversity is the known constant-map collapse, not progress."""
+        was, model.hard = model.hard, True
+        a = model(xin[:n], nd).argmax(-1)                  # (P,n,S)
+        model.hard = was
+        return torch.tensor(
+            [len({tuple(r.tolist()) for r in a[q]}) / n for q in range(P)])
+
+    @torch.no_grad()
     def local_ce_vec(n=512):
         """Per-replica local CE.  MEASUREMENT ONLY -- a constructed reference
         tape, no gradient, never added to the loss."""
@@ -322,6 +334,7 @@ def main() -> int:
                   f"mix={ev['mix']:.3f} ({time.time()-t0:.0f}s)", flush=True)
 
     lce = local_ce_vec()
+    div = diversity_vec()
     tr = eval_pop(model, xin[:args.eval_n], xt[:args.eval_n], nd, True,
                   args.eval_chunk)
     he = eval_pop(model, hin, ht, nd, True, args.eval_chunk)
@@ -341,6 +354,10 @@ def main() -> int:
            "n_lce_010": int((lce < 0.010).sum()),
            "n_lce_100": int((lce < 1.0).sum()),
            "n_lce_234": int((lce < 2.34).sum()),
+           "div_min": round(float(div.min()), 3),
+           "div_med": round(float(div.median()), 3),
+           "div_max": round(float(div.max()), 3),
+           "div_at_lce_min": round(float(div[int(lce.argmin())]), 3),
            "train_exact_hard_best": round(float(tr["per"].max()), 4),
            "train_exact_hard_mix": round(tr["mix"], 4),
            "train_exact_hard_argmax": round(tr["argmax"], 4),

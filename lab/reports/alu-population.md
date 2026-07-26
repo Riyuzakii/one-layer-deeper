@@ -23,11 +23,34 @@ logs in `lab/logs/`.
 | **The state ceiling is not the constraint** | P=256 uses 0.349% of 5e8; the ceiling is P = 73,313 | — |
 | **Cheaper alternatives do not work** | batch, LR, LR schedule all flat; weight averaging is **catastrophic** (0.001) | — |
 | **A population does NOT rescue the legal objective** | `--tf 0`: 0/64 replicas, `local_ce` 3.0-4.1 vs a cliff at 0.006 | **LEGAL, and null** |
+| **`alu-relational`'s closure survives 32-64 draws per configuration** | 16 configs, **544 replicas, 0 below `local_ce` 1.0**; best 2.304 vs its 2.343 at P=1 | **LEGAL, and null** |
+| **The one legal term that shifts the distribution (`--assoc`) does it by collapsing the map** | best-`local_ce` replica predicts 3-20% distinct answers; `--cancel` does not prevent it | — |
 
-**Read the last row with the first.** The 1.000s in this report are reached
-with teacher forcing, which is a lab diagnostic and illegal in a submission.
-This branch shows that **if** a legal per-step signal is found, the 1-in-7 basin
-is not a blocker. It does not supply one, and no submission was produced.
+**Read the last three rows with the first.** The 1.000s in this report are
+reached with teacher forcing, which is a lab diagnostic and illegal in a
+submission. This branch shows that **if** a legal per-step signal is found, the
+1-in-7 basin is not a blocker — and, having built the instrument, that no legal
+signal currently known produces one, at 32-64 draws per configuration. It does
+not supply one, and no submission was produced.
+
+**Three findings that correct or qualify sibling results, flagged for
+`RESUME.md`:**
+
+1. **The Stage-1 ceiling is `train_exact_hard` 1.000 / `held_exact_hard` 1.000,
+   not 0.951**, and it converges by **step 600** (§3). The project has been
+   quoting a number that is both lower and slower than the truth.
+2. **"Always commit to the mode" is not general** (§5). `depth-controller`
+   measured that committing took its Medium result 0 -> 4; at P=64 step 400 the
+   *blend* beat the commit 0.999 vs 0.943. The accurate rule is: commit once the
+   selector has concentrated, and check `wmax` before assuming it has. Both
+   results should be reported together.
+3. **Parameter-space averaging or ensembling is meaningless for every
+   learned-table architecture in this repo** (§7.3) — not merely a null in one
+   sweep. `Tmul`'s output code is a **gauge**; two replicas that have both
+   solved the task in general solve it in different gauges, and the average of
+   two one-hot tables in different gauges is uniform. Measured: 0.001 from a
+   population containing a 1.000 replica. Only output-space mixing or selection
+   is coherent.
 
 ---
 
@@ -426,6 +449,129 @@ That is the signature of a systematic obstruction, not a basin-hunting problem,
 and it is a second reason not to expect population methods to help the legal
 objective.
 
+### 6.1 The re-screen: `alu-relational`'s LEGAL candidates at P = 32
+
+`alu-relational` closed the legal-signal search on **44 training runs, each at
+P = 1** with one or two seeds. Section 4.2 of this report shows the basin is
+selected by *initialisation* with a per-replica rate of 0.26 under a working
+signal — so a P=1 screen sees **one draw from a distribution**. If any legal
+term had even a small tail toward the cliff, that design could not see it, and
+the "closed" verdict would be an artifact of the screening rather than a fact
+about the signals. This tests the closure itself.
+
+`lab/probe_pop_legal.py` ports the loss terms from
+`explore/alu-relational/lab/probe_rel.py` (read-only to this branch; nothing
+there was edited or run) with a replica index added to every table read. Terms
+are exactly the six that report §7 rules **LEGAL**; `--rel affine` (which §7
+flags as on the wrong side of its own line) and `--rel true` (illegal) are
+deliberately **not** implemented. `local_ce` is *measured* with a constructed
+tape and never enters the loss, so the training is fully **LEGAL**.
+
+**16 runs, 544 replicas, 1,200 steps each, m1 scale, weights 1.0 as in
+`alu-relational`'s job files.**
+
+| term | `local_ce` min | p10 | median | max | spread | replicas < 0.006 | < 1.0 | < 2.34 | best `train_exact_hard` | ms/step |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **baseline** (label only) | 2.975 | 3.047 | 3.347 | 4.644 | 0.50 | **0/32** | 0 | 0 | 0.001 | 95 |
+| baseline, seed 1 | 2.974 | 3.121 | 3.575 | 5.154 | 0.61 | **0/32** | 0 | 0 | 0.001 | 95 |
+| `--dual fold` | 2.750 | 2.965 | 3.304 | 4.261 | 0.46 | **0/32** | 0 | 0 | 0.000 | 196 |
+| `--dual fold`, seed 1 | 2.899 | 2.942 | 3.268 | 5.802 | 0.89 | **0/32** | 0 | 0 | 0.001 | 200 |
+| `--dual redall` | 3.007 | 3.063 | 3.420 | 5.003 | 0.59 | **0/32** | 0 | 0 | 0.001 | 206 |
+| `--dual horner` | 2.673 | 2.765 | 3.209 | 4.150 | 0.47 | **0/32** | 0 | 0 | 0.001 | 254 |
+| `--sym` | 2.531 | 2.668 | 2.924 | 3.838 | 0.45 | **0/32** | 0 | 0 | 0.001 | 97 |
+| `--inv` | 4.845 | 5.121 | 5.674 | 7.040 | 0.39 | **0/32** | 0 | 0 | 0.000 | 96 |
+| `--assoc` | **2.304** | 2.397 | 2.622 | 3.534 | 0.47 | **0/32** | 0 | 1 | 0.000 | 102 |
+| `--assoc`, seed 1 | 2.304 | 2.363 | 2.614 | 4.188 | 0.73 | **0/32** | 0 | 2 | 0.002 | 103 |
+| `--assoc`, seed 2 | 2.320 | 2.370 | 2.604 | 3.973 | 0.64 | **0/32** | 0 | 3 | 0.000 | 103 |
+| `--assoc`, **P=64** | 2.328 | 2.354 | 2.817 | 3.930 | 0.57 | **0/64** | 0 | 1 | 0.001 | 190 |
+| `--cancel` | 2.492 | 2.596 | 2.907 | 4.615 | 0.73 | **0/32** | 0 | 0 | 0.002 | 96 |
+| `--assoc --cancel` | 2.309 | 2.390 | 2.617 | 3.362 | 0.40 | **0/32** | 0 | 1 | 0.001 | 100 |
+| `--sym --inv --assoc --cancel` | 3.803 | 4.266 | 4.915 | 7.532 | 0.76 | **0/32** | 0 | 0 | 0.000 | 92 |
+| `--rel free` | 2.795 | 2.984 | 3.353 | 4.628 | 0.55 | **0/32** | 0 | 0 | 0.001 | 95 |
+
+**0 of 544 replicas reached `local_ce` 1.0, let alone the 0.006 cliff.** The
+best value anywhere is **2.304**, against `alu-relational`'s best-ever legal
+value of 2.343 at P=1 — **32x more draws bought 1.7%.** No `train_exact_hard`
+exceeded 0.002.
+
+**Nothing was too expensive for P=32.** The most costly term, `--dual horner`,
+runs at 254 ms/step against the baseline's 95 (2.7x, because horner reduces at
+K=9 places instead of 6 and the agreement needs a second full square);
+`--dual fold`/`redall` are ~2.1x; every algebraic law is within 8% of the
+baseline. A 1,200-step P=32 run is 2–5 minutes. I ran everything at P=32 and
+`--assoc` additionally at P=64; nothing had to be substituted.
+
+### 6.2 The tail question, answered directly
+
+The coordinator asked specifically whether any term *shifts or fattens the
+tail*, since that is what P=1 screening cannot see. Two terms do move the
+distribution, and neither is progress:
+
+* **`--assoc` shifts the whole distribution left by ~22%** (median 3.35 -> 2.62,
+  min 2.98 -> 2.30) and does so **reproducibly across 3 seeds and at P=64**.
+  This is the largest distributional effect of any legal term in this repo.
+* **`--cancel` and the 4-law stack fatten the spread** (0.50 -> 0.73 and 0.76)
+  without moving the minimum usefully.
+
+**But the shift is the constant-map collapse, and I can now show it per
+replica.** I added `alu-relational`'s output-diversity collapse detector at
+replica granularity — the fraction of *distinct* predicted answers over 256
+inputs; a map collapsed to a constant reads 1/256 = 0.004, the truth reads
+1.000:
+
+| run | diversity of the **best-`local_ce`** replica | worst replica's diversity |
+|---|---|---|
+| baseline, seed 1 | **0.391** | 0.234 |
+| `--dual fold`, seed 1 | **0.516** | 0.387 |
+| `--assoc`, seed 1 | **0.203** | **0.004** |
+| `--assoc`, seed 2 | **0.035** | **0.004** |
+| `--assoc`, P=64 | **0.184** | **0.004** |
+| `--assoc --cancel` | **0.176** | **0.004** |
+
+The replicas that `--assoc` drives to the best `local_ce` are predicting the
+same answer for 80–96% of inputs, and its worst replicas have collapsed to a
+**literal constant** (0.004 = 1 distinct answer in 256). The baseline and the
+dual-path runs, which have *worse* `local_ce`, keep 2–4x the diversity.
+**`--assoc` lowers `local_ce` by destroying the map, so its leftward shift is
+in the wrong direction.** This confirms `alu-relational`'s reading of its own
+best number and upgrades it from an aggregate observation to a per-replica one.
+
+**And `--cancel` does not prevent it** — which is new and sharper than anything
+in the sibling report. `--cancel` exists precisely to exclude the constant
+adder (§7 of that report: "its only content is *the adder is not constant*").
+Run together with `--assoc` it leaves the best replica at diversity 0.176 and
+still admits fully collapsed replicas at 0.004. The non-degeneracy law is
+evaluated on the *adder*, while the collapse happens in the *composed map*, so
+it prices the wrong object.
+
+### 6.3 The shape of the distribution is the whole story
+
+Put the two regimes side by side at the same P=32, same graph, same budget:
+
+| | working (teacher-forced, **DIAGNOSTIC**) | every legal term (**LEGAL**) |
+|---|---|---|
+| `local_ce` distribution | **bimodal**, with a spike *at zero* | **unimodal blob**, 2.3–7.5 |
+| min | **0.0000** | 2.304 |
+| replicas below the cliff | **11/32** | **0/544** |
+| relative spread (max-min)/median | ~3 (multi-scale) | 0.39–0.89 |
+| best `train_exact_hard` | **1.000** | 0.002 |
+
+A working signal produces a population with *mass on the solution*. Every legal
+term produces a tight unimodal blob **~400x** away from the cliff whose width
+is a factor of two, not a factor of a thousand. The "replicas sit within 30% of
+each other" signature I flagged in §6 holds across all 544: **the obstruction is
+systematic, not stochastic**, and a population is the wrong instrument for a
+systematic obstruction — which is exactly what it *should* show if the closure
+is real.
+
+**Verdict on the closure: it stands, and it is now robust to the
+screening-design objection.** `alu-relational`'s conclusion was reached with one
+draw per configuration; it survives 32–64 draws per configuration across 16
+configurations and 544 replicas, with the one apparent exception diagnosed as a
+degeneracy at replica granularity. This is worth as much as a positive result:
+the closure is a fact about the signals, not an artifact of how they were
+screened.
+
 ---
 
 ## 7. Cheaper alternatives, tested first — only one moves the rate, and not enough
@@ -533,10 +679,14 @@ The three numbers, in the conditional frame of §0:
 replicas all sit at `local_ce` 3.0-4.1 against a cliff at 0.006, and 0/64 reach
 the basin (§6). A population multiplies draws from a distribution; it cannot
 move a distribution whose entire support is 600x from the target. **This result
-is conditional on `explore/alu-relational`, or someone, finding a legal per-step
-signal.** That has not happened — the sibling has since measured the plain legal
-baseline at `local_ce` 3.5-4.2 and closed the relational-law family by measuring
-its *illegal* ceiling and finding that null too.
+is conditional on someone finding a legal per-step signal.** That has not
+happened, and §6.1-6.3 is my attempt to break the closure with the instrument
+this branch built: **16 legal configurations, 544 replicas, 0 below `local_ce`
+1.0**, best 2.304 against `alu-relational`'s 2.343 at P=1. The one term that
+moves the distribution (`--assoc`, reproducibly, across 3 seeds and at P=64)
+does so by collapsing the map, which I can now show at replica granularity, and
+`--cancel` does not prevent it. **The closure stands and is now robust to the
+screening-design objection** — which was the point of testing it.
 
 **No submission.** There is no legal end-to-end candidate on this branch, so
 `submissions/explore/alu-population/` was not created and no evaluator cell was
@@ -571,11 +721,10 @@ recipe search.
 
 ### 8.2 What I would run next, in order
 
-1. **Re-run `alu-relational`'s best legal candidates at P=32.** The instrument
-   is built and costs 2x a single run. If any legal signal has *any* tail of
-   replicas below `local_ce` 0.01, a population finds it and the current
-   single-seed screens would have missed it. This is the highest-value use of
-   `lab/probe_pop.py` and it is one command per candidate.
+1. **~~Re-run `alu-relational`'s best legal candidates at P=32.~~ DONE — §6.1.**
+   16 configurations, 544 replicas, null. The closure holds. Do not re-open the
+   legal-signal search inside `DigitALU` on the grounds that it was
+   under-screened; it was not.
 2. **Stack init scale 0.25 with the population.** It is the only cheap lever
    that moved the rate (0.34 -> 0.53) and it composes with P for free; at P=8 it
    takes the run-level success from 0.91 to 0.99. Sweep the scale properly —
