@@ -46,8 +46,18 @@ The interpretation matters. The soft channel is **not** a crutch the model leans
 on *in addition to* a nearly-correct discrete solution — if it were, pricing the
 crutch would expose the solution underneath. It is the *entirety* of what the
 model has. Sharpen it and there is nothing there. The relaxation is not loose;
-it is pointing somewhere else. §9 gives the full grid and what I would do
-instead.
+it is pointing somewhere else. §9 gives the full grid.
+
+**And I have to withdraw my own headline.** Teacher forcing on the true register
+trace, which I reported at `train_exact` 1.000, reads **`train_exact_hard`
+0.064** (§9.2). It rides the simplex too. What survives — and it is the one
+result in ~130 runs that is off the floor at all — is that its *tables* reach
+`mul_lo` 0.90 / `add_shift` 0.78 / `sub_shift` 0.817 against a random baseline of
+0.23–0.28, and 78% of that within **20 optimizer steps**. So per-step inputs do
+teach the tables; what they leave behind is a 10–20% residue of wrong cells that
+the soft state channel absorbs. That makes the remaining problem **table
+identification**, not credit assignment and not relaxation tightness — a much
+narrower target, and the one I would aim the next branch at (§10).
 
 ---
 
@@ -666,13 +676,51 @@ for baseline / entropy pressure — the same picture, not a slow transition.
 | **`train_exact` → 1.000 does not imply `held_exact` → 1.000** (§0.5) | **Yes**, and the mechanism is now identified: the state simplex is the memorisation channel. This is the same falsification `alu-depth` made, reached independently from held-out CE blow-up. |
 | **Sharpening levers (entropy, sharp init, permutation init, ST) make things worse**, explained by the CE basin (§2.3) | **Yes** — and §9 is the strongest version of it. The basin result predicted exactly this: sharpening into a wrong table costs up to 15 nats, and there is no gradient telling the model *which* sharp table to pick. |
 | **Chain length: shortening buys `train_exact`, not the algorithm** (§0.4, §5) | **Superseded and confirmed in the stronger direction.** `alu-depth` measured `train_exact_hard` = 0.000–0.012 across 257→39 steps; my §5 said the short chain fits the degenerate solution faster. Same conclusion, theirs is the better-controlled experiment. My S=2-vs-S=3 comparison shares the confound they identified (operand width, output length, cohort and training-set size all move together) — **discount my §5 numbers in favour of theirs.** |
-| **Teacher forcing reaches `train_exact` 1.000** (§6.1) | **Re-screened under snapping — see §9.2.** This is the one conclusion whose status the metric change genuinely puts in question. |
+| **Teacher forcing reaches `train_exact` 1.000** (§6.1) | **No — corrected.** `train_exact_hard` is **0.064** (§9.2). It rides the simplex like everything else. It is still the only run in the family off the 0.000–0.020 floor, and its tables are 78–90% correct, but "reaches 1.000" was an artefact of the wrong metric and I have withdrawn it. |
 | **Tables reach 78% structure in 20 optimizer steps under teacher forcing** (§0.3) | **Yes** — the structure scores are computed on the *parameters*, not the states, so snapping does not affect them. This is the finding I would still lead with. |
 | **Target propagation is the only legal lever that moves the tables** (§6.5) | **Yes** on the same reasoning (parameter-level metric), but it never trained the model and is now less attractive still. |
 
-### 9.2 Does teacher forcing survive snapping?
+### 9.2 Does teacher forcing survive snapping? No — and *how* it fails is the most useful number in this report
 
-*(measured; see `lab/logs/k_*.log`)*
+Re-ran the headline configuration with the discrete evaluation added
+(`lab/logs/k_tf_hard.log`, N=323 S=3 R=11, 1,000 steps):
+
+```
+train_exact=1.000  held_exact=0.789
+train_exact_hard=0.064  held_exact_hard=0.053
+struct  mul_lo=0.90  mul_hi=0.62  add_shift=0.78  sub_shift=0.817
+```
+
+**`train_exact` 1.000 → `train_exact_hard` 0.064.** So the answer to §0.2 is no:
+teacher forcing rides the simplex too, and my earlier headline overstated what it
+achieved. I am correcting it rather than defending it.
+
+But 0.064 is **16× the baseline's 0.004 and above the entire 0.000–0.020 band**
+that every other run in this report and every rung of `alu-depth`'s depth ladder
+sits in. It is the only number in the family that is off the floor at all. And
+the structure scores say why: `mul_lo` 0.90, `add_shift` 0.78, `sub_shift` 0.817
+against a random baseline of 0.23–0.28. **The parameters really are ~80–90% the
+intended tables.**
+
+Put those two together and the diagnosis sharpens into something quite different
+from where this branch started:
+
+> Per-step inputs **do** teach the tables — that conclusion survives both metric
+> changes. What they do not do is produce a *discrete* transducer, because the
+> remaining 10–20% of wrong table cells are papered over by the soft state
+> channel. The model is not choosing the continuum *instead of* the algorithm
+> here; it has most of the algorithm and is using the continuum to absorb the
+> errors it has left.
+
+That reframes the residual as a **table-identification** problem — which cells
+are still wrong, and why the data does not pin them — rather than a credit
+assignment or a relaxation problem. It is consistent with §6.4 (held-out rises
+with the number of training operands) and with `digit-carry` §2.3's coverage
+closed form, and it is a much narrower target than "make a 39–280 step rollout
+trainable".
+
+It is also, unfortunately, measured under a **lab-only** procedure (rule 2), so
+it is a statement about what the hypothesis class can be driven to, not a recipe.
 
 ## 10. Updated recommendation
 
