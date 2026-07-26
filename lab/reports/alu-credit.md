@@ -516,4 +516,16 @@ $V lab/probe_credit.py --steps 20 --lr 0.3 --tag legal20
 bash lab/credit_sweep.sh lab/jobs_micro2.txt 6
 ```
 
-Job files: `lab/jobs_{relax,curr,st,tf,b4,b5,b6,b7,micro,micro2,curve,curve2}.txt`.
+```bash
+# the basin around the exact solution
+$V lab/probe_credit.py --basin --tag basin
+```
+
+Job files: `lab/jobs_*.txt` (`relax`, `curr`, `st`, `tf`, `b4`–`b7a`, `all`,
+`micro`, `micro2`, `curve`, `curve2`, `loss`, `trunc`). Per-run logs in
+`lab/logs/<tag>.log`; one JSON line per run in `lab/credit_runs.jsonl` with the
+full argv, `train_exact`, `held_exact`, the raw table accuracies and the
+gauge-invariant `struct` scores.
+
+No evaluator runs, so `lab/archive.jsonl` is untouched by this branch — see §7
+for why.
