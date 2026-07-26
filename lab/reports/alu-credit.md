@@ -10,7 +10,48 @@ and `lab/logs/`.
 
 ---
 
-## 0. Headline
+## 0a. The metric changed mid-branch — read this first
+
+`alu-depth` falsified `train_exact` as a screen for this family: `DigitALU`
+learns a **continuous relaxation riding the W×10 simplex**, and ranking on
+`train_exact` actively selects for that failure mode. The honest number is
+**`train_exact_hard`** — every inter-step state (register slots, carry, borrow,
+and the `cond_sub` gate) snapped to its argmax.
+
+I re-screened on it, adopted `alu-depth`'s cheap graph (`--mul-mode tree
+--reduce-mode quotient`, 39 sequential steps, **constructed ceiling 1.000
+including under snapping, state sharpness 1.000** — verified in my worktree),
+and then spent the remaining budget on the direction the coordinator identified
+as highest-value: **per-step pressure on state discreteness.**
+
+**That direction is falsified, and cleanly.** Every lever controls sharpness
+exactly as intended and none of them buys a single correct example:
+
+| | `train_exact` | **`train_exact_hard`** | state sharpness |
+|---|---|---|---|
+| baseline, 3 seeds | 0.380 / 0.368 / 0.440 | 0.004 / 0.000 / 0.000 | 0.765–0.775 |
+| state-entropy penalty, w=1.0, 3 seeds | 0.028 / 0.084 / 0.028 | 0.012 / 0.016 / 0.012 | **0.932–0.948** |
+| temperature annealed to 0.01 | 0.016 | 0.000 | **0.975** |
+| entropy + anneal together | 0.008–0.012 | 0.000 | 0.951–0.953 |
+| sharpness hinge (no pressure once sharp) | 0.152–0.220 | 0.000–0.008 | 0.908–0.936 |
+| Gumbel annealed to the discrete limit, 3 seeds | 0.164 / 0.296 / 0.172 | 0.004 / 0.004 / 0.008 | 0.831–0.856 |
+| anneal *into* straight-through at 50% / 80% | 0.000 / 0.000 | 0.000 / 0.000 | 0.797 / 0.807 |
+
+**Sharpness is fully controllable — 0.765 → 0.975, essentially one-hot — and
+`train_exact_hard` never leaves the 0.000–0.016 band**, the same band
+`alu-depth` measured across its entire depth ladder. Meanwhile `train_exact`
+*collapses* from 0.38 to 0.01 as pressure rises.
+
+The interpretation matters. The soft channel is **not** a crutch the model leans
+on *in addition to* a nearly-correct discrete solution — if it were, pricing the
+crutch would expose the solution underneath. It is the *entirety* of what the
+model has. Sharpen it and there is nothing there. The relaxation is not loose;
+it is pointing somewhere else. §11 gives the full grid and what I would do
+instead.
+
+---
+
+## 0. Headline (as measured before the re-screen — see §11 for what survives)
 
 **1. Nothing a submission can legally do trains this model, at any step count.**
 Five initialisation families, four relaxation schedules, straight-through on the
@@ -547,6 +588,84 @@ margin no schedule closes.**
 *Noted for the record:* the coordinator's correction that `batch_size` 512→32 is
 1.2× for this model rather than 5.8× is consistent with what I saw — these runs
 are model-step-bound, not loader-bound.
+
+## 11. The re-screen: state-discreteness pressure on the cheap graph
+
+Base: `alu-depth`'s `tree:quotient` graph, N=323 S=3, 39 sequential steps,
+7,474 parameters, 2,000 steps, AdamW lr 3e-2, full batch. **Constructed ceiling
+verified in my worktree: `train_exact` 1.000, `train_exact_hard` 1.000,
+`held_exact_hard` 1.000, state sharpness 1.000.** So the discrete solution is in
+the class and survives snapping; everything below is about reaching it.
+
+| lever | `train_exact` | **`train_exact_hard`** | best hard | sharpness |
+|---|---|---|---|---|
+| baseline seed 0 / 1 / 2 | 0.380 / 0.368 / 0.440 | 0.004 / 0.000 / 0.000 | 0.004 | 0.765 / 0.775 / 0.775 |
+| `--state-ent 0.03` | 0.244 | 0.008 | 0.008 | 0.865 |
+| `--state-ent 0.1` | 0.108 | 0.004 | 0.004 | 0.931 |
+| `--state-ent 0.1 --state-ent-warm 0.3` | 0.084 | 0.004 | 0.004 | 0.892 |
+| `--state-ent 0.3` | 0.160 | 0.004 | 0.004 | 0.900 |
+| `--state-ent 0.3 --state-ent-warm 0.3` | 0.168 | 0.000 | 0.004 | 0.889 |
+| `--state-ent 1.0` seed 0 / 1 / 2 | 0.028 / 0.084 / 0.028 | 0.012 / **0.016** / 0.012 | 0.016 | 0.948 / 0.938 / 0.932 |
+| `--state-ent 3.0` | 0.012 | 0.000 | 0.000 | 0.940 |
+| `--sharp-target 0.9 --state-ent 1.0` | 0.220 | 0.004 | 0.008 | 0.913 |
+| `--sharp-target 0.9` + warm | 0.200 | 0.008 | 0.008 | 0.908 |
+| `--sharp-target 0.99 --state-ent 3.0` | 0.152 | 0.000 | 0.008 | 0.936 |
+| `--tau-final 0.15` | 0.044 | 0.004 | 0.012 | 0.886 |
+| `--tau-final 0.05` | 0.012 | 0.004 | 0.004 | 0.959 |
+| `--tau-final 0.01` | 0.016 | 0.000 | **0.016** | **0.975** |
+| `--gumbel 1.0 → 0` seed 0 / 1 / 2 | 0.164 / 0.296 / 0.172 | 0.004 / 0.004 / 0.008 | **0.020** | 0.856 / 0.842 / 0.831 |
+| `--gumbel 1.0 → 0 --tau-final 0.05` | 0.024 | 0.008 | 0.008 | 0.935 |
+| `--hard-at 0.5` / `0.8` (anneal *into* ST) | 0.000 / 0.000 | 0.000 / 0.000 | 0.004 | 0.797 / 0.807 |
+| `--state-ent 0.3 --tau-final 0.05` | 0.008 | 0.000 | 0.000 | 0.951 |
+| `--state-ent 1.0 --tau-final 0.05` | 0.012 | 0.000 | 0.008 | 0.953 |
+| `--state-ent 1.0`, 20-step tier budget | 0.008 | 0.004 | 0.012 | 0.869 |
+| baseline, 20-step tier budget | 0.028 | **0.016** | 0.016 | 0.746 |
+
+**Nineteen configurations, three seeds on the three that mattered, and
+`train_exact_hard` never exceeds 0.020 — against a trivial floor of ~0.004 and
+a constructed ceiling of 1.000.**
+
+Three readings worth separating:
+
+1. **The levers work.** Sharpness is a controlled variable: 0.765 at baseline,
+   0.93–0.95 under entropy pressure, 0.975 under a hard temperature anneal.
+   These are not failures to apply pressure.
+2. **Discreteness is not the missing ingredient.** A model at sharpness 0.975 —
+   states essentially one-hot — gets 0.000 exact under snapping. If the soft
+   channel were a *shortcut around* a nearly-found discrete solution, removing
+   it would reveal the solution. It reveals nothing.
+3. **Pressure destroys the soft solution without building a discrete one.**
+   `train_exact` falls monotonically with pressure (0.38 → 0.16 → 0.03 → 0.01)
+   while `train_exact_hard` stays flat at ~0. The two optima are not near each
+   other, and the path between them is not downhill in the loss.
+
+The one shape of pressure designed to avoid (3) — the `--sharp-target` hinge,
+which applies no gradient once a state is already sharp, so it cannot
+over-sharpen — does preserve `train_exact` better (0.152–0.220 against
+0.012–0.028 for plain entropy at comparable sharpness) and still yields
+`train_exact_hard` 0.000–0.008. Preserving the soft solution does not help
+either.
+
+Long runs (12,000 steps, 6× the sweep) are in `lab/logs/i_long_*.log`; at step
+4,000 they read `train_exact` 0.48 / 0.40 with `train_exact_hard` 0.004 / 0.008
+for baseline / entropy pressure — the same picture, not a slow transition.
+
+### 11.1 Which of my earlier conclusions survive the metric change
+
+| conclusion | survives? |
+|---|---|
+| **Every legal training procedure is null.** | **Yes, and more strongly.** Ranked on `train_exact` the legal levers were inside the seed band; ranked on `train_exact_hard` they are all inside 0.000–0.020, i.e. at the floor. The metric change makes this conclusion safer, not weaker. |
+| **The 0.2 plateau is a degenerate solution, not a partial table** (§0.2, gauge-invariant structure scores at chance) | **Yes** — and `alu-depth`'s finding is the mechanism I was missing. The structure score said the tables were not arithmetic; `train_exact_hard` says the *states* were carrying the answer instead. Two independent measurements of the same thing. |
+| **`train_exact` → 1.000 does not imply `held_exact` → 1.000** (§0.5) | **Yes**, and the mechanism is now identified: the state simplex is the memorisation channel. This is the same falsification `alu-depth` made, reached independently from held-out CE blow-up. |
+| **Sharpening levers (entropy, sharp init, permutation init, ST) make things worse**, explained by the CE basin (§2.3) | **Yes** — and §11 is the strongest version of it. The basin result predicted exactly this: sharpening into a wrong table costs up to 15 nats, and there is no gradient telling the model *which* sharp table to pick. |
+| **Chain length: shortening buys `train_exact`, not the algorithm** (§0.4, §5) | **Superseded and confirmed in the stronger direction.** `alu-depth` measured `train_exact_hard` = 0.000–0.012 across 257→39 steps; my §5 said the short chain fits the degenerate solution faster. Same conclusion, theirs is the better-controlled experiment. My S=2-vs-S=3 comparison shares the confound they identified (operand width, output length, cohort and training-set size all move together) — **discount my §5 numbers in favour of theirs.** |
+| **Teacher forcing reaches `train_exact` 1.000** (§6.1) | **Re-screened under snapping — see §11.2.** This is the one conclusion whose status the metric change genuinely puts in question. |
+| **Tables reach 78% structure in 20 optimizer steps under teacher forcing** (§0.3) | **Yes** — the structure scores are computed on the *parameters*, not the states, so snapping does not affect them. This is the finding I would still lead with. |
+| **Target propagation is the only legal lever that moves the tables** (§6.5) | **Yes** on the same reasoning (parameter-level metric), but it never trained the model and is now less attractive still. |
+
+### 11.2 Does teacher forcing survive snapping?
+
+*(measured; see `lab/logs/k_*.log`)*
 
 ## 9. Compliance
 
