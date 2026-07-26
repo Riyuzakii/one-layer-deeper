@@ -54,6 +54,9 @@ DIGIT_OFFSET = 7
 TOK_PAD, TOK_BOS, TOK_N, TOK_X, TOK_T = 0, 1, 2, 3, 4
 VOCAB = 17
 BIG = 20.0
+# a FINITE mask value: torch.finfo(x.dtype).min overflows bf16 under amp
+# (the bug digit-carry §4 recorded; the submission already uses -1e4).
+NEG = -1e4
 
 
 def number_tokens(v: int) -> list[int]:
@@ -105,7 +108,7 @@ class MarkerPointer(nn.Module):
 
     def anchors(self, emb, mask):
         b, L, _ = emb.shape
-        neg = torch.finfo(emb.dtype).min
+        neg = NEG
         sc = self.probe(emb).transpose(1, 2)                 # (B,3,L)
         sc = sc.masked_fill(~mask[:, None, :], neg)
         a = F.softmax(sc, dim=-1)
@@ -126,7 +129,7 @@ class MarkerPointer(nn.Module):
         cum = a.cumsum(dim=-1)                               # (B,4,L)
         logit = (torch.einsum("balo,sao->bsl", rel, self.R)
                  + torch.einsum("bal,sa->bsl", cum, self.G))
-        neg = torch.finfo(emb.dtype).min
+        neg = NEG
         logit = logit.masked_fill(~mask[:, None, :], neg)
         attn = F.softmax(logit, dim=-1)                      # (B,n_slot,L)
         return torch.einsum("bsl,bld->bsd", attn, emb), attn
@@ -140,7 +143,7 @@ class AbsPointer(nn.Module):
         self.q = nn.Parameter(torch.randn(n_slot, max_len) * 0.5)
 
     def forward(self, emb, mask):
-        neg = torch.finfo(emb.dtype).min
+        neg = NEG
         L = emb.shape[1]
         logit = self.q[None, :, :L].expand(emb.shape[0], -1, -1)
         logit = logit.masked_fill(~mask[:, None, :], neg)
@@ -159,7 +162,7 @@ class RevPointer(nn.Module):
 
     def forward(self, emb, mask):
         b, L, _ = emb.shape
-        neg = torch.finfo(emb.dtype).min
+        neg = NEG
         last = mask.long().sum(-1) - 1
         pos = torch.arange(L, device=emb.device)[None, :]
         rev = (last[:, None] - pos).clamp(0, self.q.shape[1] - 1)  # (B,L)
