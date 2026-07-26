@@ -46,12 +46,12 @@ The interpretation matters. The soft channel is **not** a crutch the model leans
 on *in addition to* a nearly-correct discrete solution — if it were, pricing the
 crutch would expose the solution underneath. It is the *entirety* of what the
 model has. Sharpen it and there is nothing there. The relaxation is not loose;
-it is pointing somewhere else. §11 gives the full grid and what I would do
+it is pointing somewhere else. §9 gives the full grid and what I would do
 instead.
 
 ---
 
-## 0. Headline (as measured before the re-screen — see §11 for what survives)
+## 0. Headline (as measured before the re-screen — see §9 for what survives)
 
 **1. Nothing a submission can legally do trains this model, at any step count.**
 Five initialisation families, four relaxation schedules, straight-through on the
@@ -548,9 +548,9 @@ someone wants to revisit that.
 
 > **Updated after the re-screen.** §8 was written when `train_exact` was the
 > screen and depth looked like the binding variable. `alu-depth` removed 85% of
-> the chain with no movement in `train_exact_hard`, and §11 shows state pressure
+> the chain with no movement in `train_exact_hard`, and §9 shows state pressure
 > does not move it either. The parts of §8 that were about *depth* are
-> superseded by §12; the parts about *per-step inputs* are the ones that
+> superseded by §10; the parts about *per-step inputs* are the ones that
 > survived both metric changes and are restated there.
 
 **Stop looking for a training trick, and re-plan around this: the step budget is
@@ -596,7 +596,7 @@ margin no schedule closes.**
 1.2× for this model rather than 5.8× is consistent with what I saw — these runs
 are model-step-bound, not loader-bound.
 
-## 11. The re-screen: state-discreteness pressure on the cheap graph
+## 9. The re-screen: state-discreteness pressure on the cheap graph
 
 Base: `alu-depth`'s `tree:quotient` graph, N=323 S=3, 39 sequential steps,
 7,474 parameters, 2,000 steps, AdamW lr 3e-2, full batch. **Constructed ceiling
@@ -657,29 +657,29 @@ Long runs (12,000 steps, 6× the sweep) are in `lab/logs/i_long_*.log`; at step
 4,000 they read `train_exact` 0.48 / 0.40 with `train_exact_hard` 0.004 / 0.008
 for baseline / entropy pressure — the same picture, not a slow transition.
 
-### 11.1 Which of my earlier conclusions survive the metric change
+### 9.1 Which of my earlier conclusions survive the metric change
 
 | conclusion | survives? |
 |---|---|
 | **Every legal training procedure is null.** | **Yes, and more strongly.** Ranked on `train_exact` the legal levers were inside the seed band; ranked on `train_exact_hard` they are all inside 0.000–0.020, i.e. at the floor. The metric change makes this conclusion safer, not weaker. |
 | **The 0.2 plateau is a degenerate solution, not a partial table** (§0.2, gauge-invariant structure scores at chance) | **Yes** — and `alu-depth`'s finding is the mechanism I was missing. The structure score said the tables were not arithmetic; `train_exact_hard` says the *states* were carrying the answer instead. Two independent measurements of the same thing. |
 | **`train_exact` → 1.000 does not imply `held_exact` → 1.000** (§0.5) | **Yes**, and the mechanism is now identified: the state simplex is the memorisation channel. This is the same falsification `alu-depth` made, reached independently from held-out CE blow-up. |
-| **Sharpening levers (entropy, sharp init, permutation init, ST) make things worse**, explained by the CE basin (§2.3) | **Yes** — and §11 is the strongest version of it. The basin result predicted exactly this: sharpening into a wrong table costs up to 15 nats, and there is no gradient telling the model *which* sharp table to pick. |
+| **Sharpening levers (entropy, sharp init, permutation init, ST) make things worse**, explained by the CE basin (§2.3) | **Yes** — and §9 is the strongest version of it. The basin result predicted exactly this: sharpening into a wrong table costs up to 15 nats, and there is no gradient telling the model *which* sharp table to pick. |
 | **Chain length: shortening buys `train_exact`, not the algorithm** (§0.4, §5) | **Superseded and confirmed in the stronger direction.** `alu-depth` measured `train_exact_hard` = 0.000–0.012 across 257→39 steps; my §5 said the short chain fits the degenerate solution faster. Same conclusion, theirs is the better-controlled experiment. My S=2-vs-S=3 comparison shares the confound they identified (operand width, output length, cohort and training-set size all move together) — **discount my §5 numbers in favour of theirs.** |
-| **Teacher forcing reaches `train_exact` 1.000** (§6.1) | **Re-screened under snapping — see §11.2.** This is the one conclusion whose status the metric change genuinely puts in question. |
+| **Teacher forcing reaches `train_exact` 1.000** (§6.1) | **Re-screened under snapping — see §9.2.** This is the one conclusion whose status the metric change genuinely puts in question. |
 | **Tables reach 78% structure in 20 optimizer steps under teacher forcing** (§0.3) | **Yes** — the structure scores are computed on the *parameters*, not the states, so snapping does not affect them. This is the finding I would still lead with. |
 | **Target propagation is the only legal lever that moves the tables** (§6.5) | **Yes** on the same reasoning (parameter-level metric), but it never trained the model and is now less attractive still. |
 
-### 11.2 Does teacher forcing survive snapping?
+### 9.2 Does teacher forcing survive snapping?
 
 *(measured; see `lab/logs/k_*.log`)*
 
-## 12. Updated recommendation
+## 10. Updated recommendation
 
 **The relaxation and the discrete target are different problems — and the fix is
 not more pressure on the relaxation. It is to stop optimising a relaxation.**
 
-That is a stronger claim than "state pressure did not work", and §11 is what
+That is a stronger claim than "state pressure did not work", and §9 is what
 licenses it. Pressure is not a knob that was applied too weakly: sharpness
 reaches 0.975, states are one-hot to three digits, and the model is still wrong
 on 99.6% of *training* examples under snapping. There is no gradient anywhere in
@@ -692,7 +692,7 @@ Three things follow, in the order I would spend GPU on them.
 1. **The one measurement that still points somewhere is per-step inputs.**
    Under teacher forcing the *tables* reach `sub_shift` 0.78 (S=3) and 0.967
    (S=4) in **20 optimizer steps** — a parameter-level metric that snapping does
-   not touch, so the metric change leaves it standing (§11.1). Nothing else in
+   not touch, so the metric change leaves it standing (§9.1). Nothing else in
    ~110 runs moved the parameters at all. Whatever the eventual architecture, the
    thing that has to be arranged is that **each learned table gets a target it
    can be right or wrong about on its own**, rather than through a rollout.
@@ -715,13 +715,13 @@ Three things follow, in the order I would spend GPU on them.
    untried *shape* of that idea and it behaves like the rest.
 
 **Method note for whoever picks this up.** Report `train_exact_hard`, state
-sharpness, *and* the gauge-invariant parameter scores together. §11 has
+sharpness, *and* the gauge-invariant parameter scores together. §9 has
 configurations with sharpness 0.975 and zero correctness, §5.1 has one with
 `sub_shift` 0.600 and zero correctness, and §0.2 has plenty with `train_exact`
 0.38 and chance-level tables. **Each of the three metrics has a configuration
 that fools it. None of them is safe alone.**
 
-## 9. Compliance
+## 13. Compliance
 
 * Nothing under `data/generated/` was read, printed, sampled or summarised. All
   probes generate their own operands from `math.gcd` over `range(1, N)`.
@@ -734,7 +734,7 @@ that fools it. None of them is safe alone.**
 * Negative results are all here, including those that contradict my brief's
   premises and `digit-carry`'s screening rule.
 
-## 10. Reproduction
+## 14. Reproduction
 
 ```bash
 V=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
