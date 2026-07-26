@@ -19,7 +19,7 @@ generated from `math.gcd` over `range(1, N)` or from `torch.randint`.
 
 **No legal training signal with intra-squaring content moves `train_exact_hard`
 off the floor.** All three mandated families are null, and the strongest of them
-is null *even in its illegal form*. Across **42 completed training runs**, the
+is null *even in its illegal form*. Across **44 completed training runs**, the
 highest `train_exact_hard` anywhere is **0.001** (`b_sym_s1`, one example in
 1,024) and every `held_exact_hard` is 0.000 or 0.001. The floor is untouched.
 
@@ -44,8 +44,17 @@ the tables*, not by how much information it carries.
   dual-path agreement, multiplicative associativity — inherit the chain's
   ruggedness exactly and saturate at the same Hamming radius as the label.
 
-Both classes still fail from random init, so this buys no submission — and the
-"search harder" escape is measured shut: basin hopping at 38× greedy's compute
+A second dichotomy closes the remaining escape within the well-conditioned
+class (§5.2): an agreement-style law either tolerates the maximum-entropy
+solution — in which case it is already satisfied at initialisation and gives no
+gradient (`--div kl`: the term starts at 0.048 of a possible ~74) — or it
+prices that solution, in which case it starts at `2 ln 10` and does not descend
+at all in 4,000 steps with no competing loss. Forcing the discrete regime with
+straight-through makes it worse still, driving `local_ce` to **13.83**, the
+worst value in this report against a baseline of 3.5–4.2.
+
+Both classes therefore fail from random init, so this buys no submission — and
+the "search harder" escape is measured shut: basin hopping at 38× greedy's compute
 cuts the algebraic objective 3.7× (0.786 → 0.211) while driving the structure
 score *below* chance (0.285 → 0.205). Over that range the objective and the
 structure are **anticorrelated**, which is one more row for `RESUME.md`'s
@@ -382,6 +391,8 @@ was run to 4,000 steps.
 | seed 0, 4,000 steps | 0.033 | 0.189 | **4.576** | 0.101 | 0.285 | 0.275 | 0.986 |
 | seed 1, 4,000 steps | 0.035 | 0.157 | **4.577** | 0.100 | 0.285 | 0.275 | 0.994 |
 | assoc weight 10, 4,000 steps | 0.024 | 0.151 | **4.605** | 0.100 | 0.285 | 0.287 | 0.990 |
+| `--div kl` (agreement only) | 0.032 | 0.169 | **0.0475 → 0.0040** | 0.100 | 0.290 | 0.275 | 0.986 |
+| **straight-through** (`--hard`), 4,000 steps | 0.032 | 0.193 | **36.27 → 32.76** | 0.141 | 0.285 | 0.275 | 0.760 |
 
 `sym` falls 28× and `inv` falls 14–17×, so the optimiser is working and those
 two laws are easy. **`assoc` does not move: 4.615 → 4.576 over 4,000 steps with
@@ -395,6 +406,36 @@ with the task loss removed. Sharpening a *disagreeing* adder costs far more
 than staying uniform costs, so the gradient points at staying uniform. It is
 the clearest single demonstration in this report that the obstruction is the
 relaxation's geometry, not the information content of the constraint.
+
+**Two controls confirm that reading, and both are the last cells this branch
+ran.**
+
+*Was it the sharpening pressure rather than the agreement content?* No — and
+the control shows the two framings fail in **opposite** ways, which is the more
+useful result. `--div kl` replaces the symmetric cross-entropy with a symmetric
+KL, zero whenever the two sides agree at *any* entropy. Under it the
+associativity term starts at **0.0475** rather than 4.615, because two
+near-uniform outputs already agree, and it duly falls 12× to 0.0040 — while
+`add_shift` stays at 0.290 and `local_ce` at 3.246. So the KL form is
+**vacuous**: it is nearly satisfied at initialisation and has almost no
+gradient to give. The cross-entropy form is not vacuous — it starts at
+`2 ln 10` and is genuinely hard — but §5.2's table shows it does not descend.
+**Neither framing works, and no third one is available**: an agreement
+objective either tolerates the maximum-entropy solution (and is empty) or
+prices it (and is unoptimisable from random init).
+
+*Can SGD see the graded **discrete** landscape through a straight-through
+estimator?* **Emphatically not — it makes things far worse.** With `--hard`,
+every state is snapped and the associativity term is evaluated where §6.1 says
+it is well-conditioned. It starts at **36.3** rather than 4.6 (sharp-and-wrong
+is expensive, exactly as the mechanism predicts), falls only to **32.8** in
+4,000 steps, leaves `add_shift` at 0.285, and drives `local_ce` to **13.83** —
+**4× worse than the untouched baseline's 3.5–4.2 and the worst value anywhere
+in this report.** Forcing the model into the discrete regime without supplying
+the information needed to land in the correct part of it is actively
+destructive. This is the direct test of "graded landscape, bad estimator", and
+it is answered more decisively still by the integer-transducer search in §6.2
+and §6.3, which has no relaxation at all.
 
 ## 6. The measurement that explains all of it: how far can each objective see?
 
@@ -604,7 +645,7 @@ argument has four steps, three measured and one structural.
 
 **1. The gap is not marginal, it is three orders of magnitude.** The legal
 baseline at Stage-1 conditions sits at `local_ce` 3.5–4.2 against a cliff at
-0.005–0.0073 (§2). Nothing in this report — **42 completed training runs**
+0.005–0.0073 (§2). Nothing in this report — **44 completed training runs**
 across three families, plus **23 discrete searches** and 3 basin ladders —
 moved it below 2.34. The best `local_ce`
 anywhere here (`--assoc`, 2.34) belongs to a run whose composed map had
@@ -775,14 +816,15 @@ Job files: `lab/jobs_ab.txt` (baseline + algebraic re-screen), `jobs_c.txt` /
 The session lost its process once mid-branch and the GPU was shared throughout,
 so this is stated explicitly rather than implied.
 
-**Complete and reported above** (42 training runs, 23 discrete searches, one
+**Complete and reported above** (44 training runs, 23 discrete searches, one
 full basin ladder): the correctness gate; the legal baseline
 (3 seeds + 3 tied seeds); the relational ceiling `--rel true` (3 seeds + a
 weight sweep); dual-path agreement on all three paths (`fold` 3 seeds,
 `redall` 3 seeds, `horner` 2 seeds); multiplicative associativity (2 seeds,
 plus the five-law stack at 2 seeds);
 the algebraic re-screen (`--sym`, `--inv`, `--assoc`, `--cancel`, and the
-full four-law stack, 2 seeds each); algebra-only (3 runs); both legal forms of
+full four-law stack, 2 seeds each); algebra-only (3 runs, plus the `--div kl`
+and straight-through controls); both legal forms of
 the increment law (`--rel affine` 2 seeds, `--rel free` 2 seeds); the **full**
 basin ladder `k = 0 … 1000`; the discrete-search repair ladder
 (10/20/50/100/150/200) and
@@ -809,11 +851,10 @@ V=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
 #    table).  The full ladder in §6.1 is complete; this would only sharpen it.
 $V lab/probe_rel.py --basin --basin-module Tadd --basin-reps 6 --tag basin_tadd
 
-# 2. The straight-through variants (--hard) of the algebra-only objective, and
-#    the affine increment law without its non-degeneracy anchor.  The question
-#    the ST runs ask -- can SGD see the graded DISCRETE landscape? -- is
-#    answered more decisively by the discrete search in §6.2/§6.3, which
-#    operates on integers with no relaxation at all.
+# 2. A second straight-through seed (e_alg_st_s1) and the affine increment law
+#    with its non-degeneracy anchor removed (d_aff_nd0_s0).  Seed 0 of the
+#    straight-through run is measured and reported in §5.2; the anchor
+#    demonstrably binds where it is used.
 bash lab/rel_sweep.sh lab/jobs_e2.txt 4
 ```
 
