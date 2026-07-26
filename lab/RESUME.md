@@ -46,10 +46,65 @@ rung-1 anywhere is 3/38 on e1, against a trivial-predictor floor of 1/38.
 
 | # | bottleneck | status |
 |---|---|---|
-| 1 | iteration / depth in T | **solved** — stop spending runs |
-| 2 | per-step arithmetic on unseen operands | representation **solved and uncapped** (digit readout, above); *training* it is now the open problem |
+| 1 | applying the step T times, exactly | **solved** — exactness composes 1.000 at every rung, five regimes, bf16+amp, no drift after 64 compositions |
+| 2 | per-step arithmetic on unseen operands | representation **solved and uncapped** (digit readout, below); *training* it is open |
 | 3 | prompt → digit-slot parsing | **solved**, verified at multi-digit T |
-| 4 | **optimising a small discrete transducer** | **the one remaining bottleneck** — and no longer capped by anything |
+| 4 | **training the discrete transducer** | open — credit assignment through ~280 sequential soft steps (`alu-depth`, `alu-credit`) |
+| 5 | **depth controller cannot extrapolate in T** | open — found by `alu-compose`, owned by `depth-controller` |
+| 6 | **eval budget binds on Easy** | open — a fixed 64-iteration readout makes the run *fail*, not score 0 |
+
+### Second round — the endgame, measured (`explore/alu-compose`, complete)
+
+**Given a *perfect* single squaring step, the pipeline certifies MAX_T = 2 on Easy and
+MAX_T = 0 on Medium — not 64.** The arithmetic was never the last bottleneck.
+
+*What works:* parser → constructed `DigitALU` × T → digit readout gives exact-example
+accuracy **1.000 at every rung T = 1,2,4,8,16,32,64** at five regimes (N=323 S=3;
+12 sampled 10/11-bit; N=10403; N=4028033 22-bit; 4 sampled 30/32-bit), identical in
+fp32, in **bf16+amp** (the manifests' dtype), and with discrete states. No drift: after
+64 compositions the minimum over examples of `max_d p(d)` is 1.00000 — saturated tables
+make `softmax(log p)` a fixed point. **Downward generalisation to T=1,2 works by
+construction in the step** (1.000 with no T=1/T=2 supervision anywhere).
+
+**P1 — the depth controller cannot extrapolate in T.** Parser and ALU held at
+construction, only the controller trained: **28 cells** (6 parameterisations, 3–1409
+params × 2 seeds × 2 tiers × 2 moduli) → **every Easy cell MAX_T=2, every Medium cell
+MAX_T=0**; constructed controllers reach 64. Causes: (a) **coverage in the T field** —
+Easy never shows the tens place of T, Medium never shows digits 2 or 3; structurally
+the same argument as the residue coverage bound, applied to a different field; (b) the
+soft window makes the loss flat inside the correct bin, so `loc` is pinned to an
+interval, not a value (Easy ordinal fit `loc ≈ 0.83T − 0.92`, wrong by 1.4 iterations
+by T=8).
+
+**P2 — the eval budget binds on Easy, and fails hard.** A fixed 64-iteration readout
+throws `TimeoutError` in the `test` split on e1 → **run status *failed***, which is
+*below* the leaderboard floor (`service/db.py` counts only `status='succeeded'`) and
+would waste a 1/day Hard attempt. Same on m1: 305.7s vs a 300s budget, OOD-N ladder
+truncated to 3/7 rungs — tie-break silently forfeited. ACT/PonderNet early exit fits
+(e1 24.8s/30s, m1 111.5s/300s, hp1 274.5s/1800s, all 16 splits) but **margin is ~1.1×,
+not the ~5× measured for a cheap model**, and 1 of 3 tier-faithful Easy runs still lost
+the whole OOD-N ladder. **Any candidate must halt early, never run to a fixed depth.**
+
+**P3 — step famine.** Tier-faithful Easy affords **14–18 optimizer steps** with this
+model (~150 on an idle GPU); Medium ~22 measured. `DigitALU` needs ≳4,000 steps and
+still plateaus at 0.78. **No tier affords the step count at which the architecture is
+already known to fail.** This makes chain-shortening a hard requirement, not a
+nicety.
+
+### Corrections to earlier entries in this log
+
+- **`batch_size` 512→32 is 1.2× for the ALU model, not 5.8×.** The DataLoader lever
+  evaporates once the model step dominates. The 5.8× figure holds only for the cheap
+  dense model it was measured on.
+- The model is **kernel-launch bound**: 8× the eval batch costs 5%, so a large
+  `eval_batch_size` is nearly free. Discrete eval states cost +42% and buy nothing.
+- **e1 and e2 are degenerate for any depth experiment.** λ(323) = lcm(16,18) = **144**,
+  so applying the step 4, 16 or 64 times is *the same function*, and 8 and 32 are the
+  same function — that ladder has **four** distinct maps, not seven. A controller was
+  observed scoring 1.000 at four rungs while applying the step 15 times when asked for
+  4. This is finer than the mod-φ(=288) analysis used by two earlier branches and
+  supersedes it. Run depth work on m1/hp1/hp3 or a purpose-built non-degenerate λ, and
+  state the λ of every modulus used.
 
 **Bottleneck 3, solved (`explore/digit-carry`).** Anchor each digit on the marker that
 *terminates its own field*: `d(x)` ends at `[T]`, so `x`'s slots key off the `[T]`
@@ -132,6 +187,10 @@ All branch from `lab/base`. Worktrees live in `.worktrees/<name>` (gitignored).
 | `explore/algebraic-closure` | 4 | 47 | `lab/reports/algebraic-closure.md` | closed — semigroup law adds no information at unlabelled operands |
 | `explore/grok-optimization` | 5 | 57 | `lab/reports/grok-optimization.md` | closed — no transition at any recipe up to 2e5 steps; Hard's ceiling is below that |
 | `explore/digit-carry` | 8 | 9 | `lab/reports/digit-carry.md` | closed — digit readout escapes the coverage ceiling; parsing solved |
+| `explore/alu-compose` | 4 | 8 | `lab/reports/alu-compose.md` | closed — endgame measured: constructed pipeline certifies MAX_T=2 Easy / 0 Medium; found P1, P2, P3 |
+| `explore/alu-depth` | — | — | `lab/reports/alu-depth.md` | **running** — shorten the ALU chain (owns graph depth/shape) |
+| `explore/alu-credit` | — | — | `lab/reports/alu-credit.md` | **running** — training procedure for the transducer (architecture fixed) |
+| `explore/depth-controller` | — | — | `lab/reports/depth-controller.md` | **running** — make the controller extrapolate in T (owns P1) |
 
 Each branch also carries `submissions/<branch>/submission.py`. All lint clean; all
 score MAX_T = 0. None beats the baseline on the metric.
@@ -298,31 +357,33 @@ certified T transfer; absolute wall clock, steps-in-budget and compile payoff do
 
 ## 5. Ranked next actions
 
-1. **Make `DigitALU` train.** This is now the entire problem, and it is no longer
-   capped by representation, scale, or parsing. Start from the measured direction:
-   shorten the soft chain (S=3→S=2 already took train_exact 0.20→0.78), then replace
-   the `R=11` tied conditional subtractions with one learned quotient digit plus a
-   single subtraction (~60 steps). Screen on **train_exact**, which for this
-   architecture implies held-out. Resume command in §3.
-2. **Keep the state alphabet small.** The falsification that matters: a continuous
-   carry vector re-encodes the value and restores memorisation. Any variant must keep
-   the inter-step state discrete or near-discrete.
-3. **Set `SUBMISSION.batch_size = 128`.** Free steps at every tier (5.8x on Easy,
-   1.5x on Medium) from the evaluator's non-persistent DataLoader workers. Costs
-   nothing, applies to every candidate.
-4. **Then combine**: weight-tied recurrent step (bottleneck 1, solved) + trained
-   digit readout (2) + marker-relative slots (3). Target **MAX_T = 1 on e1** — rung 1
-   at 38/38, against a field best of 3/38 — then check e5/m1, which the digit readout
-   makes legitimate targets for the first time.
+1. **Shorten the ALU chain** (`alu-depth`, running). Now justified three independent
+   ways: trainability (2.4x shorter took train_exact 0.20 -> 0.78), the eval-budget
+   failure (P2), and the step famine (P3). Target is quantitative: the chain must
+   shrink until the tier budget affords the steps training needs. The `R=11` ->
+   learned-quotient-digit fix is ~4.6x and probably not sufficient alone; stack it
+   with parallel-prefix carries and a larger internal radix.
+2. **Make the depth controller extrapolate in T** (`depth-controller`, running, owns
+   P1). Two untried directions: parameterise the controller so nothing is indexed by
+   the digits of T (counted halting with a detector shared with the ALU), and
+   supervise at unprovided depths via `step(state, k+1) = step(step(state, k), 1)`.
+   Note this is *not* the falsified algebraic-closure idea: there the step map `h` was
+   unknown and the semigroup law said nothing about its value; here `h` is fixed and
+   the unknown is the iteration count, which consistency across k does pin down.
+3. **Find a training procedure that converges in tier-affordable steps**
+   (`alu-credit`, running). Convergence *speed* now matters more than final value:
+   ~15-150 steps on Easy, and any curriculum must be expressible under the evaluator's
+   fixed one-step-per-batch loop.
+4. **Every candidate must halt early.** A fixed-depth readout fails the run outright
+   (status `failed`, no leaderboard row), which is strictly worse than scoring 0. Set
+   a large `eval_batch_size` (kernel-launch bound, 8x costs 5%); do not use discrete
+   eval states (+42%, no benefit).
 5. **Consider one early Hard submission as ranking insurance.** `service/db.py:585-618`
-   orders the leaderboard by `max_certified_time_steps DESC, ood_n_... DESC,
-   created_at ASC` over `status='succeeded'` runs only. Every branch is MAX_T=0, so
-   `created_at` is plausibly the live tiebreaker across the field. A *successful*
-   MAX_T=0 entry submitted early outranks an identical one submitted later.
-   `submissions/baseline_adamw/submission.py` is a known-good minimal entry, and the
-   measured eval margin is ~5× on Easy and ~200× on Hard, so it cannot blow the
-   deadline. **This is the user's call — Hard attempts are 1/day and belong to them.**
-   Deadline is 2026-08-31 22:00 PT.
+   orders by `max_certified_time_steps DESC, ood_n_... DESC, created_at ASC` over
+   `status='succeeded'` runs only. Every branch is MAX_T=0, so `created_at` is
+   plausibly the live tiebreaker. Use a known-good cheap model — **not** an ALU
+   candidate, which can time out and fail. **User's call; Hard is 1/day.** Deadline
+   2026-08-31 22:00 PT.
 
 ## 6. Honest summary
 
