@@ -886,6 +886,95 @@ metrics in this family has a configuration in this report that fools it:
 
 **No single number is safe. Report the row, not the cell.**
 
+## 12. Stage 2 — the proposed legal bridge, and why I think it cannot work
+
+The proposal: for a row `(N, x, T=3)` with label `x^8`, the state after one step
+is `x^2`, which is the label of row `(N, x, T=1)`. Expose intermediates through
+`aux`, match rows in `training_loss`, supervise. **I was asked to reason about
+legality myself and to measure the per-tier match rate. I did both, and I think
+the idea fails on two independent grounds before legality even matters.**
+
+### 12.1 Legality: I think it is legal, with one caveat
+
+Nothing here computes arithmetic. Every target is an evaluator-provided label;
+the matching lives in `training_loss`, not the forward pass; there is still one
+`optimizer.step()` per batch. The prior it encodes — "composition depth = `T`,
+the step function is shared" — is read from the generator source, which
+`BRIEF.md` §2 explicitly licenses and even lists.
+
+Two mechanical caveats worth flagging. `training_loss` receives only
+`(logits[valid], labels[valid], aux)` — **not `input_ids`** — so both the
+operand identity and `T` have to be smuggled through `aux` from `forward`, and
+`labels[valid]` is flattened, so `aux` must also carry enough row structure to
+un-flatten it. That is all doable. Reading `T` out of the prompt to *weight a
+loss* is milder than `BRIEF.md` §4.3's flagged gray area (using it to set a
+Python loop count), because it is not control flow. **Verdict: legal.**
+
+### 12.2 But the signal is redundant for the bottleneck, and absent on most tiers
+
+**Ground 1 — it supervises the wrong boundary.** Stage 1 works because teacher
+forcing supplies the true register at **every one of ~50 scan outputs inside a
+single squaring**. Stage 2 supplies a target at the **end of one complete ALU
+chain**. I measured that distinction directly at e1 (§6.2): targets at every op
+with free-running inputs gives 0.240; true *inputs* gives 1.000. Chain-boundary
+targets are strictly weaker than per-op targets, which already fail.
+
+Worse, for the ALU's tables the T-ladder target is **redundant**. Supervising a
+`T=2` row's intermediate against `x^2` asserts "your ALU maps `x → x^2`" — which
+the `T=1` row for the same operand already asserts, directly, as its own label.
+The only genuinely new content is about *composition*, i.e. iteration in `T` —
+and `RESUME.md` records that bottleneck as **solved**.
+
+**Ground 2 — on most tiers the partner row does not exist.** Derived purely from
+the ten generator invocations in `scripts/generate_datasets.sh` (repo source; no
+dataset file was opened). Match rate is the chance the one specific lower-`T`
+partner is co-resident in the batch, `(B−1)/(R−1)`:
+
+| ds | `T` set | train rows | partner? | stride | B=128 | B=512 | B=4096 |
+|---|---|---|---|---|---|---|---|
+| e1 | [1,2,3] | 600 | yes | 1 | 0.212 | **0.853** | 1.000 |
+| e2 | [1,2,4] | 1,920 | yes | 1 | 0.066 | 0.266 | 1.000 |
+| **e3** | [2] | 1,600 | **NO** | — | 0 | 0 | 0 |
+| **e4** | [2] | 3,200 | **NO** | — | 0 | 0 | 0 |
+| e5 | [1,2,3] | 2,400 | yes | 1 | 0.053 | 0.213 | 1.000 |
+| m1 | [4,8,16] | 27,000 | yes | **4** | 0.005 | 0.019 | 0.152 |
+| m2 | [4,8,16] | 81,000 | yes | **4** | 0.002 | 0.006 | 0.051 |
+| **m3** | [2] | 7,200 | **NO** | — | 0 | 0 | 0 |
+| **m4** | [8] | 27,000 | **NO** | — | 0 | 0 | 0 |
+| m5 | [2,4,8] | 27,000 | yes | 2 | 0.005 | 0.019 | 0.152 |
+
+**Four of the ten public datasets train at a single fixed `T`, so no lower-`T`
+partner row exists at all and the mechanism supplies exactly zero signal.** On
+the two Medium fixed-`N` sets it exists but pairs only at **stride 4** — the
+partner gives the state after *four* squarings, not one — at ~2% and ~0.6%
+co-residency. Only `e1` is comfortable, and only at batch 512. Hard is bigger
+than Medium on the same two knobs, so it is worse than `m1`.
+
+**I did not implement Stage 2.** Ground 1 makes it redundant for the measured
+bottleneck and Ground 2 makes it inapplicable to 4/10 tiers and marginal on 4
+more; spending the remaining budget building it would have been spending it to
+confirm a prediction I can make from measurements already in this report. If the
+coordinator disagrees with Ground 1 I would want that argued before it is built,
+because Ground 1 is the load-bearing one.
+
+### 12.3 What I would build instead
+
+Stage 1 changes the target of the search. The gap is no longer "is the discrete
+solution reachable" — it is, at 0.951 — but "what legal mechanism drives
+`local_ce` below ~0.005". Two candidates, in order:
+
+1. **Target propagation at m1 scale on tree:quotient.** §6.5 measured it as the
+   *only* legal lever that moved the tables (`sub_shift` 0.567 vs 0.233 random)
+   — but at e1 scale on the 257-step graph, i.e. exactly the setting Stage 1
+   just showed is the wrong one. It learns a latent per-step trace instead of
+   being handed one, which is precisely the quantity Stage 1 proves is
+   sufficient. It deserves a re-run under the Stage-1 conditions before anything
+   else.
+2. **Attack `local_ce` directly.** The threshold is so sharp (0.005 → 0.951,
+   0.008 → 0.202) that ordinary variance reduction may be enough: more operands,
+   longer training, lower final LR, or averaging. This is unglamorous and it is
+   the highest-probability route to turning the 1-in-3 seed success into 3-in-3.
+
 ## 13. Compliance
 
 * Nothing under `data/generated/` was read, printed, sampled or summarised. All
