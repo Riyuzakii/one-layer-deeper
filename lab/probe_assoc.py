@@ -114,6 +114,14 @@ def main() -> int:
     ap.add_argument("--resample", action="store_true",
                     help="draw fresh register triples every sweep (guards "
                          "against overfitting the evaluation set)")
+    ap.add_argument("--hops", type=int, default=0,
+                    help="basin hopping: after greedy converges, perturb "
+                         "--hop-m cells at random and re-run greedy, keeping "
+                         "the result only if it is better.  A strictly "
+                         "stronger search than greedy, still cheap because one "
+                         "objective evaluation is 2-4 register scans rather "
+                         "than a 39-step chain.")
+    ap.add_argument("--hop-m", type=int, default=20)
     ap.add_argument("--device", default="cuda:0")
     ap.add_argument("--tag", default="")
     ap.add_argument("--jsonl", default="")
@@ -171,6 +179,34 @@ def main() -> int:
              for c in range(Cc)] + \
             [("c", u, v, c) for u in range(10) for v in range(10)
              for c in range(Cc)]
+
+    def greedy(add_d, add_c, obj, sweeps, quiet=False):
+        for sw in range(sweeps):
+            order = torch.randperm(len(cells)).tolist()
+            moved = 0
+            for ci in order:
+                kind, u, v, c = cells[ci]
+                P = 10 if kind == "d" else Cc
+                cand_d = add_d.expand(P, 10, 10, Cc).contiguous()
+                cand_c = add_c.expand(P, 10, 10, Cc).contiguous()
+                tgt = cand_d if kind == "d" else cand_c
+                tgt[:, u, v, c] = torch.arange(P, device=dev)
+                vals = objective(cand_d, cand_c, c0,
+                                 A.expand(P, -1, -1), B.expand(P, -1, -1),
+                                 C.expand(P, -1, -1),
+                                 args.assoc, args.comm, args.cancel)
+                best = int(vals.argmin())
+                if vals[best].item() < obj - 1e-9:
+                    obj = vals[best].item()
+                    if kind == "d":
+                        add_d[0, u, v, c] = best
+                    else:
+                        add_c[0, u, v, c] = best
+                    moved += 1
+            if moved == 0:
+                break
+        return obj
+
     hist = []
     for sweep in range(1, args.sweeps + 1):
         if args.resample:
@@ -208,6 +244,36 @@ def main() -> int:
               f"({time.time()-t0:.0f}s)", flush=True)
         if moved == 0 and not args.resample:
             break
+
+    if args.hops:
+        best_d, best_c, best_o = add_d.clone(), add_c.clone(), obj
+        for h in range(1, args.hops + 1):
+            add_d, add_c = best_d.clone(), best_c.clone()
+            n_cell = 100 * Cc
+            pick = torch.randperm(2 * n_cell)[:args.hop_m]
+            for p in pick.tolist():
+                t, i = (add_d, p) if p < n_cell else (add_c, p - n_cell)
+                hi = 10 if t is add_d else Cc
+                t.view(-1)[i] = int(torch.randint(0, hi, (1,)))
+            o = objective(add_d, add_c, c0, A, B, C,
+                          args.assoc, args.comm, args.cancel).item()
+            o = greedy(add_d, add_c, o, args.sweeps)
+            if o < best_o - 1e-9:
+                best_d, best_c, best_o = add_d.clone(), add_c.clone(), o
+            if h % 10 == 0 or h == args.hops:
+                st, ns = structure(best_d)
+                ca = round(((best_d == true_d).float().mean().item()
+                            + (best_c == true_c).float().mean().item()) / 2, 3)
+                print(f"[{args.tag}] hop={h:>4} best_obj={best_o:.5f} "
+                      f"add_shift={st} n_shifts={ns} cell_agree={ca} "
+                      f"({time.time()-t0:.0f}s)", flush=True)
+        add_d, add_c, obj = best_d, best_c, best_o
+        st, ns = structure(add_d)
+        hist.append({"sweep": "hop", "obj": round(obj, 5), "moves": 0,
+                     "add_shift": st, "n_shifts": ns,
+                     "cell": round(((add_d == true_d).float().mean().item()
+                                    + (add_c == true_c).float().mean().item())
+                                   / 2, 3)})
 
     # held-out check: does the found table satisfy the laws on FRESH registers?
     A2, B2, C2 = draw(args.n)

@@ -1,0 +1,16 @@
+# Block G -- a STRONGER discrete search on the algebraic laws.  Greedy from
+# random converges in 3-4 sweeps to obj ~0.73 with the structure at chance,
+# while repair from k=10/20 corrupted cells recovers the truth EXACTLY.  So the
+# basin exists and greedy cannot find it.  Basin hopping is the cheap next
+# strength level (one objective evaluation is 2-4 register scans, not a chain).
+g_hop_s0 --sweeps 8 --n 512 --seed 0 --hops 60 --hop-m 20
+g_hop_s1 --sweeps 8 --n 512 --seed 1 --hops 60 --hop-m 20
+g_hop_m50_s0 --sweeps 8 --n 512 --seed 0 --hops 60 --hop-m 50
+g_hop_m5_s0 --sweeps 8 --n 512 --seed 0 --hops 60 --hop-m 5
+# and 6 more independent greedy starts, to pin the from-random failure rate
+g_rand_s3 --sweeps 25 --n 512 --seed 3
+g_rand_s4 --sweeps 25 --n 512 --seed 4
+g_rand_s5 --sweeps 25 --n 512 --seed 5
+g_rand_s6 --sweeps 25 --n 512 --seed 6
+g_rand_s7 --sweeps 25 --n 512 --seed 7
+g_rand_s8 --sweeps 25 --n 512 --seed 8
