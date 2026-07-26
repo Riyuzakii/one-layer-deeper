@@ -30,10 +30,13 @@ result itself:
 
 1. **The objective is informative only inside a Hamming ball of radius ≈10–20
    cells (1–2 % of the table).** Corrupt 20 of 1,007 cells of the exact solution
-   and mean digit accuracy is 0.43; corrupt 100 and it is 0.14; corrupt 200 and
-   it is 0.116 against a chance floor of ~0.105 — about **one standard error**.
-   A random assignment is ~900 cells wrong. The search starts, and stays, on a
-   plateau that is statistically indistinguishable from chance.
+   and mean digit accuracy falls to 0.43; corrupt 100 and it is 0.14; corrupt 200
+   and it is 0.115 against a random-table floor of 0.105. A random assignment is
+   ~900 cells wrong, so the search starts — and stays — on the flat part. At m1
+   volume that residual 0.009 excess is measurable at ~6 σ (§7.4), and it is
+   still useless, because the spread across *which* cells are wrong is 10× larger
+   than the excess itself. The curve has the same shape at N = 323 and
+   N = 10403, and at 250 and 9,000 operands.
 2. **Handing the search three of the four modules *exactly* does not help.**
    With `Tmul`, `Tadd`, the constants and the quotient scorer set to the truth
    and only `Tsub` (400 cells) random, greedy reaches `train_exact_hard` 0.008 /
@@ -43,12 +46,30 @@ result itself:
    credit-assignment problem, a chain-length problem, or a joint-search problem.
    A single 400-cell table is not identifiable from the end-of-chain label when
    everything else is perfect.**
-3. **The information budget is exhausted.** The 250 training operands read 967
-   of the 1,007 cells; describing those cells costs **2,318 bits**, and the
-   labels supply **2,491 bits** (250 × 3 digits × log₂10). Ratio **1.075**. The
-   solution is *just barely* uniquely determined and there is essentially **no
-   redundancy** — which is exactly the regime in which an objective is a needle
-   in a haystack with no gradient, discrete or continuous.
+3. **It is not the data volume, and it is not measurement noise — the objective
+   is *rugged* (§7).** The first version of this report blamed an exhausted
+   information budget (250 operands supply 2,491 bits against a 2,318-bit table,
+   ratio 1.075). The coordinator correctly pointed out that this is an e1
+   artifact: the tables are modulus-independent, so the ratio is **2.5** for e1's
+   whole training set, **166** for m1 and **697** for the Hard proxy. **I tested
+   it. At m1's modulus with 9,000 distinct operands — 36× the data, 45,000
+   supervised digits, ratio 63 — greedy converges to `train_exact_hard` 0.0003,
+   `held_exact_hard` 0.0000, `cell_agree` 0.256 (chance value 0.258), tables at
+   chance.** More data made things *worse*, not better. What more data does do is
+   exactly what was predicted — it destroys the overfitting component of the
+   plateau (train−held digit gap 0.143 → 0.010) — and what is left underneath is
+   a *generalizing* degenerate solution. The mechanism that survives is that the
+   objective at a fixed Hamming distance varies by **8–84× more across *which*
+   cells are wrong than the measurement error**, at every data volume. Ruggedness
+   is scale-invariant; that is why m1 looks like e1.
+
+**Stated at the tier that is ranked.** The original closure was measured only on
+e1, the smallest public dataset, and the coordinator was right to refuse to
+propagate it on that basis. It is now measured at m1's modulus and m1's operand
+volume, with the digit count and identifiability ratio of Medium, and it holds
+identically. The Hard proxies are better-posed still on the ratio (697) and
+strictly worse on the mechanism (the chain is 155 steps rather than 83, so the
+basin is narrower).
 
 **Consequence — Stage 2 is moot, and not for legality reasons.** Every surrogate
 in my brief (population-in-forward, score-function/ES, a custom optimizer
@@ -378,41 +399,205 @@ constraint, and neither is the step budget. The objective is.
 
 ---
 
-## 7. Why: the information budget
+## 7. Data volume — the coordinator's challenge, tested and partly upheld
 
-`--exercise` runs the *constructed* model with the gathers instrumented and
-counts how many times each table cell is read, then compares the description
-length of the read cells against the information in the labels.
+The first version of this report gave the *information budget* as the mechanism:
+250 operands supply 2,491 bits against a 2,318-bit table, ratio 1.075, therefore
+a needle-in-a-haystack objective. The coordinator challenged that as an artifact
+of e1 — the tables are modulus-independent by design, so the ratio should climb
+steeply with tier — and predicted that at m1's data volume the shallow signal at
+`k` = 100–200 would become resolvable (√n) and the search might follow it.
 
-| modulus | S | cells read (of 1,007) | table bits (read) | supervision bits | **ratio** |
-|---|---|---|---|---|---|
-| 323 (e1) | 3 | 967 | 2,318 | 2,491 | **1.075** |
-| 899 (e2) | 3 | 999 | 2,388 | 2,491 | **1.044** |
-| 2021 | 4 | 943 | 2,266 | 3,322 | 1.466 |
-| 10403 (m1) | 5 | 999 | 2,388 | 4,152 | 1.739 |
+**The arithmetic is right and I withdraw the information budget as the causal
+explanation.** **The search still fails at m1 volume, on 36× the operands, and
+the closure is now stated at a tier that matters rather than at the smallest
+public dataset.** The mechanism that survives is different and better: the
+objective is **rugged, not noisy**.
 
-(`zero`, `carry0`, `borrow0` are read as constants outside the instrumented
-gathers and are not counted; that is 3 cells of 1,007.)
+### 7.1 The per-tier ratio table — the coordinator's arithmetic, confirmed
 
-**At the Easy moduli the labels carry 4–8 % more information than the table
-needs.** The problem is a constraint-satisfaction problem with as many
-constraints as unknowns and no slack. That is why:
+Computed from `scripts/generate_datasets.sh` and `lab/gen_hard_proxy.sh` (public
+generator configuration; no dataset file was opened) against the measured
+2,402-bit table and the 850-bit weight-tied table of §8. `train rows` =
+`examples_per_setting × |time_steps| × train_fraction(0.8)`.
 
-* the solution is nevertheless *unique* — which is why `--construct` and the
-  repair experiments work, and why held-out hits 1.000 once you are inside the
-  basin;
-* and why there is no graded approach to it — with no redundancy, a partially
-  correct table satisfies essentially none of the constraints. Each of the 750
-  output digits is a composition of ~39 sequential lookups, so changing one cell
-  either misses the path entirely (no signal) or scrambles the result (no
-  signal). That is the definition of a needle-in-a-haystack objective, and it is
-  exactly what the basin curve in §2 measures.
+| dataset | φ(N) | train rows | distinct x | label bits | **ratio** | tied ratio |
+|---|---|---|---|---|---|---|
+| e1 — 323 fixed, T{1,2,3} | 288 | 600 | 288 | 5,979 | **2.5** | 7.0 |
+| e2 — 899 fixed, T{1,2,4} | 840 | 1,920 | 840 | 19,134 | 8.0 | 22.5 |
+| e3 — 10/11-bit sampled | ∞ | 1,600 | 1,600 | 21,260 | 8.9 | 25.0 |
+| e5 — 10/11-bit sampled | ∞ | 2,400 | 2,400 | 31,891 | 13.3 | 37.5 |
+| **m1 — 10403 fixed, T{4,8,16}** | 10,200 | 24,000 | 10,200 | 398,631 | **166** | 469 |
+| m2 — 38021 fixed | 37,632 | 72,000 | 37,632 | 1,195,894 | 498 | 1,407 |
+| hp1 — 4028033 fixed (Hard proxy) | 4,024,020 | 72,000 | 72,000 | 1,674,252 | **697** | 1,970 |
+| hp2 — 30/32-bit sampled | ∞ | 72,000 | 72,000 | 2,391,788 | 996 | 2,814 |
+| hp3 — 20/24/28-bit sampled | ∞ | 24,000 | 24,000 | 717,536 | 299 | 844 |
 
-The ratio improves with modulus (1.04 → 1.74) because the table is
-modulus-independent by design while the supervision grows with the digit count —
-so **the problem is better posed at Medium and Hard than at Easy**, which is an
-interesting inversion but nowhere near enough: the basin at N = 10403 is if
-anything *narrower* in cells (§2), because the chain is longer.
+So my measured 1.075 was e1-specific *and* pessimistic even for e1 — it used the
+250 non-reserved operands and one squaring each. e1's whole training set is
+ratio **2.5**; **m1 is 166 and the Hard proxy is 697.** The coordinator's ~190
+for m1 is right.
+
+Two ceilings are worth naming because they are structural, not configuration:
+
+* At a **fixed** modulus the number of distinct operands is capped by φ(N).
+  Supervising one squaring each, the ceiling ratio is **1.2 at e1**, 3.5 at e2,
+  70.5 at m1, 260 at m2, 39,000 at hp1. **e1 physically cannot supply much more
+  than the table needs** — there are only 288 units in the group. That part of
+  the original §7 stands, and it is why e1 was the wrong dataset to draw a
+  family-level conclusion from.
+* At a **sampled-N** dataset the operand supply is unbounded (every fresh N
+  brings fresh units), and the table is the same 1,007 cells. Sampled-N tiers
+  are the best-posed of all on this measure.
+
+### 7.2 The prediction, and the test: an operand ladder at m1's modulus
+
+If information volume were the operative cause, the search should improve
+sharply between 250 and 9,000 operands. N = 10403, S = 5, `tree:quotient`,
+3 seeds per rung, greedy block-coordinate search to convergence (40 sweeps;
+every run converged well inside that).
+
+| distinct train x | ratio | `train_digit` | `held_digit` | **gap** | **`train_exact_hard`** (mean / max) | `held_exact_hard` | `cell_agree` | `sub_shift` |
+|---|---|---|---|---|---|---|---|---|
+| 250 | 1.7 | 0.298 | 0.155 | **0.143** | 0.0013 / 0.0040 | 0.0001 | 0.264 | 0.271 |
+| 1,000 | 7.0 | 0.260 | 0.197 | 0.063 | **0.0000** / 0.0000 | 0.0001 | 0.261 | 0.267 |
+| 3,000 | 20.9 | 0.297 | 0.274 | 0.023 | **0.0000** / 0.0000 | 0.0002 | 0.254 | 0.258 |
+| **9,000** | **62.7** | 0.289 | 0.279 | **0.010** | **0.0003** / 0.0004 | **0.0000** | 0.256 | 0.250 |
+| the truth | — | 1.000 | 1.000 | 0.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+
+**36× the operands, 60× the identifiability ratio, and `train_exact_hard` goes
+from 0.0013 to 0.0003 — down, not up.** `cell_agree` sits at 0.254–0.264 at
+every rung, which is the 0.258 chance value; `sub_shift` sits at 0.250–0.271
+against a 0.233–0.28 random baseline. There is no trend toward the solution in
+any column that measures the solution.
+
+(Note this experiment is *more* favourable than the real m1: my probe supervises
+`x² mod N` directly, while m1's labels are `x^(2^T)` for T ∈ {4,8,16}, i.e. the
+composition of 4–16 squarings. The real tier gives the tables strictly less
+per-row signal than what the search was handed here.)
+
+### 7.3 What more data actually does — and the coordinator's mechanism is right about this
+
+Look at the `gap` column, because it is the coordinator's mechanism showing up
+exactly where predicted. At 250 operands the search's plateau is
+`train_digit` 0.298 against `held_digit` 0.155 — **half of it is overfitting.**
+At 9,000 operands the gap is 0.010: `train` 0.289, `held` 0.279.
+
+**More data destroys the spurious component of the plateau completely.** The
+same is visible at e1 in the original runs (`scratch`: train 0.384 / held 0.112;
+`sa_big`: 0.477 / 0.202).
+
+And that makes the negative *stronger*, not weaker. At 9,000 operands what the
+search converges to is not an overfit — it is a **genuine, generalizing,
+non-arithmetic solution** that predicts 28 % of held-out digits and whose tables
+are at chance. The plateau was never only a small-data artifact; strip the
+small-data artifact away and a real degenerate optimum is what remains.
+
+### 7.4 The basin at m1 volume, with error bars — √n is right about resolution, wrong about consequence
+
+N = 10403, S = 5, **9,000 training operands = 45,000 supervised digits**, 5
+random corruptions per rung. `binom_se` is the binomial standard error of one
+table's digit accuracy at this data size — the resolution limit the coordinator's
+argument is about. `sd_over_reps` is the spread across *which* cells were
+corrupted, at fixed `k`.
+
+| corrupted `k` | `digit` | `sd_over_reps` | `binom_se` | ratio sd/se | `exact` | `held_digit` |
+|---|---|---|---|---|---|---|
+| 0 | 1.0000 | 0.0000 | 0.00000 | — | 1.0000 | 1.0000 |
+| 1 | 0.9857 | 0.0223 | 0.00056 | 40× | 0.9755 | 0.9875 |
+| 3 | 0.8225 | 0.0762 | 0.00180 | 42× | 0.7117 | 0.8236 |
+| 10 | 0.5902 | 0.1945 | 0.00232 | 84× | 0.4056 | 0.5912 |
+| 20 | 0.2898 | 0.1260 | 0.00214 | 59× | 0.0676 | 0.2821 |
+| 50 | 0.1987 | 0.0833 | 0.00188 | 44× | 0.0173 | 0.1996 |
+| 100 | 0.1281 | 0.0259 | 0.00158 | 16× | 0.0016 | 0.1291 |
+| 200 | 0.1146 | 0.0153 | 0.00150 | 10× | 0.0001 | 0.1207 |
+| 500 | 0.0962 | 0.0108 | 0.00139 | 8× | 0.0000 | 0.0964 |
+| 1007 | 0.1053 | 0.0177 | 0.00145 | 12× | 0.0000 | 0.1040 |
+
+**The coordinator is right on the resolution point.** At 250 operands the k=200
+excess over the random floor was ≈ 1 σ; at 45,000 digits `binom_se` is 0.0015 and
+the same excess (0.1146 − 0.1053 = 0.0093) is **≈ 6 σ**. The signal is real and
+it is now measurable. That prediction was correct and I would not have measured
+it without the challenge.
+
+**And it does not help, for a reason the same table makes visible.** In every
+row `sd_over_reps` exceeds `binom_se` by **8–84×**. The objective at a fixed
+Hamming distance is not a function of the distance; it is dominated by *which*
+cells are wrong. Sharpening the measurement of a surface that varies by ±0.13 at
+`k` = 20 for reasons unrelated to `k` does not tell a local search which way is
+downhill. Note also that the surface is not even monotone: `k` = 500 reads 0.0962,
+*below* the fully-random 0.1053.
+
+The shape of the basin is, to three decimals, the same as at 250 operands (§2).
+**More data changed the error bars, not the landscape.**
+
+### 7.5 The other two controls, repeated at m1 volume
+
+The coordinator asked specifically whether weight tying compounds with more data
+(item 4). It does not, and neither does the module-restricted control — the two
+measurements that carry most of the closure in §5 and §8. All at N = 10403,
+S = 5, **9,000 distinct operands**, 3 seeds.
+
+| configuration | free cells | `train_digit` | **`train_exact_hard`** | `held_exact_hard` | `cell_agree` (chance) | structure of the searched tables |
+|---|---|---|---|---|---|---|
+| all cells, untied (§7.2) | 1,007 | 0.289 | **0.0003** | 0.0000 | 0.256 (0.258) | 0.24–0.30 (chance) |
+| **+ weight ties** `sym,inv` | 337 | 0.286 | **0.0000** (3/3) | 0.0000 | 0.263 (0.258) | 0.27–0.33 (chance) |
+| **`Tsub` only, rest EXACT** | 400 | 0.290 | **0.0001** | 0.0000 | 0.724 (0.722) | `sub_shift` 0.212–0.275 (chance) |
+| annealed, all cells | 1,007 | SA9K_DIGIT | **SA9K_HARD** | SA9K_HELD | SA9K_CA (0.258) | chance |
+| the truth | — | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+
+The third row is the sharpest single statement in this report. **At Medium's
+modulus, Medium's digit count and 9,000 supervised squarings — an identifiability
+ratio of 63 on a 400-cell table — a subtract table with a perfect multiplier,
+a perfect adder, perfect constants and a perfect quotient selector around it
+finishes at `sub_shift` 0.212–0.275 against a 0.233–0.28 random baseline, and
+`cell_agree` 0.724 against a chance value of 0.722.** Not one cell of net
+progress, with 60× the information the ratio argument says is needed.
+
+### 7.6 Where I think the √n argument goes wrong
+
+The argument is that the search's decisions are noise-limited and that √n fixes
+that. Two things break it, and the second is the substantive one.
+
+**(a) The search's comparisons were never noisy.** Greedy compares two candidate
+tables on the *same fixed* operand set. That is a paired, deterministic,
+exact comparison — the binomial SE is the error of estimating a *population*
+digit accuracy from a sample, which is not a quantity the search ever needs.
+Increasing `n` does change which comparisons are exact ties (more operands ⇒
+fewer cells are unexercised ⇒ fewer flat directions), and that is a real effect
+— it is why the plateau moves from 0.38 at e1 to 0.29 at m1 — but it is not a
+noise reduction.
+
+**(b) Ruggedness, not noise, is what defeats local search.** §7.4 measures this
+directly: at every Hamming distance, the spread of the objective across *which*
+cells are wrong is 8–84× the measurement error. A surface whose value at `k` = 20
+ranges over ±0.13 for reasons unrelated to `k` does not become navigable when you
+measure it to ±0.002. The relevant question for greedy is whether a single
+correcting flip is *detectable and dominant among competing flips*, and the
+competing flips are drawn from the same ±0.13 spread.
+
+I want to be clear that the prediction in (a) was worth testing and that I would
+not have measured §7.3's overfitting collapse without it — that is a real result
+and it makes the closure stronger, because it shows the plateau is not an
+artifact that more data dissolves.
+
+### 7.7 The corrected mechanism
+
+The original §7 said "no redundancy, therefore no gradient". That is true at e1
+and false at m1, so it cannot be the cause. The replacement, which fits all of
+§2–§6 and all of §7:
+
+> Each output digit is the composition of ~39 sequential table lookups. Changing
+> one cell either misses every path that matters (exactly zero signal) or
+> re-routes the register into an unrelated state (signal uncorrelated with
+> correctness). The objective is therefore a **rugged random-CSP surface**: it has
+> a sharp, deep, *correct* optimum with a basin ~10–20 cells wide, and an
+> enormous number of shallow degenerate optima at `digit` ≈ 0.29–0.48 that are
+> reachable from everywhere. Local search — of any kind, at any data volume,
+> with any estimator — lands in the second set.
+
+The information ratio was a *symptom* measurable at e1, not the cause. Ruggedness
+is scale-invariant, which is why the m1 result looks like the e1 result.
 
 ---
 
@@ -468,6 +653,11 @@ cells (chance by `k` ≈ 50 of 337 = 15 %, versus `k` ≈ 100 of 1,007 = 10 %), 
 about the same *fraction*. Cutting the description length by 2.7× does not cut
 the plateau.
 
+**Nor does it compound with more data** — the coordinator's item 4. At m1's
+modulus with 9,000 operands, ties + data give an identifiability ratio of ~470
+against 337 free cells, and all 3 seeds finish at `train_exact_hard` **0.0000**
+with `cell_agree` 0.247–0.276 against a chance value of 0.258 (§7.5).
+
 ---
 
 ## 9. Stage 2: why no legal surrogate is worth building
@@ -514,10 +704,12 @@ Stated as falsifiable conditions, in the order I would try them.
    sits O(1) ops from an *observable* quantity would have a graded objective by
    construction. I do not know how to build one for modular squaring without
    supplying the intermediate values, which is rule 2.
-3. **More labels per parameter.** The ratio is 1.04–1.07 at Easy and 1.74 at
-   Medium (§7). Nothing in the evaluator lets a submission manufacture more
-   labelled operands without doing the arithmetic. A larger training set is not
-   a lever a submission controls.
+3. ~~**More labels per parameter.**~~ **Tested and falsified (§7).** The
+   identifiability ratio is 2.5 at e1, 166 at m1 and 697 at the Hard proxy, so
+   the higher tiers are far better posed on this measure — and the search fails
+   identically at 9,000 operands, with the module-restricted control at chance
+   and the generalization gap closed to 0.010. Do not spend runs on data volume;
+   it is not the variable.
 
 **What I would not spend another run on:** relaxation schedules (`alu-credit`
 §9, 19 configurations), chain depth (`alu-depth` §3.2, 257 → 21 steps),

@@ -441,7 +441,7 @@ def _flog(msg):
 
 
 def search(model, s, tgt, cells, obj="digit", block=64, sweeps=40, gen=None,
-           log=_flog, tag="", patience=3, time_budget=0.0):
+           log=_flog, tag="", patience=3, time_budget=0.0, chunk=0):
     """Block-greedy coordinate search with prefix verification.
 
     Each block evaluates every (cell, candidate) single mutation of the current
@@ -457,7 +457,7 @@ def search(model, s, tgt, cells, obj="digit", block=64, sweeps=40, gen=None,
 
     def cur():
         model.load(base)
-        d, e = model.score(s, tgt)
+        d, e = model.score(s, tgt, chunk)
         return d[0].item(), e[0].item()
 
     d0, e0 = cur()
@@ -482,7 +482,7 @@ def search(model, s, tgt, cells, obj="digit", block=64, sweeps=40, gen=None,
                 f[rows, col] = vals.to(f.dtype)
                 for c in range(n):
                     memb.append((gi * CMAX + c, ci, c))
-            d, e = model.score(s, tgt)
+            d, e = model.score(s, tgt, chunk)
             sc = d if obj == "digit" else e
             if obj == "mix":
                 sc = d + e
@@ -503,7 +503,7 @@ def search(model, s, tgt, cells, obj="digit", block=64, sweeps=40, gen=None,
                 name, col, n = cells[ci]
                 f = model.flat(name)
                 f[j:, col] = float(c) if name == "sel" else c
-            d, e = model.score(s, tgt)
+            d, e = model.score(s, tgt, chunk)
             sc2 = d if obj == "digit" else e
             if obj == "mix":
                 sc2 = d + e
@@ -588,7 +588,7 @@ class Genome:
 
 
 def anneal(model, gm, s, tgt, steps, t0, t1, gen, log=_flog, tag="",
-           init=None, log_every=500):
+           init=None, log_every=500, chunk=0):
     """P independent Metropolis chains, one proposal each per forward pass.
 
     Every chain is a full table assignment; one random cell is re-drawn per
@@ -598,7 +598,7 @@ def anneal(model, gm, s, tgt, steps, t0, t1, gen, log=_flog, tag="",
     P = model.P
     G = gm.random(P, gen).to(model.dev) if init is None else init.clone()
     gm.push(G)
-    cur, _ = model.score(s, tgt)
+    cur, _ = model.score(s, tgt, chunk)
     best, bestG = cur.clone(), G.clone()
     ar = torch.arange(P, device=model.dev)
     t_start = time.time()
@@ -610,7 +610,7 @@ def anneal(model, gm, s, tgt, steps, t0, t1, gen, log=_flog, tag="",
         old = G[ar, ci].clone()
         G[ar, ci] = v
         gm.push(G)
-        new, _ = model.score(s, tgt)
+        new, _ = model.score(s, tgt, chunk)
         dE = new - cur
         acc = (dE >= 0) | (torch.rand(P, device=model.dev) < (dE / T).exp())
         G[ar, ci] = torch.where(acc, v, old)
@@ -773,6 +773,7 @@ def main() -> int:
     ap.add_argument("--verify", action="store_true")
     ap.add_argument("--verify-seeds", type=int, default=3)
     ap.add_argument("--basin", action="store_true")
+    ap.add_argument("--basin-reps", type=int, default=5)
     ap.add_argument("--exercise", action="store_true",
                     help="identifiability diagnostic: how many table cells does "
                          "the training set actually read, and how many bits of "
@@ -795,6 +796,10 @@ def main() -> int:
                          "the current best chains")
     ap.add_argument("--pop", type=int, default=0,
                     help="population size for --anneal (default block*10)")
+    ap.add_argument("--chunk", type=int, default=0,
+                    help="operand chunk size inside one objective evaluation "
+                         "(0 = whole training set at once); memory only, the "
+                         "objective is identical")
     ap.add_argument("--float-steps", type=int, default=0,
                     help="warm start from a FLOAT model trained this many AdamW "
                          "steps, snapped to argmax, then discretely polished")
@@ -834,8 +839,8 @@ def main() -> int:
 
     model.construct()
     truth = model.snapshot(0)
-    d, e = model.score(xin, xt)
-    dh, eh = model.score(hin, ht)
+    d, e = model.score(xin, xt, args.chunk)
+    dh, eh = model.score(hin, ht, args.chunk)
     print(f"[{args.tag}] CONSTRUCTED digit={d[0]:.4f} exact={e[0]:.4f} "
           f"held_exact={eh[0]:.4f} struct="
           f"{structure_scores(truth, ndl)}", flush=True)
@@ -870,9 +875,13 @@ def main() -> int:
         return 0
 
     if args.basin:
-        for k in (0, 1, 2, 3, 5, 10, 20, 50, 100, 200, 500, 1007):
-            ds, es = [], []
-            for rep in range(1 if k == 0 else 5):
+        import statistics as _st
+        n_dig = xin.shape[0] * args.slots
+        ks = [k for k in (0, 1, 2, 3, 5, 10, 20, 50, 100, 200, 500, 1007)
+              if k <= len(cells)] + [len(cells)]
+        for k in sorted(set(ks)):
+            ds, es, hds = [], [], []
+            for rep in range(1 if k == 0 else args.basin_reps):
                 model.construct()
                 g = torch.Generator().manual_seed(1000 * k + rep)
                 pick = torch.randperm(len(cells), generator=g)[:k].tolist()
@@ -880,11 +889,20 @@ def main() -> int:
                     name, col, n = cells[ci]
                     v = int(torch.randint(0, n, (1,), generator=g))
                     model.flat(name)[:, col] = float(v) if name == "sel" else v
-                d, e = model.score(xin, xt)
+                d, e = model.score(xin, xt, args.chunk)
+                hd, _ = model.score(hin, ht, args.chunk)
                 ds.append(d[0].item())
                 es.append(e[0].item())
+                hds.append(hd[0].item())
+            mu = sum(ds) / len(ds)
+            sd = _st.pstdev(ds) if len(ds) > 1 else 0.0
+            # binomial SE of ONE table's digit estimate on n_dig supervised
+            # digits -- the resolution limit of the objective at this data size
+            se = (mu * (1 - mu) / n_dig) ** 0.5
             print(f"[{args.tag}] basin k={k:>4}/{len(cells)} "
-                  f"digit={sum(ds)/len(ds):.4f} exact={sum(es)/len(es):.4f}",
+                  f"digit={mu:.4f} sd_over_reps={sd:.4f} binom_se={se:.5f} "
+                  f"exact={sum(es)/len(es):.4f} "
+                  f"held_digit={sum(hds)/len(hds):.4f} n_digits={n_dig}",
                   flush=True)
         return 0
 
@@ -903,7 +921,8 @@ def main() -> int:
         best = None
         for rnd in range(args.anneal_rounds):
             bg, bs = anneal(model, gm, xin, xt, args.anneal, args.t0, args.t1,
-                            gen, tag=f"{args.tag}/rd{rnd}", init=init)
+                            gen, tag=f"{args.tag}/rd{rnd}", init=init,
+                            chunk=args.chunk)
             order = bs.argsort(descending=True)
             init = bg[order[torch.arange(P, device=model.dev) % args.polish]]
             best = (bg, bs)
@@ -918,10 +937,10 @@ def main() -> int:
                   f"exact={e[0]:.4f} -> polishing", flush=True)
             fin, d0, e0 = search(model, xin, xt, cells, args.obj, args.block,
                                  args.sweeps, gen, tag=f"{args.tag}/pol{rank}",
-                                 time_budget=args.time_budget)
+                                 time_budget=args.time_budget, chunk=args.chunk)
             model.load(fin)
-            d, e = model.score(xin, xt)
-            dh, ehd = model.score(hin, ht)
+            d, e = model.score(xin, xt, args.chunk)
+            dh, ehd = model.score(hin, ht, args.chunk)
             ss = structure_scores(fin, ndl)
             ca = cell_agreement(fin, truth)
             row = {"tag": args.tag, "rep": rank, "argv": sys.argv[1:],
@@ -991,7 +1010,7 @@ def main() -> int:
         tag = f"{args.tag}/r{rep}"
         best, d0, e0 = search(model, xin, xt, cells, args.obj, args.block,
                               args.sweeps, gen, tag=tag,
-                              time_budget=args.time_budget)
+                              time_budget=args.time_budget, chunk=args.chunk)
         for it in range(args.ils):
             model.load(best)
             pick = torch.randperm(len(cells), generator=g)[:args.ils_k].tolist()
@@ -1003,7 +1022,8 @@ def main() -> int:
             model.load(pert)
             cand, dc, ec = search(model, xin, xt, cells, args.obj, args.block,
                                   args.sweeps, gen, tag=f"{tag}/ils{it}",
-                                  time_budget=args.time_budget)
+                                  time_budget=args.time_budget,
+                                  chunk=args.chunk)
             key = (dc if args.obj == "digit" else ec)
             cur = (d0 if args.obj == "digit" else e0)
             if key > cur:
@@ -1011,8 +1031,8 @@ def main() -> int:
                 print(f"[{tag}] ils{it} ACCEPT digit={d0:.4f} exact={e0:.4f}",
                       flush=True)
         model.load(best)
-        d, e = model.score(xin, xt)
-        dh, ehd = model.score(hin, ht)
+        d, e = model.score(xin, xt, args.chunk)
+        dh, ehd = model.score(hin, ht, args.chunk)
         ss = structure_scores(best, ndl)
         ca = cell_agreement(best, truth)
         row = {"tag": args.tag, "rep": rep, "argv": sys.argv[1:],
