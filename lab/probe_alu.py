@@ -566,7 +566,14 @@ def main() -> int:
         evaluate(inp[:256], tgt[:256])
         s = model.stat[0] / max(model.stat[1], 1)
         model.stat = None
-        return f" train_exact_hard={h:.3f} state_sharpness={s:.3f}"
+        q = ""
+        if model.reduce_mode == "quotient":
+            with torch.no_grad():
+                model.eval()
+                model(inp[:256], ndig)
+                model.train()
+                q = f" q_sharpness={model.last_q.max(-1).values.mean():.3f}"
+        return f" train_exact_hard={h:.3f} state_sharpness={s:.3f}{q}"
 
     if args.construct:
         tr, tr_ce = evaluate(xin, xt)
