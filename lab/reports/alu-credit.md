@@ -48,8 +48,26 @@ Three things this pins down:
    composition over ~50 ops predicts: per-op error ε gives `(1−ε)^50`, so the
    difference between a 0.5% and a 0.8% local error rate is the difference
    between solving it and not.
-3. **It is seed-fragile.** 1 of 3 seeds at 4,000 steps. Reliability sweep in
-   §12.
+3. **It is seed-fragile.** Full 4,000-step grid, m1 scale, batch 512:
+
+| seed | ties | `train_exact` | **`train_exact_hard`** | `held_exact_hard` | `local_ce` |
+|---|---|---|---|---|---|
+| 2 | none | 0.950 | **0.951** | **0.946** | **0.0050** |
+| 0 | none | 0.806 | 0.202 | 0.194 | 0.0076 |
+| 0 | full | 0.806 | 0.196 | 0.180 | 0.0077 |
+| 1 | full | 0.079 | 0.000 | 0.001 | 0.0698 |
+| 1 | none | 0.012 | 0.000 | 0.000 | 0.1214 |
+| 2 | full | 0.003 | 0.000 | 0.000 | 0.1233 |
+| e1 ctl | full | 0.584 | 0.028 | 0.026 | 0.0477 |
+| e1 ctl (s1) | full | 0.568 | 0.048 | 0.053 | 0.0454 |
+
+   1 of 6 m1-scale runs solved it. Note the ordering is by `local_ce`, not by
+   seed or ties — `local_ce` predicts the outcome and nothing else does. A
+   7-seed 8,000-step reliability sweep was still running at cutoff
+   (`lab/logs/c_*.log`, `lab/logs/_s1c.out`); at the 2,000-step checkpoint all
+   four fresh seeds read `train_exact_hard` 0.000, so **8,000 steps is not
+   obviously better than 4,000 and the success rate should be treated as
+   "roughly 1 in 5, not yet reliable" until that sweep lands.**
 
 **Compliance, unchanged:** the targets come from running a *constructed* copy of
 the model through the same code path, so this is a **LAB DIAGNOSTIC** (rules 2
