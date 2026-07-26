@@ -1,0 +1,15 @@
+z_xcurr05 --xcurr 0.5 --steps 3000 --log-every 500
+z_lr1e2 --lr 0.01 --steps 3000 --log-every 1000
+z_lr1e1 --lr 0.1 --steps 3000 --log-every 1000
+z_sign --opt sign --lr 0.003 --steps 3000 --log-every 1000
+z_wd01 --lr 0.03 --wd 0.1 --steps 3000 --log-every 1000
+z_batch32 --batch 32 --steps 3000 --log-every 1000
+z_gateoff --gate-off -6 --gate-warm 0.3 --perm-init 8 --steps 3000 --log-every 500
+w_s2_struct --modulus 91 --slots 2 --train-x 60 --steps 3000 --log-every 1000
+w_s3_struct --steps 3000 --log-every 1000
+w_s4_struct --modulus 2021 --slots 4 --train-x 250 --steps 3000 --log-every 1000
+z_tf_3k --teacher-force 1.0 --deep-sup 1.0 --steps 3000 --log-every 500
+z_tf_150 --teacher-force 1.0 --deep-sup 1.0 --train-x 150 --steps 3000 --log-every 500
+z_tprop --tprop 1.0 --main-warm 0.3 --steps 1500 --log-every 250
+z_tprop3 --tprop 3.0 --main-warm 0.3 --steps 1500 --log-every 250
+z_sym1 --sym 1.0 --steps 3000 --log-every 1000
