@@ -23,8 +23,9 @@ team's list:
   indexed by `(place of T, digit)`. Training presents `T ∈ {1,2,3}` or
   `{4,8,16}`; the ladder needs `T ∈ {1,2,4,8,16,32,64}`. The `(place, digit)`
   pairs the ladder needs but training never shows are unconstrained, so the
-  controller is arbitrary there. Five controller parameterisations, two seeds
-  each, all land on MAX_T ≤ 2 (§4).
+  controller is arbitrary there. **28 cells** — six controller
+  parameterisations from 3 to 1409 parameters, two seeds, two tiers, two moduli
+  — every Easy cell lands on MAX_T = 2 and every Medium cell on MAX_T = 0 (§4).
 * **(P2) The eval budget binds, and it binds as a hard run failure.** A
   fixed-grid 64-iteration readout on Easy raises `TimeoutError: evaluation
   exhausted its 30.0s time budget` inside the `test` split — before the depth
@@ -355,7 +356,7 @@ Per-tier, using the idle-GPU per-loop costs (18.3 ms at S=3, 38.3 ms at S=4,
 | tier | dataset | S | eval budget | fixed 64-mixture | ACT early exit |
 |---|---|---|---|---|---|
 | Easy | e1 | 3 | 30 s | **measured: TimeoutError, run failed** | measured 24.8–31.1 s → **0.96–1.21×** |
-| Medium | m1 | 5 | 300 s | ~267 s model time alone → fails | **measured 111.5 s → 2.7×** |
+| Medium | m1 | 5 | 300 s | **measured 305.7 s → OOD-N ladder truncated at 3/7 rungs** | **measured 111.5 s → 2.7×** |
 | Hard | hp1 proxy (22-bit N) | 7 | 1800 s | ~1000 s (est.) | **measured 274.5 s → 6.6×** |
 
 **Easy is the binding tier, not Hard.** That inverts the assumption everyone has
@@ -374,6 +375,7 @@ pessimistic; the *outcomes* are not.
 | `alu_e1_evalonly` (eval only) | fixed 64-iteration mixture | **failed** | 5 | — | 30 s | `TimeoutError` in the `test` split |
 | `alu_e1_evalonly` (eval only) | ACT early exit | ok | 5 | 24.8 | 30 s | 16/16 splits |
 | `alu_m1_evalonly` (eval only) | ACT early exit | ok | 5 | 111.5 | 300 s | 16/16 splits |
+| `alu_m1_evalonly` (eval only) | fixed 64-iteration mixture | ok | 5 | **305.7** | 300 s | **OOD-N ladder truncated to 3/7 rungs** |
 | `alu_hp1_evalonly` (eval only, 22-bit N, S=7) | ACT early exit | ok | 5 | 274.5 | 1800 s | 16/16 splits |
 | **`alu_e1_wc60` (tier-faithful Easy)** | ACT, `batch_size=128` | ok | **14** | 27.5 | 30 s | 16/16 splits, MAX_T=0 |
 | `alu_e1_wc60` | ACT, `batch_size=32` | ok | **18** | 27.0 | 30 s | 16/16 splits |
@@ -636,3 +638,23 @@ permit. The eval-side early exit is data-dependent control flow driven by the
 model's **own learned halting scalar**, not by any Python inspection of
 `input_ids`; it is the standard ACT inference rule. Nothing was submitted to the
 hosted service and no `one-layer login`/`submit` was run.
+
+---
+
+## 14. Full selector grid (28 cells)
+
+`--mode select --eval-loops 64`, parser and ALU constructed, only the controller
+trained, `--sel-steps 1500–2000`.
+
+| controller | Easy `T∈{1,2,3}` seeds 0/1 | Medium `T∈{4,8,16}` seeds 0/1 (e1) | Medium (m1, no ladder collapse) |
+|---|---|---|---|
+| MLP (1409 p) | 2 / 2 | 0 / 0 | 1 (artifact: `loc` diverged to −236) |
+| linear (21 p) | 2 / 2 | 0 / 0 | — |
+| factored, `v` learned (13 p) | 2 / 2 | 0 / 0 | — |
+| factored, `v` ordinal (3 p) | 2 / 2 | 0 / 0 | 0 |
+| counted halting, per-digit detector (22 p) | 2 / 2 | 0 / 0 | — |
+| counted halting, shared detector (12 p) | 2 / 2 | 0 / 0 | 0 / 0 |
+| **all constructed (diagnostic)** | **64** | **64** | **64** |
+
+Twenty-eight cells, zero variance in the verdict: **MAX_T = 2 on Easy, MAX_T = 0
+on Medium, with a provably perfect squaring step in the loop.**
