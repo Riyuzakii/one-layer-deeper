@@ -80,7 +80,7 @@ N_CARRY = 2
 N_BORROW = 2
 TRAIN_LOOPS_EASY = 3      # Easy datasets train on T in {1,2,3}
 TRAIN_LOOPS_DEEP = 16     # Medium/Hard train on T in {4,8,16}
-EVAL_LOOPS = 16           # LAB VARIANT: fixed 16 loops, no early exit -- emulates the iteration count a CORRECTLY TRAINED controller spends over the 16 scoring splits (2x127 ladder + test + ood ~ 260 ~ 16x16)
+EVAL_LOOPS = 16           # LAB VARIANT: fixed 16 loops, no early exit -- the iteration count a CORRECTLY TRAINED controller spends over the 16 scoring splits
 DIGIT_TAU = 0.5
 HARD_EVAL_STATES = False  # measured: +42% wall clock, zero accuracy gain
 IDENTITY_INIT = 5.0
@@ -88,13 +88,21 @@ CONS_W = 0.1              # self-consistency weight (report SS6: 0.1 reaches the
 #                           top of the ladder, 1.0 over-constrains the anchor)
 CONS_J = 8                # how far above the training T the orbit runs
 CONS_LOOPS = 4            # halting-chain depth used inside the consistency term
-# Halting threshold at init.  0.0 is the SHALLOW init: an untrained detector
-# then fires with probability ~0.5-0.6, so an untrained model spends ~2
-# iterations per eval batch instead of ~37.  Measured: at the "semantically
-# right" init (n_t - 0.5) an untrained model needs 31.7s of the Easy tier's 30s
-# eval budget and silently truncates the OOD-N ladder to 2 of 7 rungs.  The
-# parameter is trained; training has to earn depth.
-SEL_THRESH_INIT = 0.0
+# "every digit of the T register matches the learned zero digit" is a
+# CONJUNCTION.  Scoring it as a SUM of per-slot match masses puts the decision
+# boundary between n_t and n_t - 1, a margin of ONE, and the measured seed
+# spread then tracks gain*(thresh-1) exactly: > 3 reaches T = 64, < 2 stops at
+# T = 2 (report SS7).  Scoring the same conjunction as a MEAN OF LOGS makes
+# all-match 0 and any-mismatch log(SEL_EPS), a margin of ~14, so the feasible
+# region for the threshold is 14x wider and there is nothing left to get wrong.
+# Same two learned scalars, same information, no extra cost.
+SEL_EPS = 1e-6
+# Shallow init: with a random `zero` the per-slot match mass is ~0.1, so the
+# score is ~log(0.1) = -2.3 and an untrained detector fires with probability
+# ~0.5.  An untrained model then spends ~2 iterations per eval batch instead of
+# ~37 -- measured, that is the difference between 19.1s and 31.7s of the Easy
+# tier's 30s eval budget, i.e. between a full OOD-N ladder and 2 of 7 rungs.
+SEL_THRESH_INIT = -3.0
 LR = 3e-3
 SEL_LR = 1e-1
 WD = 0.0
@@ -274,9 +282,10 @@ class Model(nn.Module):
 
     def is_zero(self, c: Tensor) -> Tensor:
         z = self.alu._sm(self.alu.zero).to(c.dtype)
-        m = torch.einsum("btd,d->b", c, z)[:, None]
-        return torch.sigmoid(self.sel_gain.to(c.dtype)
-                             * (m - self.sel_thresh.to(c.dtype)))
+        ms = torch.einsum("btd,d->bt", c, z).clamp_min(0.0)
+        s = torch.log(ms.float() + SEL_EPS).mean(-1, keepdim=True)
+        return torch.sigmoid(self.sel_gain.float()
+                             * (s - self.sel_thresh.float())).to(c.dtype)
 
     def halting(self, c: Tensor, loops: int) -> Tensor:
         """The PonderNet marginal, WITHOUT dumping unspent mass."""
