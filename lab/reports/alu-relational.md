@@ -195,7 +195,8 @@ the version that is given them.
 Run anyway, because the mandate asks for the flagged variant and the
 conservative variant both to be reported.
 
-**LEGAL — 2,000 steps, m1 scale.** `--rel-nondeg` adds a generic penalty on `inc` collapsing to the learned additive identity.
+**LEGAL — 2,000 steps, m1 scale.** `--rel-nondeg` adds a generic penalty on
+`inc` collapsing onto the learned additive identity.
 
 | variant | seed | `train_exact` | **`train_exact_hard`** | `held_exact_hard` | `local_ce` | `add_shift` | `out_div` |
 |---|---|---|---|---|---|---|---|
@@ -778,11 +779,13 @@ so this is stated explicitly rather than implied.
 full basin ladder): the correctness gate; the legal baseline
 (3 seeds + 3 tied seeds); the relational ceiling `--rel true` (3 seeds + a
 weight sweep); dual-path agreement on all three paths (`fold` 3 seeds,
-`redall` 3 seeds, `horner` 2 seeds); multiplicative associativity (2 seeds, plus the five-law stack at 2 seeds);
+`redall` 3 seeds, `horner` 2 seeds); multiplicative associativity (2 seeds,
+plus the five-law stack at 2 seeds);
 the algebraic re-screen (`--sym`, `--inv`, `--assoc`, `--cancel`, and the
 full four-law stack, 2 seeds each); algebra-only (3 runs); both legal forms of
 the increment law (`--rel affine` 2 seeds, `--rel free` 2 seeds); the **full**
-basin ladder `k = 0 … 1000`; the discrete-search repair ladder (10/20/50/100/150/200) and
+basin ladder `k = 0 … 1000`; the discrete-search repair ladder
+(10/20/50/100/150/200) and
 from-random init (7 seeds + a resampled control + the assoc-only control);
 basin hopping (2 seeds, run to completion).
 
