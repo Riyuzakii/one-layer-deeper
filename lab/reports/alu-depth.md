@@ -9,9 +9,10 @@ class that excludes memorisation.
 1. **The chain is now 6.6× shorter and the hypothesis class is intact.**
    257 → **39** sequential soft steps at e1's modulus, 745 → **83** at m1's,
    with the constructed ceiling still 1.000 at every modulus and on 12 unseen
-   sampled moduli, the state alphabet unchanged, and two extra parameters.
-   `train_exact` at a fixed 2000 steps goes **0.132 → 0.396** (3 seeds), and
-   0.620 at 20,000 steps.
+   sampled moduli, the state alphabet unchanged, and two extra parameters. It is
+   also 5–7× faster per step. Use it; it is free. But **the depth is not what
+   moved `train_exact`** — the ladder is flat from 257 to 83 and only the *form*
+   of the reduction moves it (§2.1).
 2. **And it does not matter, because what `DigitALU` learns is not a discrete
    transducer.** Snapping every inter-step state to its argmax — which the
    *constructed* solution survives at 1.000 in all four graph shapes — takes the
@@ -125,21 +126,36 @@ tau 1.0, no identity init. Only the graph shape varies. Regenerate with
 
 ### 2.1 e1's modulus (N=323, S=3, 250 train / 38 held), 2,000 steps, 3 seeds
 
-| variant | depth | alphabet | params | ceiling | train_exact (3 seeds) | mean | held_exact |
+| variant | depth | reduction form | alphabet | params | ceiling | train_exact (seeds) | mean |
 |---|---|---|---|---|---|---|---|
-| `horner:serial` (digit-carry) | 257 | 10/2/2 | 6,818 | 1.000 | PENDING_SERIAL | — | 0.000 |
-| `tree:serial` | 195 | 10/2/2 | 6,818 | 1.000 | PENDING_TREESERIAL | — | 0.000 |
-| `horner:binary` | 117 | 10/2/2 | 6,818 | 1.000 | 0.044 / 0.416 / 0.120 | 0.193 | 0.000 |
-| `tree:binary` | 83 | 10/2/2 | 6,818 | 1.000 | 0.140 / 0.280 / 0.080 | 0.167 | 0.000 |
-| `horner:quotient` | 62 | 10/2/2/**11** | 6,820 | 1.000 | 0.340 / 0.332 / 0.236 | 0.303 | 0.000 |
-| **`tree:quotient`** | **39** | 10/2/2/**11** | 6,820 | 1.000 | 0.380 / 0.368 / 0.440 | **0.396** | 0.026 / 0.000 / 0.000 |
+| `horner:serial` (digit-carry) | 257 | 11 gated `cond_sub` | 10/2/2 | 6,818 | 1.000 | PENDING_SERIAL | — |
+| `tree:serial` | 195 | 11 gated `cond_sub` | 10/2/2 | 6,818 | 1.000 | PENDING_TREESERIAL | — |
+| `horner:binary` | 117 | 4 gated `cond_sub` | 10/2/2 | 6,818 | 1.000 | 0.044 / 0.416 / 0.120 | 0.193 |
+| `tree:binary` | 83 | 4 gated `cond_sub` | 10/2/2 | 6,818 | 1.000 | 0.140 / 0.280 / 0.080 | 0.167 |
+| `horner:quotient` | 62 | compare-all + learned select | 10/2/2/**11** | 6,820 | 1.000 | 0.340 / 0.332 / 0.236 | 0.303 |
+| **`tree:quotient`** | **39** | compare-all + learned select | 10/2/2/**11** | 6,820 | 1.000 | 0.380 / 0.368 / 0.440 | **0.396** |
 
-Alphabet column = digit / carry / borrow / quotient. **No index ranges over
-`Z_N` in any row**, and the parameter count is the same at every modulus.
+`held_exact` is **0.000 in every cell** except one seed of `tree:quotient`
+(0.026 = 1/38, the variance floor). Alphabet column = digit / carry / borrow /
+quotient. **No index ranges over `Z_N` in any row**, and the parameter count is
+the same at every modulus.
+
+**Read the table by column, not by row order: `train_exact` is not monotone in
+depth.** A 3.1× shortening (257 → 83) moves it by nothing (0.190 → 0.167). The
+whole gain arrives with the *form* of the reduction: every `serial`/`binary`
+cell, spanning depths 257 to 83, sits at 0.17–0.21, and both `quotient` cells sit
+at 0.30–0.40. Within the quotient family the remaining 1.6× depth reduction
+(62 → 39) is worth +0.09, which is a real but second-order depth term.
+
+So the first-order variable is **not** the chain length; it is that a chain of
+sigmoid-gated conditional subtractions (`g·subtracted + (1-g)·unchanged`,
+weight-tied, 4 or 11 deep) is badly conditioned, and replacing it with one
+parallel comparison against all multiples plus a learned selection over a
+discrete quotient alphabet is worth ~2×. This revises `digit-carry` §2.4's
+"the obstruction is measurably depth", and it revises my own mandate's premise.
 
 Longer training at the shallowest depth (39), same cell, `--steps 20000`:
-`train_exact` **0.620** (seed 0) and 0.572 at step 19,000 (seed 1); the curve is
-still creeping, not plateaued flat, but the last 10,000 steps buy < 0.07.
+`train_exact` **0.620 / 0.576** (2 seeds); the last 10,000 steps buy < 0.07.
 
 ### 2.2 A smaller operand (N=91, S=2, 50 train / 22 held), 4,000 steps, 3 seeds
 
@@ -178,6 +194,11 @@ sound: the target *is* in the discrete family.
 mixture with 0.76–0.84 of its mass on the argmax, not a digit. **What the model
 learns is a continuous relaxation, not a transducer over the digit alphabet.**
 
+(One caveat, in the lenient direction: `--eval-hard` snaps every `softmax`
+state, but `cond_sub`'s final sigmoid gate — used only by `serial` and `binary`
+— is left soft. So the `serial` row's 0.008 is if anything an over-estimate.
+`quotient` has no such gate and is snapped everywhere.)
+
 The soft register is a `W × 10` simplex, and reading a table with
 `einsum("bu,bv,bc,uvco->bo", ...)` is *bilinear* in that simplex — a mixture
 therefore addresses the table at points no digit pair can reach. That is the
@@ -206,16 +227,33 @@ Replace it with `train_exact_hard`. It costs one extra forward pass, the exact
 solution scores 1.000 on it, and it is the only number here that distinguishes
 "learning the transducer" from "fitting the relaxation".
 
-### 3.2 "Depth is the binding variable"
+### 3.2 "Depth is the binding variable" — falsified twice over
 
-Weaker than `digit-carry` §2.4 concluded, and true only of the soft objective.
-Depth is a **large** lever on `train_exact` (0.132 → 0.396 at 2,000 steps, a
-2.4×, monotone across five shapes at three seeds) and the branch's own
-identification of it was correct as far as it went. But on `train_exact_hard` a
-6.6× shorter chain buys 0.00 → 0.01 at N=323, and even a **21-step** chain — a
-12× reduction, the shortest exact graph I can build — reaches only 0.14 and then
-sits there for 15,000 further steps. Shortening the chain makes the *relaxation*
-easier to fit; it does not make the *discrete* solution easier to find.
+This is `digit-carry` §2.4's conclusion, `RESUME.md` §5.1's first
+recommendation, and my own mandate's premise. It fails on two independent
+readings of the data.
+
+**(a) `train_exact` is not monotone in depth.** §2.1: depths 257, 195, 117 and
+83 all give 0.17–0.21; the jump to 0.30–0.40 tracks the *form* of the reduction,
+not its length. The evidence `digit-carry` had — S=3 → S=2 taking train_exact
+0.20 → 0.78 — changed the operand width, the output length (3 digits → 2), the
+held-out cohort and the training-set size at the same time as the chain length,
+so it could not separate them. This ladder holds the target completely fixed and
+varies only the graph, and the depth term is second-order.
+
+**(b) On the metric that measures the discrete solution, depth buys nothing at
+all.** `train_exact_hard` is 0.008 at depth 257 and 0.004–0.008 at depth 39 — a
+6.6× shortening for no change. Even a **21-step** chain (N=91, S=2 — a 12×
+reduction and the shortest exact graph I can build) reaches only 0.06–0.22 and
+then sits there for 15,000 further steps while `train_exact` holds at 0.82.
+Shortening the chain makes the *relaxation* easier to fit; it does not make the
+*discrete* solution easier to find.
+
+Note the uncomfortable corollary: the shapes that score best on `train_exact`
+are the ones that mix *more* — `quot_reduce` passes a soft mixture over 11
+candidate registers forward at every reduction, where `cond_sub` passes a
+2-way mixture. A metric that rewards blur ranks blurrier graphs higher. That is
+the strongest single argument for §3.1.
 
 ### 3.3 A larger internal radix (mandate direction 3) — falsified, with mechanism
 
