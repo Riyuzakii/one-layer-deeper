@@ -1,0 +1,10 @@
+g_base --pop 32 --seed 0 --steps 1200
+g_dual_fold --pop 32 --seed 0 --steps 1200 --dual fold
+g_dual_redall --pop 32 --seed 0 --steps 1200 --dual redall
+g_dual_horner --pop 32 --seed 0 --steps 1200 --dual horner
+g_sym --pop 32 --seed 0 --steps 1200 --sym 1.0
+g_inv --pop 32 --seed 0 --steps 1200 --inv 1.0
+g_assoc --pop 32 --seed 0 --steps 1200 --assoc 1.0
+g_cancel --pop 32 --seed 0 --steps 1200 --cancel 1.0
+g_stack4 --pop 32 --seed 0 --steps 1200 --sym 1.0 --inv 1.0 --assoc 1.0 --cancel 1.0
+g_relfree --pop 32 --seed 0 --steps 1200 --rel free --rel-nondeg 1.0

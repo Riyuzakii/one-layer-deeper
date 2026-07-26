@@ -335,6 +335,93 @@ class PopALU(nn.Module):
                 r = self.quot_reduce(r, mults)
         return torch.log(r[:, :, :S] + 1e-9)
 
+    # ------------- general two-operand ops, SAME tables ----------------
+    # Ported from explore/alu-relational's RelALU so that its legal training
+    # signals can be evaluated at P>1.  `forward` above is untouched, so every
+    # number measured before this port is unaffected.
+
+    def _prep(self, mults):
+        """Cache the multiples-contracted Tsub for the fast quotient path."""
+        self._Tm = torch.einsum("pmwv,puvco->pmwuco", mults, self.Tsub_eff) \
+            if self.fast else None
+
+    def _prods(self, s, t):
+        """All S^2 digit products of two operands.  s, t: (P,b,S,10)."""
+        Tm = self.Tmul_eff
+        prod = {}
+        for i in range(self.S):
+            for j in range(self.S):
+                o = torch.einsum("pbu,pbv,puvo->pbo", s[:, :, i], t[:, :, j],
+                                 Tm)
+                prod[(i, j)] = (self._sm(o[..., :10]), self._sm(o[..., 10:]))
+        return prod
+
+    def _leaves_pack(self, prod, z, F2):
+        buckets = {}
+        for (i, j), lh in prod.items():
+            buckets.setdefault(i + j, []).append(lh)
+        leaves = []
+        for par in (0, 1):
+            offs = [k for k in sorted(buckets) if k % 2 == par]
+            if not offs:
+                continue
+            for t in range(max(len(buckets[k]) for k in offs)):
+                cols = [z] * F2
+                for k in offs:
+                    if t < len(buckets[k]):
+                        cols[k], cols[k + 1] = buckets[k][t]
+                leaves.append(torch.stack(cols, 2))
+        return leaves
+
+    def _fold_sum(self, regs):
+        acc = regs[0]
+        for r in regs[1:]:
+            acc = self.add_scan(acc, r)
+        return acc
+
+    def _combine(self, prod, z, mults, variant, b):
+        P, S, W = self.P, self.S, self.W
+        F2, K = 2 * S, 2 * S - 1
+        if variant == "horner":
+            r = z[:, :, None].expand(P, b, W, 10)
+            for k in range(K - 1, -1, -1):
+                r = torch.cat([z[:, :, None], r[:, :, :W - 1]], dim=2)
+                for i in range(S):
+                    j = k - i
+                    if 0 <= j < S:
+                        lo, hi = prod[(i, j)]
+                        slots = [lo[:, :, None], hi[:, :, None]] + \
+                                [z[:, :, None]] * (W - 2)
+                        r = self.add_scan(r, torch.cat(slots, dim=2))
+                r = self.quot_reduce(r, mults)
+            return r
+        leaves = self._leaves_pack(prod, z, F2)
+        Pr = self._fold_sum(leaves) if variant == "fold" \
+            else self.tree_sum(leaves)
+        r = z[:, :, None].expand(P, b, W, 10)
+        for t in range(F2 - 1, -1, -1):
+            r = torch.cat([Pr[:, :, t:t + 1], r[:, :, :W - 1]], dim=2)
+            if variant == "redall" or t <= S:
+                r = self.quot_reduce(r, mults)
+        return r
+
+    def mulmod(self, s, t, mults, variant="tree"):
+        b = s.shape[1]
+        z = self._sm(self.zero)[:, None].expand(self.P, b, 10)
+        return self._combine(self._prods(s, t), z, mults, variant,
+                             b)[:, :, :self.S]
+
+    def addmod(self, s, t, mults):
+        P, S, W = self.P, self.S, self.W
+        b = s.shape[1]
+        z = self._sm(self.zero)[:, None].expand(P, b, 10)
+        pad = z[:, :, None].expand(P, b, W - S, 10)
+        r = self.add_scan(torch.cat([s, pad], 2), torch.cat([t, pad], 2))
+        return self.quot_reduce(r, mults)[:, :, :S]
+
+    def square(self, s, mults, variant="tree"):
+        return self.mulmod(s, s, mults, variant)
+
     # ---- mixture over replicas (the differentiable selector) ----
     def mix_probs(self, logits):
         """logits: (P,b,S,10) log-probs -> (b,S,10) mixture probabilities.
