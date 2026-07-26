@@ -164,3 +164,70 @@ tables and run at **P=1 cost** — the population is a training-time device only
 Only the *blend* requires all P replicas at eval. Given `alu-compose` P2 (a
 fixed-depth readout made the run *fail*, which is below the leaderboard floor),
 this is a second, independent reason to prefer the argmax over the mixture.
+
+---
+
+## 3. The single-model control — the 1-in-7 basin, reproduced in this code
+
+**DIAGNOSTIC** (teacher forcing). Seven seeds, P=1, 1,200 optimizer steps
+(the `tree:quotient` Hard budget), m1 scale, untied, lr 3e-2, batch 512:
+
+```
+bash lab/pop_sweep.sh lab/jobs_pop_ctl.txt 3
+```
+
+| seed | `local_ce` | `train_exact_hard` | `held_exact_hard` | in basin? |
+|---|---|---|---|---|
+| 3 | **0.0000** | **1.000** | **1.000** | **yes** |
+| 0 | 0.0241 | 0.468 | 0.469 | no |
+| 1 | 0.0285 | 0.077 | 0.068 | no |
+| 5 | 0.0457 | 0.000 | 0.002 | no |
+| 4 | 0.0500 | 0.000 | 0.000 | no |
+| 2 | 0.0891 | 0.000 | 0.000 | no |
+| 6 | (see §3.1) | | | |
+
+**1 of 7 — the coordinator's rate, reproduced independently.** Two things are
+worth recording beyond the rate:
+
+1. **The successful seed is exact, not 0.95.** `train_exact_hard` = 1.000 and
+   `held_exact_hard` = 1.000, agreeing to 0.000 on a 1,024-example held-out
+   cohort at m1 scale. `alu-credit`'s best was 0.951/0.946. The difference is
+   the initialisation of the 5-parameter quotient scorer (`randn*0.5` here vs
+   `nn.Linear` default there) and the reassociated reduction; I did not chase
+   it further, but it means the ceiling of this diagnostic is **1.000, not
+   0.951**.
+2. **It converges in under 600 steps.** Seed 3 reads `train_exact_hard` 1.000
+   and `local_ce` 0.0000 at step 600 and holds it. That is inside the Medium
+   budget (~170 steps on this graph is the coordinator's figure — so still 3.5x
+   short) and comfortably inside Hard's ~1,300.
+
+**`local_ce` is the only usable per-replica basin indicator, and the structure
+scores are worthless here.** `mul_fn`, `mul_gauge`, `add_shift` and `sub_shift`
+read **1.000 for all six seeds**, including the four at `train_exact_hard`
+0.000. This is `alu-credit`'s "parameter-level progress and discrete
+correctness are close to independent" in its sharpest form: every seed learns a
+relabelled multiplication table and a correct shift structure, and only one of
+them composes. Rank on `local_ce`; do not rank on structure.
+
+---
+
+## 9. Compliance
+
+* **No file under `data/generated/` was read, printed, sampled or summarised.**
+  Every operand in this branch is self-generated from `--modulus` by
+  enumerating the units of a modulus chosen from the generator source; nothing
+  in `lab/probe_pop.py` opens a dataset.
+* **Nothing was submitted to the hosted service.** No `one-layer` invocation,
+  no network call.
+* Every teacher-forced row is labelled **DIAGNOSTIC** and carries the reason
+  (the tape is recorded from a `--construct`ed copy of the model; rules 2, 7).
+* **The reinitialise-losers optimizer is flagged, not shipped** — see §7.
+* `benchmark.assert_model_state` is called against the real
+  `ModelSpec(maximum_model_state_elements=500_000_000)` in every run of
+  `lab/probe_pop.py`, and the count is printed (§1.2).
+* Negative results are all here, including the ones that contradict the
+  premise of my own brief.
+* No evaluator cells were run (`lab/archive.jsonl` is untouched by this
+  branch): there is no legal end-to-end candidate to run, and running the
+  evaluator on a DIAGNOSTIC model would produce a number that could be
+  mistaken for a score.

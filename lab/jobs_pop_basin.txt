@@ -1,0 +1,7 @@
+c1_s6 --pop 1 --seed 6 --steps 1200 --sel 0 --log-every 600 --eval-n 1024
+b8_s0 --pop 8 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024
+b8_s1 --pop 8 --seed 1 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024
+b8_s2 --pop 8 --seed 2 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024
+b32_s0 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128
+b32_s1 --pop 32 --seed 1 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128
+b64_s0 --pop 64 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128

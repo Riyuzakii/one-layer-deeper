@@ -1,4 +1,4 @@
+s_hard --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --sel-hard --log-every 400 --eval-n 1024 --eval-chunk 128
 s_tauanneal --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --sel-tau 5 --sel-tau-final 0.2 --log-every 400 --eval-n 1024 --eval-chunk 128
-s_sellr_lo --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --sel-lr 0.003 --log-every 400 --eval-n 1024 --eval-chunk 128
 s_sellr_hi --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --sel-lr 0.3 --log-every 400 --eval-n 1024 --eval-chunk 128
 s_nodetach --pop 32 --seed 0 --steps 1200 --sel 1 --log-every 400 --eval-n 1024 --eval-chunk 128
