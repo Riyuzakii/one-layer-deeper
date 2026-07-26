@@ -213,10 +213,26 @@ argmax). `train_exact` is fooled by mixtures, and graph shapes that mix *more* s
 goes from `train_exact` 0.556 to **0.004** under hard states while the *constructed*
 solution survives at 1.000.
 
-**No single metric is safe.** Each of the three in play has a configuration that fools
-it: sharpness 0.975 with zero correctness; `sub_shift` 0.600 with zero correctness;
-`train_exact` 0.38 with chance-level tables. Report `train_exact_hard`, the
-gauge-invariant structure scores, and sharpness together, and trust none alone.
+**No single metric is safe — report the row, not the cell.** Every metric used this
+session has a measured configuration that fools it:
+
+| metric | fooled by | reads | but |
+|---|---|---|---|
+| `train_exact` | baseline, 12k steps | 0.616 | `train_exact_hard` 0.000 |
+| state sharpness | `--tau-final 0.01` | 0.975 | `train_exact_hard` 0.000 |
+| `sub_shift` (structure) | target propagation | 0.567 | `train_exact_hard` 0.004 |
+| `held_exact` | teacher forcing, 3k | 0.816 | `held_exact_hard` 0.026 |
+| `train_exact_hard` alone | short chain | 0.183 | `held_exact_hard` 0.000 |
+
+Note the third row especially: **parameter-level progress and discrete correctness are
+close to independent.** Target propagation has the best structure score of any legal
+procedure and the worst hard correctness in the table. So "per-step signal teaches the
+tables" should be read as *it moves the parameters*, not as *it nearly solves it*.
+
+Two screening premises were retracted this session, both from trusting a single
+number: "`train_exact` implies `held_exact`" and "the soft channel is a crutch over a
+nearly-found discrete solution". Report `train_exact_hard`, `held_exact_hard`, the
+structure scores and sharpness together.
 
 
 Two-stage, validated: parsed-input probes (`probe_step.py`, `probe_sel.py`, ~90s)
