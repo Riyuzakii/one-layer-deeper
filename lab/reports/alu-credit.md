@@ -953,6 +953,53 @@ metrics in this family has a configuration in this report that fools it:
 
 **No single number is safe. Report the row, not the cell.**
 
+## 11A. Target propagation under Stage-1 conditions — it collapses
+
+**Status: LEGAL.** This is the critical-path experiment: Stage 1 proves the
+per-step trace is *sufficient*; target propagation is the candidate for
+*learning* that trace rather than being handed it. Re-run at exactly the
+Stage-1 setting — m1 scale, `tree:quotient`, ties available — with latents at
+the 10 per-example taps that carry the sequential recurrence (the
+x-independent multiples prefix and the inner batched candidate scan are left to
+ordinary backprop), 1.4M auxiliary parameters, discarded at eval.
+
+It does not work, and the failure mode is specific and diagnosable:
+
+| | step 1,000 | step 2,000 |
+|---|---|---|
+| `train_exact` | 0.000 | 0.000 |
+| `train_exact_hard` | 0.000 | 0.000 |
+| `mul_fn` (is Tmul a function of `a·b`?) | **1.000** | 1.000 |
+| **`mul_gauge` (is that function a bijection?)** | **0.100** | 0.300 |
+
+`mul_gauge` 0.100 means the learned `Tmul` argmax has collapsed to **a single
+output value** — one distinct class out of ten. The latents and the tables have
+agreed on a trivial mutual fixed point: every latent is the same state, and
+every op maps that state to itself. This is the classic degenerate solution of
+method-of-auxiliary-coordinates, and it is exactly what `mul_gauge` was added to
+catch (`mul_fn` reads a perfect 1.000 on it, which is the hole in that metric —
+a constant map is trivially "a function of `a·b`").
+
+`train_exact` 0.000 is *worse than the plain free-running baseline* on the same
+graph (0.6–0.8 soft), so the auxiliary term is not merely unhelpful, it is
+actively destroying the solution the ordinary loss would have found.
+
+Three seeds at weight 1.0, plus weight 0.3, weight 3.0 and a tied run, were
+still completing at cutoff (`lab/logs/p_tp*.log`, `lab/logs/_tp.out`); the
+weight sweep is the one thing that could change this reading, since the collapse
+is a balance problem between the anchor and the consistency term. **My
+expectation is that lowering the weight recovers the baseline rather than
+finding the basin — i.e. that there is no weight at which this works — but that
+is a prediction, not a measurement, and the runs will settle it.**
+
+**Why I think it fails where teacher forcing succeeds.** Teacher forcing pins
+the trace to *one specific* sequence of states. Target propagation only requires
+the trace to be *self-consistent*, and self-consistency has a huge trivial
+solution set that the anchor at the final step is too weak to exclude — one
+label at the end of ~50 ops against 1.4M free latent parameters. Stage 1's
+result is that the trace is sufficient **if it is the right trace**; nothing in
+the target-propagation objective forces it to be.
+
 ## 12. Stage 2 — the proposed legal bridge, and why I think it cannot work
 
 The proposal: for a row `(N, x, T=3)` with label `x^8`, the state after one step
