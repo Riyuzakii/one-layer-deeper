@@ -15,7 +15,7 @@ summarised; prompts and targets are synthesised from the public generator spec.
 | | Easy `train T = {1,2,3}` | Medium/Hard `train T = {4,8,16}` |
 |---|---|---|
 | `alu-compose` §4 — 28 cells, six controller parameterisations, 3–1409 params | **MAX_T = 2** | **MAX_T = 0** |
-| this branch — learned 12-scalar counted-halting controller | **MAX_T = 64, 5 of 5 seeds** | **MAX_T = 64, 2 of 3 seeds** |
+| this branch — learned 12-scalar counted-halting controller | **MAX_T = 64** — 5 of 5 seeds at N=329, **4 of 5 at m1's own modulus** | **MAX_T = 64** — 2 of 3 seeds at N=329, at m1 and at hp1 |
 
 (The Easy and Medium rows use *different* detector parameterisations — §7 — and
 that split is itself a finding, not a tuning artifact.)
@@ -205,11 +205,23 @@ sum detector, threshold init 0.0.
 | 1 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0 |
 | 2 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | **1.000** | **64** |
 
-### 4.3 Easy tier at m1's modulus
+### 4.3 Easy tier at m1's modulus — the log detector transfers
 
-Sum detector, threshold init 1.5, 3 seeds: MAX_T = 2 / 2 / **64**. The log
-detector's Easy result had not been re-measured at m1 when the session ended
-(`J2` in `lab/dc_gridJ.sh` was mid-run; §12).
+`N = 10403` (λ = 5100, 7/7 distinct), `train T = {1,2,3}`, 128 held-out x, log
+detector, threshold init −3.0:
+
+| seed | T=1 | T=2 | T=4 | T=8 | T=16 | T=32 | T=64 | MAX_T |
+|---|---|---|---|---|---|---|---|---|
+| 0 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | **1.000** | **64** |
+| 1 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | **1.000** | **64** |
+| 2 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | **1.000** | **64** |
+| 3 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | **1.000** | **64** |
+| 4 | 0.000 | 0.070 | 0.055 | 0.000 | 0.062 | 0.000 | 0.039 | 0 |
+
+**4 of 5**, against **1 of 3** for the sum detector on the same cell (2 / 2 /
+64). So the Easy result is not an artifact of the cheap screening modulus: at a
+14-bit modulus with all seven rungs distinct, a 12-scalar controller trained on
+`T ∈ {1,2,3}` routes T = 64 exactly.
 
 ### 4.4 Hard (argmax) ALU states at evaluation
 
