@@ -190,18 +190,32 @@ inter-step softmax. The **constructed** solution scores `train_exact_hard =
 held_exact_hard = 1.000` in all four `mul × reduce` shapes, so the diagnostic is
 sound: the target *is* in the discrete family.
 
-| cell | depth | train_exact | **train_exact_hard** | state_sharpness |
-|---|---|---|---|---|
-| N=323 `horner:serial`, 2,000 steps, seeds 0/1 | 257 | 0.132 / 0.248 | **0.008 / 0.004** | 0.778 / 0.822 |
-| N=323 `tree:serial`, 2,000 steps, seeds 0/1 | 195 | 0.212 / 0.068 | **0.008 / 0.000** | 0.777 / 0.759 |
-| N=323 `tree:quotient`, 6,000 steps, seed 0 | 39 | 0.556 | **0.004** | 0.764 |
-| N=323 `tree:quotient`, 6,000 steps, seed 1 | 39 | 0.520 | **0.000** | 0.786 |
-| N=323 `tree:quotient`, 8,000 steps, seed 0 | 39 | 0.604 | **0.008** | 0.765 |
-| N=91 `tree:quotient`, 4,750 steps, seed 0 | 21 | 0.820 | **0.140** | 0.835 |
-| N=323 `tree:quotient`, **20,000** steps, seed 0 | 39 | 0.620 | **0.000** | 0.767 |
-| N=91 `tree:quotient`, 6,000 steps, seed 1 | 21 | 0.820 | **0.100** | 0.832 |
-| N=91 `tree:quotient`, **20,000** steps, seeds 0/1 | 21 | 0.820 / 0.860 | **0.120 / 0.040** | 0.838 / 0.844 |
-| constructed, any shape | — | 1.000 | **1.000** | ~1.000 |
+**The whole ladder, N=323, 2,000 steps, 2 seeds each** — the same six shapes as
+§2.1, re-run with the diagnostic on:
+
+| shape | depth | train_exact | **train_exact_hard** | state_sharpness | q_sharpness |
+|---|---|---|---|---|---|
+| `horner:serial` | 257 | 0.132 / 0.248 | **0.008 / 0.004** | 0.778 / 0.822 | — |
+| `tree:serial` | 195 | 0.212 / 0.068 | **0.008 / 0.000** | 0.777 / 0.759 | — |
+| `horner:binary` | 117 | 0.044 / 0.416 | **0.012 / 0.004** | 0.784 / 0.856 | — |
+| `tree:binary` | 83 | 0.140 / 0.280 | **0.000 / 0.000** | 0.770 / 0.798 | — |
+| `horner:quotient` | 62 | 0.340 / 0.332 | **0.000 / 0.000** | 0.812 / 0.831 | 0.65 / 0.75 |
+| `tree:quotient` | 39 | 0.380 / 0.368 | **0.004 / 0.000** | 0.765 / 0.775 | 0.54 / 0.86 |
+| constructed, any shape | — | **1.000** | **1.000** | ~1.000 | ~1.000 |
+
+**`train_exact` spans 0.04–0.42 across the ladder. `train_exact_hard` spans
+0.000–0.012 — i.e. zero, everywhere, at every depth.** A 6.6× shorter chain and
+a 3× better `train_exact` buy nothing whatsoever on the discrete solution.
+
+Training longer does not change it either:
+
+| cell | depth | steps | train_exact | **train_exact_hard** | state_sharpness |
+|---|---|---|---|---|---|
+| N=323 `tree:quotient` s0 | 39 | 6,000 | 0.556 | **0.004** | 0.764 |
+| N=323 `tree:quotient` s0 | 39 | 8,000 | 0.604 | **0.008** | 0.765 |
+| N=323 `tree:quotient` s0 | 39 | **20,000** | 0.620 | **0.000** | 0.767 |
+| N=91 `tree:quotient` s0/s1 | 21 | 6,000 | 0.820 / 0.860 | **0.100 / 0.220** | 0.832 / 0.849 |
+| N=91 `tree:quotient` s0/s1 | 21 | **20,000** | 0.820 / 0.860 | **0.120 / 0.040** | 0.838 / 0.844 |
 
 The learned quotient digit is itself a blur: `q_sharpness` (the max probability
 of the 11-way quotient distribution) is 0.758 after 8,000 steps, so the
