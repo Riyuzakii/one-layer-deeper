@@ -350,6 +350,38 @@ not fit".
 
 ---
 
+## 6. The LEGAL control — a population does not rescue the legal objective
+
+**LEGAL.** Same graph, same scale, same 1,200 steps, same mixture head, and
+**no teacher forcing at all** (`--tf 0`): each replica gets its own
+end-of-chain cross-entropy plus the mixture CE, which is everything a
+submission can express under the evaluator's fixed loop.
+
+| run | P | `local_ce` (best replica) | `train_exact_hard` best | mixture | argmax | held (best) | replicas in basin |
+|---|---|---|---|---|---|---|---|
+| `L_p1` | 1 | **3.204** | 0.000 | 0.000 | 0.000 | 0.000 | 0/1 |
+| `L_p64` | 64 | **3.041** | 0.001 | 0.000 | 0.000 | 0.001 | **0/64** |
+
+The 64 replicas' `local_ce` values span **3.04–4.13**. The basin cliff is at
+**0.006**. That is a factor of **~600**, and it does not move when you take the
+best of 64 independent draws. This independently reproduces
+`explore/alu-relational`'s measurement of the plain legal baseline at Stage-1
+conditions (`local_ce` 3.5–4.2).
+
+**This is the honest boundary of the whole branch.** A population multiplies
+the number of draws from a distribution; it cannot move a distribution whose
+entire support is 600x away from the target. The population converts *1-in-7
+into ~1* — it does not convert *0-in-infinity into anything*. **A legal
+per-step signal is still missing, and nothing here supplies one.**
+
+Note also that the 64 replicas of `L_p64` are *not* diverse in any useful way:
+they all sit in the same failure mode with `local_ce` within 30% of each other.
+That is the signature of a systematic obstruction, not a basin-hunting problem,
+and it is a second reason not to expect population methods to help the legal
+objective.
+
+---
+
 ## 9. Compliance
 
 * **No file under `data/generated/` was read, printed, sampled or summarised.**
