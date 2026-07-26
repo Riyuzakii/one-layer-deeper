@@ -97,12 +97,20 @@ CONS_LOOPS = 4            # halting-chain depth used inside the consistency term
 # region for the threshold is 14x wider and there is nothing left to get wrong.
 # Same two learned scalars, same information, no extra cost.
 SEL_EPS = 1e-6
-# Shallow init: with a random `zero` the per-slot match mass is ~0.1, so the
-# score is ~log(0.1) = -2.3 and an untrained detector fires with probability
-# ~0.5.  An untrained model then spends ~2 iterations per eval batch instead of
-# ~37 -- measured, that is the difference between 19.1s and 31.7s of the Easy
-# tier's 30s eval budget, i.e. between a full OOD-N ladder and 2 of 7 rungs.
-SEL_THRESH_INIT = -3.0
+# Threshold at init.  With a random `zero` the per-slot match mass is ~0.1, so
+# the score is ~log(0.1) = -2.3: both values below leave an untrained detector
+# firing with probability 0.2-0.5, so an untrained model spends ~2 iterations
+# per eval batch instead of ~37.  Measured, that is the difference between
+# 11.9s and 31.7s of the Easy tier's 30s eval budget -- i.e. between a full
+# OOD-N ladder and 2 of its 7 rungs.
+# The two tiers want different starting points and the difference is large:
+# at Medium's T values (max 16, so a 16-step countdown) a -3.0 start puts the
+# untrained detector below every score the mushy initial register can reach and
+# it never recovers -- 0 of 5 seeds; a 0.0 start is 4 of 5.  At Easy's T values
+# (max 3) -3.0 is 5 of 5.  `training_time_seconds` is public, data-independent
+# manifest information, exactly as for the loop count.
+SEL_THRESH_EASY = -3.0
+SEL_THRESH_DEEP = 0.0
 LR = 3e-3
 SEL_LR = 1e-1
 WD = 0.0
@@ -251,7 +259,7 @@ class Model(nn.Module):
         # --- the depth controller: 12 learned scalars ---
         self.sel_one = nn.Parameter(torch.randn(10) * 0.5)
         self.sel_gain = nn.Parameter(torch.tensor(2.0))
-        self.sel_thresh = nn.Parameter(torch.tensor(SEL_THRESH_INIT))
+        self.sel_thresh = nn.Parameter(torch.tensor(SEL_THRESH_DEEP))
         self.head = nn.Linear(10, spec.vocab_size)
         self.register_buffer("nstep", torch.zeros((), dtype=torch.long),
                              persistent=False)
@@ -394,9 +402,11 @@ def training_loss(logits: Tensor, labels: Tensor, aux) -> Tensor:
 
 def build_optimizer(model: nn.Module, spec: OptimizerSpec) -> OptimizerBundle:
     # `training_time_seconds` is public, data-independent manifest information.
+    easy = spec.training_time_seconds <= 120
     if hasattr(model, "train_loops"):
-        model.train_loops = (TRAIN_LOOPS_EASY if spec.training_time_seconds <= 120
-                             else TRAIN_LOOPS_DEEP)
+        model.train_loops = TRAIN_LOOPS_EASY if easy else TRAIN_LOOPS_DEEP
+        with torch.no_grad():
+            model.sel_thresh.fill_(SEL_THRESH_EASY if easy else SEL_THRESH_DEEP)
     sel = {id(p) for n, p in model.named_parameters() if n.startswith("sel_")}
     decay = [p for p in model.parameters() if p.ndim >= 2 and id(p) not in sel]
     no_decay = [p for p in model.parameters() if p.ndim < 2 and id(p) not in sel]
