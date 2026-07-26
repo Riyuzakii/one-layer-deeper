@@ -200,10 +200,10 @@ bash lab/pop_sweep.sh lab/jobs_pop_ctl.txt 3
 | 3 | **0.0000** | **1.000** | **1.000** | **yes** |
 | 0 | 0.0241 | 0.468 | 0.469 | no |
 | 1 | 0.0285 | 0.077 | 0.068 | no |
+| 6 | 0.0438 | 0.000 | 0.000 | no |
 | 5 | 0.0457 | 0.000 | 0.002 | no |
 | 4 | 0.0500 | 0.000 | 0.000 | no |
 | 2 | 0.0891 | 0.000 | 0.000 | no |
-| 6 | (see §3.1) | | | |
 
 **1 of 7 — the coordinator's rate, reproduced independently.** Two things are
 worth recording beyond the rate:
@@ -222,7 +222,7 @@ worth recording beyond the rate:
 
 **`local_ce` is the only usable per-replica basin indicator, and the structure
 scores are worthless here.** `mul_fn`, `mul_gauge`, `add_shift` and `sub_shift`
-read **1.000 for all six seeds**, including the four at `train_exact_hard`
+read **1.000 for all seven seeds**, including the five at `train_exact_hard`
 0.000. This is `alu-credit`'s "parameter-level progress and discrete
 correctness are close to independent" in its sharpest form: every seed learns a
 relabelled multiplication table and a correct shift structure, and only one of
