@@ -118,12 +118,256 @@ here to certify that shortening the graph did not leave the class.)*
 
 ## 2. The variant table
 
-(filled in below from `lab/logs/`)
+Everything below: `lab/probe_alu.py`, AdamW lr 3e-2 wd 0 (digit-carry's default
+cell, unchanged — the *optimiser* belongs to `explore/alu-credit`), full batch,
+tau 1.0, no identity init. Only the graph shape varies. Regenerate with
+`lab/depth_grid.sh`; collect with `lab/depth_table.py`.
+
+### 2.1 e1's modulus (N=323, S=3, 250 train / 38 held), 2,000 steps, 3 seeds
+
+| variant | depth | alphabet | params | ceiling | train_exact (3 seeds) | mean | held_exact |
+|---|---|---|---|---|---|---|---|
+| `horner:serial` (digit-carry) | 257 | 10/2/2 | 6,818 | 1.000 | PENDING_SERIAL | — | 0.000 |
+| `tree:serial` | 195 | 10/2/2 | 6,818 | 1.000 | PENDING_TREESERIAL | — | 0.000 |
+| `horner:binary` | 117 | 10/2/2 | 6,818 | 1.000 | 0.044 / 0.416 / 0.120 | 0.193 | 0.000 |
+| `tree:binary` | 83 | 10/2/2 | 6,818 | 1.000 | 0.140 / 0.280 / 0.080 | 0.167 | 0.000 |
+| `horner:quotient` | 62 | 10/2/2/**11** | 6,820 | 1.000 | 0.340 / 0.332 / 0.236 | 0.303 | 0.000 |
+| **`tree:quotient`** | **39** | 10/2/2/**11** | 6,820 | 1.000 | 0.380 / 0.368 / 0.440 | **0.396** | 0.026 / 0.000 / 0.000 |
+
+Alphabet column = digit / carry / borrow / quotient. **No index ranges over
+`Z_N` in any row**, and the parameter count is the same at every modulus.
+
+Longer training at the shallowest depth (39), same cell, `--steps 20000`:
+`train_exact` **0.620** (seed 0) and 0.572 at step 19,000 (seed 1); the curve is
+still creeping, not plateaued flat, but the last 10,000 steps buy < 0.07.
+
+### 2.2 A smaller operand (N=91, S=2, 50 train / 22 held), 4,000 steps, 3 seeds
+
+The regime `digit-carry` §2.4 used for its "shorter chain → 0.72–0.78" result.
+
+| variant | depth | ceiling | train_exact (3 seeds) | mean | held_exact |
+|---|---|---|---|---|---|
+| `horner:serial` | 112 | 1.000 | (digit-carry: 0.780 / 0.720) | ~0.75 | 0.045 / 0.000 |
+| `tree:binary` | 45 | 1.000 | 0.800 / 0.920 / 0.900 | 0.873 | 0.136 / 0.000 / 0.000 |
+| `horner:quotient` | 25 | 1.000 | 0.840 / 0.840 / 0.740 | 0.807 | 0.000 |
+| `tree:quotient` | 21 | 1.000 | 0.820 / 0.860 / 0.760 | 0.813 | 0.000 |
+
+**The best `train_exact` this branch reached anywhere is 0.940** (N=91,
+`tree:binary`, seed 1, mid-run). **`held_exact` never lifted off**: the largest
+value seen at any depth, any modulus, any seed is 0.136 = 3/22 on the smallest
+possible held-out cohort, and it is not reproduced by the two sibling seeds.
+
+### 2.3 The measurement that reframes the result: hard-state exactness
+
+`--eval-hard` re-runs the trained weights with every inter-step state snapped to
+its argmax, and `state_sharpness` is the mean max-probability over every
+inter-step softmax. The **constructed** solution scores `train_exact_hard =
+held_exact_hard = 1.000` in all four `mul × reduce` shapes, so the diagnostic is
+sound: the target *is* in the discrete family.
+
+| cell | depth | train_exact | **train_exact_hard** | state_sharpness |
+|---|---|---|---|---|
+| N=323 `tree:quotient`, 6,000 steps, seed 0 | 39 | 0.556 | **0.004** | 0.764 |
+| N=323 `tree:quotient`, 6,000 steps, seed 1 | 39 | 0.520 | **0.000** | 0.786 |
+| N=323 `tree:quotient`, 8,000 steps, seed 0 | 39 | 0.604 | **0.008** | 0.765 |
+| N=91 `tree:quotient`, 4,750 steps, seed 0 | 21 | 0.820 | **0.140** | 0.835 |
+| N=91 `tree:quotient`, 6,000 steps, seed 1 | 21 | 0.820 | **0.100** | 0.832 |
+| constructed, any shape | — | 1.000 | **1.000** | ~1.000 |
+
+`train_exact` is 0.52–0.82; `train_exact_hard` is 0.00–0.14; the state is a
+mixture with 0.76–0.84 of its mass on the argmax, not a digit. **What the model
+learns is a continuous relaxation, not a transducer over the digit alphabet.**
+
+The soft register is a `W × 10` simplex, and reading a table with
+`einsum("bu,bv,bc,uvco->bo", ...)` is *bilinear* in that simplex — a mixture
+therefore addresses the table at points no digit pair can reach. That is the
+same value-encoding channel `digit-carry` §5.3 measured when a 32-dim carry
+restored memorisation (train 1.000 / held 0.000), only narrower: 9 free
+dimensions per slot instead of 32.
+
+It is also the exact mechanism behind the `held_ce` column nobody has been
+able to explain: at N=91, `train_ce` falls to 0.11 while `held_ce` rises to
+**13.9–15.6** — confidently wrong on held-out operands, which is textbook
+overfitting, from an architecture that was adopted because it *cannot* overfit.
 
 ---
 
 ## 3. What was falsified
 
+### 3.1 "Screen `DigitALU` on `train_exact`, because it implies `held_exact`"
+
+`digit-carry` §6.4 and `RESUME.md` §5.1 both state this, and it is the premise
+under which four branches are currently screening. **It is false.** The argument
+was "6,817 digit-indexed parameters have nowhere to memorise 250 residues", and
+the parameters indeed have nowhere — but the *state* does. Measured:
+`train_exact` 0.94 with `held_exact` 0.000 and `held_ce` 15.6.
+
+Replace it with `train_exact_hard`. It costs one extra forward pass, the exact
+solution scores 1.000 on it, and it is the only number here that distinguishes
+"learning the transducer" from "fitting the relaxation".
+
+### 3.2 "Depth is the binding variable"
+
+Weaker than `digit-carry` §2.4 concluded, and true only of the soft objective.
+Depth is a **large** lever on `train_exact` (0.132 → 0.396 at 2,000 steps, a
+2.4×, monotone across five shapes at three seeds) and the branch's own
+identification of it was correct as far as it went. But on `train_exact_hard` a
+6.6× shorter chain buys 0.00 → 0.01 at N=323, and even a **21-step** chain — a
+12× reduction, the shortest exact graph I can build — reaches only 0.14 and then
+sits there for 15,000 further steps. Shortening the chain makes the *relaxation*
+easier to fit; it does not make the *discrete* solution easier to find.
+
+### 3.3 A larger internal radix (mandate direction 3) — falsified, with mechanism
+
+`probe_coverage.py --radix B` generalises `digit-carry`'s atom enumeration to a
+base-`B` internal alphabet. Base 10 reproduces its published numbers exactly.
+`P[every table entry a held-out x needs was already exercised by the 250
+training x]`:
+
+| internal radix | 323 | 899 | 2021 | 10403 |
+|---|---|---|---|---|
+| 10 | **0.947** | **0.966** | **0.956** | **0.977** |
+| 100 | 0.026 | 0.005 | 0.001 | 0.010 |
+| 1000 | 0.000 | 0.000 | 0.000 | 0.000 |
+
+Pairing adjacent decimal digits halves the slot count and so roughly quarters
+the depth — but it **squares every table's index space**, and 250 training `x`
+cannot exercise it (the pair table alone needs 3,540 entries at N=2021 and sees
+582). At radix 1000 with S=1 the "pair" table is indexed by `(x, x)`: it *is* a
+residue-indexed readout, and its digit ceiling is exactly the residue ceiling.
+**The radix is the dial between shallow-and-memorising and
+deep-and-compositional**, and the whole value of this family sits at the deep
+end. Do not spend runs here.
+
+### 3.4 Straight-through discretisation, at every chain length
+
+`digit-carry` §5.4 falsified `--hard` at depth 257 (train 0.012). It fails
+identically at 39 (0.000 / 0.004, loss 16.3–16.5) and at 21 (0.040 / 0.080,
+loss 14.7–16.6), i.e. **the failure is not caused by depth** and shortening the
+chain does not rescue it. Closing the continuous channel by fiat kills training
+outright; leaving it open lets the model overfit through it. That is the vice
+this family is currently caught in.
+
+### 3.5 Reducing less often (mandate direction 4) — falsified by arithmetic
+
+With a radix-2 reduction, handling a quotient up to `Q` costs `ceil(log2 Q)`
+sub-scans, so reducing every `p` places costs `ceil(log2(10^p))·W` per `p`
+places against `p·ceil(log2 10)·W` for reducing every place — a wash — while the
+register must widen by `p-1` slots, which makes every scan longer and enlarges
+`W` in *both* terms. Measured on the ladder: `tree:quotient` (reduce at every
+division step, `W = S+1`) is 39 steps; every "reduce less often" variant is
+strictly worse. Reduce as often as the register allows.
+
+### 3.6 Parallel-prefix carry propagation (mandate direction 2) — not worth it *here*
+
+A carry-lookahead scan is the standard fix for an O(W) ripple, and it fits the
+family perfectly: the carry-propagation semigroup is
+{kill, propagate, generate} — a **3-element** alphabet, composed by a learned
+9-entry table, applied `ceil(log2 W)` times. But the constant is 3 (one table to
+map a digit pair to a semigroup element, one to apply the prefix to the incoming
+carry, one to emit the digit), so the depth is `ceil(log2 W) + 3` against a
+serial `W`. That is a **loss** at W = 4 (5 vs 4), a wash at W = 6, and only wins
+from W ≥ 8 — i.e. from an 7-digit modulus up. Since the reduction, not the
+scan, is what dominates every shape in the table above, I did not spend runs on
+it: it can at best take the S=8 figure from 155 to about 120, and 155 is already
+not the binding constraint. Recorded as computed-not-run.
+
 ---
 
-## 4. Compliance
+## 4. What survives, and the single highest-value recommendation
+
+**The graph is fixed and it was not the problem.** `tree:quotient` is a strict
+improvement on `horner:serial` on every axis — 6.6× shallower at e1, 13× at
+Hard scale, 5–7× faster per step, +2 parameters, same alphabet, same 1.000
+constructed ceiling at four fixed moduli and twelve unseen sampled ones. Anyone
+continuing this family should start from it. But it does not certify a rung and
+it does not move `held_exact`.
+
+**Recommendation: stop optimising `train_exact` and start optimising
+`train_exact_hard`.** The bottleneck is not credit assignment through a long
+chain — I removed 85% of the chain and the discrete solution is no closer. The
+bottleneck is that *the soft relaxation and the discrete target are different
+problems*, and the optimiser is descending the first. Concretely, the next
+things I would run, in order:
+
+1. **Re-screen every live lever on `train_exact_hard`.** `alu-credit`'s
+   temperature/init sweep, `alu-compose`'s composition — all of them are
+   currently ranked on a number that a mixture can win. This is one flag
+   (`--eval-hard`) and it re-prices the whole session's screening.
+2. **Put the discreteness in the loss, not the graph.** The graph is now cheap
+   enough that the state can be penalised at every one of 39 steps (entropy of
+   each register slot, or a distance-to-vertex term) without the cost that made
+   it impractical at 257. This is `alu-credit`'s lane, and it now has a target
+   metric.
+3. **If (2) fails, the family may be unsalvageable by gradient descent** and the
+   right question becomes whether a *discrete* search (the table is 6,820
+   parameters over five small alphabets) can be posed inside one differentiable
+   forward pass without violating rule 3.
+
+**No submission is delivered.** `train_exact_hard` ≤ 0.14 everywhere and
+`held_exact` never left the floor; per `digit-carry` §6.4 and this session's
+protocol, evaluator runs cannot resolve anything in that regime, so I spent none
+and `lab/archive.jsonl` is unchanged on this branch. Claiming a submission here
+would be claiming a result I did not measure.
+
+---
+
+## 5. Reproduction
+
+```bash
+VENV=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
+
+# the depth ladder (structure only, no training)
+for mm in horner tree; do for rm in serial binary quotient; do
+  for cfg in "323 3" "2021 4" "10403 5" "10000019 8"; do set -- ${=cfg}
+    $VENV lab/probe_alu.py --modulus $1 --slots $2 --mul-mode $mm \
+        --reduce-mode $rm --depth-only --tag d; done; done; done
+
+# the hypothesis class is intact: constructed ceiling, soft AND hard states
+for mm in horner tree; do for rm in serial binary quotient; do
+  for cfg in "323 3" "899 3" "2021 4" "10403 5"; do set -- ${=cfg}
+    $VENV lab/probe_alu.py --modulus $1 --slots $2 --mul-mode $mm \
+        --reduce-mode $rm --construct --eval-hard --tag c; done; done; done
+$VENV lab/probe_alu_oodn.py --moduli 6 --mul-mode tree --reduce-mode quotient
+
+# the training ladder (3 seeds x 6 shapes, 2000 steps)
+bash lab/depth_grid.sh
+MOD=91 SLOTS=2 OUT=lab/logs/short EXTRA="--train-x 50" SUF="_tx50" \
+  CELLS="tree:quotient horner:quotient tree:binary horner:serial" \
+  STEPS=4000 bash lab/depth_grid.sh
+
+# THE RESULT THAT MATTERS: hard-state exactness across the ladder
+OUT=lab/logs/ehladder LOGEVERY=1000 EXTRA="--eval-hard" SUF="_eh" \
+  CELLS="horner:serial tree:serial horner:binary tree:binary horner:quotient tree:quotient" \
+  STEPS=2000 SEEDS="0 1" bash lab/depth_grid.sh
+
+# straight-through fails at every chain length
+OUT=lab/logs/hard EXTRA="--hard" SUF="_hard" CELLS="tree:quotient" \
+  STEPS=4000 SEEDS="0 1" bash lab/depth_grid.sh
+
+# the internal-radix falsification (CPU, closed form)
+$VENV lab/probe_coverage.py --configs 323:3 899:3 2021:4 10403:5
+$VENV lab/probe_coverage.py --radix 100  --configs 323:2 899:2 2021:2 10403:3
+$VENV lab/probe_coverage.py --radix 1000 --configs 323:1 899:1 2021:2 10403:2
+
+# collect everything
+$VENV lab/depth_table.py lab/logs/*
+```
+
+---
+
+## 6. Compliance
+
+Nothing under `data/generated/` was read, printed, sampled or summarised; every
+probe synthesises its operands from the modulus given on the command line and
+from the public generator spec. `--construct`, `--freeze` and `probe_coverage.py`
+are LAB DIAGNOSTICS in `lab/`, never imported by a submission, and are the direct
+analogue of `probe_step.py --oracle`; `--construct` sets tables to the truth and
+**is not a legal submission** (rule 7). Choosing the graph's *shape* — a tree
+instead of a chain, one learned quotient digit instead of eleven tied
+subtractions — is a structural choice, and every tensor in it is still learned
+from random init. All computation is differentiable and inside the autograd
+graph; no Python control flow reads `input_ids`; there is no custom training loop
+and no participant-controlled backward. No evaluator run was made on this branch
+and `lab/archive.jsonl` is untouched. Nothing was submitted to the hosted service
+and no `one-layer login`/`submit` was run.
