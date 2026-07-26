@@ -482,6 +482,7 @@ contention-pessimistic, the outcomes and ratios are the transferable part.**
 | Easy e1 | 30 s | sum detector, "semantically right" init | ~590 | 31.7 | 7/7 | **2/7** |
 | Easy e1 | 30 s | `fixed16` ≈ a **trained** controller | 256 | **31.3** | 7/7 | **5/7** |
 | Easy e1 | 30 s | `fixed64`, no early exit | 1024 | 40.1 | **0/7** | **0/7** |
+| Medium m1 | 300 s | **deliverable, tier-faithful 600 s run** | ~32 | **60.8** | **7/7** | **7/7** |
 | Medium m1 | 300 s | deliverable, eval-only | ~32 | 16.1 | 7/7 | 7/7 |
 | Medium m1 | 300 s | `fixed16` ≈ a **trained** controller | 256 | 54.5 | 7/7 | 7/7 |
 | Medium m1 | 300 s | `fixed64`, no early exit | 1024 | 203.6 | 7/7 | 7/7 |
@@ -502,9 +503,13 @@ Three conclusions.
   **2.0× margin** with both ladders complete. Medium goes from 5.5× to ~19×.
   **Both changes are required; neither alone suffices on Easy.**
 
-Measured margin for the deliverable as it stands: **Easy 7.3 s / 30 s = 4.1×**
-(tier-faithful, 58 training steps completed), **Medium 16.1 s / 300 s = 18.6×**,
-both with all 16 splits and both full 7-rung ladders.
+Measured margins for the deliverable as it stands, both from *tier-faithful*
+runs (full training budget, then the 16 scoring splits, contended GPU):
+**Easy 7.3 s / 30 s = 4.1×** (58 optimizer steps completed) and
+**Medium 60.8 s / 300 s = 4.9×** (62 steps), each with all 16 splits and both
+full 7-rung ladders.  Those are the numbers for an *untrained* halting
+threshold; §8 above gives the trained-controller projection, which is the one
+that binds.
 
 ### 8.1 The threshold init is an eval-budget decision as well as an accuracy one
 
@@ -641,10 +646,11 @@ bash lab/dc_gridI.sh          # uniform `one` init (deterministic, fails)
 
 # SS4.3  the real moduli
 bash lab/dc_gridD.sh          # m1 (N=10403) and hp1 (N=4028033), sum detector
-bash lab/dc_gridJ.sh          # the SS4.1/4.2 recipe at m1 and hp1  <-- UNFINISHED
-                              #   J1 (m1 Medium) was on its last seed at cutoff;
-                              #   J2 (m1 Easy), J3 (N=329 Medium --eval-hard) and
-                              #   J4 (hp1 Medium) had not started.
+bash lab/dc_gridJ.sh          # the log detector at m1 and hp1
+                              #   J1 (m1 Medium, log)  DONE: 0/5  -- SS7.2
+                              #   J2 (m1 Easy,   log)  DONE: 4/5  -- SS4.3
+                              #   J3 (N=329 Medium, log, --eval-hard)  running at cutoff
+                              #   J4 (hp1 Medium, log)                 not started
 
 # SS8  the evaluation budget
 $VENV lab/make_manifest.py --dataset e1 --mode wallclock --max-steps 5 \
