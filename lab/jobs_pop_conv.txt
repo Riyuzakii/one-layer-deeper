@@ -1,0 +1,7 @@
+k1_s0 --pop 1 --seed 0 --steps 3500 --sel 0 --log-every 500 --eval-n 1024
+k1_s1 --pop 1 --seed 1 --steps 3500 --sel 0 --log-every 500 --eval-n 1024
+k1_s2 --pop 1 --seed 2 --steps 3500 --sel 0 --log-every 500 --eval-n 1024
+k1_s3 --pop 1 --seed 3 --steps 3500 --sel 0 --log-every 500 --eval-n 1024
+k1_s4 --pop 1 --seed 4 --steps 3500 --sel 0 --log-every 500 --eval-n 1024
+k1_s5 --pop 1 --seed 5 --steps 3500 --sel 0 --log-every 500 --eval-n 1024
+k1_s6 --pop 1 --seed 6 --steps 3500 --sel 0 --log-every 500 --eval-n 1024

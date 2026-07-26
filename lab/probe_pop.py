@@ -96,6 +96,7 @@ class PopALU(nn.Module):
         # mixture logits over replicas -- the differentiable selector
         self.alpha = nn.Parameter(torch.zeros(P))
         self.sel_tau = 1.0
+        self.sel_hard = False
         # taps
         self.mode = None            # None | 'record' | 'force' | 'shape'
         self.tape: list = []
@@ -336,8 +337,18 @@ class PopALU(nn.Module):
 
     # ---- mixture over replicas (the differentiable selector) ----
     def mix_probs(self, logits):
-        """logits: (P,b,S,10) log-probs -> (b,S,10) mixture probabilities."""
+        """logits: (P,b,S,10) log-probs -> (b,S,10) mixture probabilities.
+
+        `sel_hard` commits to the mode with a straight-through estimator: the
+        forward uses ONLY the argmax replica (so a correct replica is never
+        diluted by 31 wrong ones) while the backward is the soft mixture's, so
+        every replica still receives gradient through alpha.  This is the
+        population analogue of `depth-controller`'s "commit to the mode, not
+        the blend", which took its Medium result from 0 to 4."""
         w = F.softmax(self.alpha / self.sel_tau, 0)
+        if self.sel_hard:
+            h = F.one_hot(w.argmax(0), w.shape[0]).to(w.dtype)
+            w = h + w - w.detach()
         return torch.einsum("p,pbso->bso", w, logits.exp())
 
 
@@ -485,6 +496,9 @@ def main() -> int:
                     help="detach replica outputs in the mixture loss so only "
                          "alpha learns from it (isolates selection)")
     ap.add_argument("--sel-tau", type=float, default=1.0)
+    ap.add_argument("--sel-hard", action="store_true",
+                    help="straight-through commit to the argmax replica in "
+                         "the mixture loss instead of blending")
     ap.add_argument("--sel-tau-final", type=float, default=None)
     ap.add_argument("--sel-lr", type=float, default=None)
     ap.add_argument("--steps", type=int, default=1000)
@@ -552,6 +566,7 @@ def main() -> int:
     ref = PopALU(1, S, 2, 2, args.max_quot, 1.0, False, args.tie,
                  args.tie_sub).to(dev)
     model.fast = ref.fast = not args.slow_quot
+    model.sel_hard = args.sel_hard
     ref.construct()
     for p in ref.parameters():
         p.requires_grad_(False)

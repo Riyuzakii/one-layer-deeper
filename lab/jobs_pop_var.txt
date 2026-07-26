@@ -1,0 +1,11 @@
+v_base --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128
+v_bs2048 --pop 32 --seed 0 --steps 1200 --batch 2048 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128
+v_lrdec --pop 32 --seed 0 --steps 1200 --lr-final 0.003 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128
+v_lr01 --pop 32 --seed 0 --steps 1200 --lr 0.01 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128
+v_lr10 --pop 32 --seed 0 --steps 1200 --lr 0.1 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128
+v_init25 --pop 32 --seed 0 --steps 1200 --init-scale 0.25 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128
+v_init10 --pop 32 --seed 0 --steps 1200 --init-scale 1.0 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128
+v_spread --pop 32 --seed 0 --steps 1200 --scale-spread 4 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128
+v_gclip --pop 32 --seed 0 --steps 1200 --global-clip --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128
+v_reinit --pop 32 --seed 0 --steps 1200 --reinit-period 200 --reinit-frac 0.5 --reinit-warm 300 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128
+v_avg --pop 8 --seed 0 --steps 1200 --avg-replicas --sel 1 --sel-detach --log-every 400 --eval-n 1024

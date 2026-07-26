@@ -1,0 +1,2 @@
+L_p64 --pop 64 --seed 0 --tf 0 --sel 1 --steps 1200 --log-every 400 --eval-n 1024 --eval-chunk 128
+L_p1 --pop 1 --seed 0 --tf 0 --sel 1 --steps 1200 --log-every 400 --eval-n 1024
