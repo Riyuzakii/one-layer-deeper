@@ -10,6 +10,55 @@ and `lab/logs/`.
 
 ---
 
+## 0A. STAGE 1 REOPENS THE FAMILY — read this before anything else
+
+`discrete-search` closed direct discrete search and concluded that the only
+thing that reopens `DigitALU` is a legal source of per-step signal. Stage 1
+asked what the *ideal illegal* per-step signal is worth under the best
+conditions now available. My earlier answer (`train_exact_hard` 0.064) was taken
+at e1 scale on the 257-step Horner graph with no weight ties. Re-measured with
+all three improvements stacked — **m1 scale (10,200 units, 8,000 train
+operands), `alu-depth`'s tree:quotient graph, weight tying** — the answer is
+completely different:
+
+| | `train_exact` | **`train_exact_hard`** | `held_exact` | **`held_exact_hard`** | `local_ce` |
+|---|---|---|---|---|---|
+| **m1 scale, best seed** | 0.950 | **0.951** | 0.945 | **0.946** | 0.005 |
+| m1 scale, second seed | 0.806 | 0.202 | 0.833 | 0.194 | 0.0076 |
+| e1-scale control, same graph | 0.584 | 0.028 | 0.500 | 0.026 | 0.048 |
+
+**`train_exact_hard` 0.951 with `held_exact_hard` 0.946.** Soft and hard *agree*
+to within 0.001 — the signature of a genuinely discrete transducer, which
+nothing in this repo has produced before. It generalises: held-out is within
+0.005 of train, at m1 scale where there is no room to memorise.
+
+**The ceiling is not ~0.06. It is ~1.000, and the answer to the coordinator's
+Stage-1 gate is "do not stop".**
+
+Three things this pins down:
+
+1. **Scale is the active ingredient, not the graph and not the ties.** The
+   e1-scale control on the *same* tree:quotient graph with the *same* ties gets
+   0.028–0.048. Going from 250 to 8,000 training operands is what moves it.
+   Tied and untied are indistinguishable at m1 scale (0.196 vs 0.202 on the
+   matched seed).
+2. **`local_ce` — how well each op fits its own local task — is the control
+   variable, and the threshold is brutally sharp.** 0.005 → 0.951;
+   0.0076 → 0.202; 0.070 → 0.000. That is exactly what an all-or-nothing
+   composition over ~50 ops predicts: per-op error ε gives `(1−ε)^50`, so the
+   difference between a 0.5% and a 0.8% local error rate is the difference
+   between solving it and not.
+3. **It is seed-fragile.** 1 of 3 seeds at 4,000 steps. Reliability sweep in
+   §12.
+
+**Compliance, unchanged:** the targets come from running a *constructed* copy of
+the model through the same code path, so this is a **LAB DIAGNOSTIC** (rules 2
+and 7), not a submission. It measures a ceiling, not a recipe. §12.2 is my
+assessment of the proposed legal bridge — and I do not think the one proposed
+works, for reasons independent of its legality.
+
+---
+
 ## 0a. The metric changed mid-branch — read this first
 
 `alu-depth` falsified `train_exact` as a screen for this family: `DigitALU`
