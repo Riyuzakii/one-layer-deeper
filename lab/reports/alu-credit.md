@@ -666,9 +666,13 @@ either.
 Long runs at 12,000 steps (6× the sweep) confirm it is not a slow transition:
 `--tau-final 0.05` finishes at `train_exact` 0.004, **`train_exact_hard` 0.020**,
 sharpness **0.967** — the best hard number of the state-pressure family and still
-at the floor, with the soft solution destroyed. Baseline and entropy pressure
-read `train_exact` 0.604 / 0.400 with `train_exact_hard` 0.008 at step 8,000 /
-4,000. Full traces in `lab/logs/i_long_*.log`.
+at the floor, with the soft solution destroyed. The baseline at the same 12,000
+steps finishes at `train_exact` **0.616** and `train_exact_hard` **0.000**,
+sharpness 0.762: six times the sweep length, the soft fit keeps improving, and
+the discrete fit never starts. Full traces in `lab/logs/i_long_*.log`; the
+remaining confirmatory runs (`k_tf_hard_3k`, `k_tprop_hard`, `k_xcurr_hard`,
+`i_long_gum`) were still running at cutoff and their logs land in the same
+place.
 
 ### 9.1 Which of my earlier conclusions survive the metric change
 
