@@ -722,6 +722,34 @@ trainable".
 It is also, unfortunately, measured under a **lab-only** procedure (rule 2), so
 it is a statement about what the hypothesis class can be driven to, not a recipe.
 
+### 9.3 Every headline result re-screened
+
+Original 257-step graph, `lab/logs/k_*.log`:
+
+| run | `train_exact` | **`train_exact_hard`** | `held_exact_hard` | `sub_shift` |
+|---|---|---|---|---|
+| baseline, 1,000 steps | 0.100 | 0.008 | 0.000 | 0.417 |
+| **teacher forcing, 1,000 steps** (LAB ONLY) | 1.000 | **0.064** | **0.053** | **0.817** |
+| **N=91 S=2 short chain, 3,000 steps** | 0.750 | **0.183** | 0.000 | 0.45 |
+
+Two things I did not expect and am reporting straight.
+
+**The short chain has the best `train_exact_hard` in the whole branch (0.183),
+better than teacher forcing.** That cuts against `alu-depth`'s ladder, which read
+0.000–0.012 at every depth. The two are reconcilable and theirs is the
+better-controlled measurement: my S=2 point changes operand width, output length,
+cohort and training-set size along with the chain — the exact confound they
+identified — and its `held_exact_hard` is **0.000**, so whatever those 11 of 60
+training examples are, they do not generalise. I would not build on this number,
+but I would not hide it either: **someone should re-run S=2 against `alu-depth`'s
+controlled ladder with `train_exact_hard` and settle it**, because if depth does
+move the hard metric under a clean control, that changes the plan.
+
+**Teacher forcing's held-out survives snapping in proportion** (0.789 → 0.053
+train-side 1.000 → 0.064; held 0.789 → 0.053). The ratio is the same on both
+splits, which is what you expect if the soft channel is doing a fixed fraction of
+the work everywhere rather than memorising the training split specifically.
+
 ## 10. Updated recommendation
 
 **The relaxation and the discrete target are different problems — and the fix is
