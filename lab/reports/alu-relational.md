@@ -19,7 +19,7 @@ generated from `math.gcd` over `range(1, N)` or from `torch.randint`.
 
 **No legal training signal with intra-squaring content moves `train_exact_hard`
 off the floor.** All three mandated families are null, and the strongest of them
-is null *even in its illegal form*. Across **38 completed training runs**, the
+is null *even in its illegal form*. Across **41 completed training runs**, the
 highest `train_exact_hard` anywhere is **0.001** (`b_sym_s1`, one example in
 1,024) and every `held_exact_hard` is 0.000 or 0.001. The floor is untouched.
 
@@ -202,25 +202,26 @@ conservative variant both to be reported.
 | `--rel affine` (**flagged**) | 0 | 0.000 | **0.000** | 0.000 | 3.724 | 0.325 | 0.594 |
 | `--rel affine` (**flagged**) | 1 | 0.000 | **0.000** | 0.000 | 3.208 | 0.275 | 0.465 |
 | `--rel free` (conservative) | 0 | 0.000 | **0.000** | 0.001 | 3.173 | 0.285 | 0.521 |
+| `--rel free` (conservative) | 1 | 0.000 | **0.000** | 0.000 | 3.278 | 0.270 | 0.475 |
 
-> **Not measured:** `d_aff_nd0_s0` (the affine form without the non-degeneracy
-> anchor) and a second `--rel free` seed. Neither changes the reading: the
-> anchor demonstrably binds (it reaches 0.0), and the family is already closed
-> by its illegal ceiling in §3.2. See §12.
+> **Not measured:** `d_aff_nd0_s0`, the affine form with the non-degeneracy
+> anchor *removed*. It does not change the reading: the anchor demonstrably
+> binds where it is used (it reaches exactly 0.0), and the family is already
+> closed by its illegal ceiling in §3.2. See §12.
 
-Both are null and both are inside the baseline band on every metric, exactly as
-§3.2 predicts. Two details worth recording:
+All four are null and all four are inside the baseline band on every metric,
+exactly as §3.2 predicts. Two details worth recording:
 
 * **The non-degeneracy anchor worked.** The `nondeg` term — a generic penalty
   on `inc` collapsing onto the model's learned additive identity — falls to
-  **0.098 → exactly 0.0** by step 1,000 in all three runs, so `inc` is
+  **0.098 → exactly 0.0** by step 1,000 in every run that uses it, so `inc` is
   genuinely not
   the identity and the law is not satisfied vacuously in the way
   `explore/depth-controller` warned about. The law is non-vacuous *and* useless.
 * **The flagged variant is no better than the conservative one.** `--rel affine`
   asserts far more than `--rel free` (that the map is quadratic, versus that
   *some* additive-increment structure exists) and buys nothing for it: 0.000 on
-  both, `local_ce` 3.21–3.72 versus 3.17. So the compliance judgement in §7 —
+  both, `local_ce` 3.21–3.72 versus 3.17–3.28. So the compliance judgement in §7 —
   which I resolved against `--rel affine` — cost the branch nothing. That is
   worth stating plainly, because a flagged term that had *worked* would have
   been a much harder call.
@@ -290,6 +291,7 @@ chains per evaluation.
 |---|---|---|---|---|---|---|---|
 | `--massoc 1.0` seed 0 | 0.000 | **0.000** | 0.000 | 3.574 | 0.50 | 0.275 | 0.682 |
 | `--massoc 1.0` seed 1 | 0.000 | **0.000** | 0.000 | 3.582 | 0.80 | 0.305 | 0.629 |
+| all five laws stacked | 0.000 | **0.000** | 0.000 | 4.758 | 0.50 | 0.290 | 0.945 |
 
 Null, inside the baseline band on every metric, with no collapse. The `massoc`
 term itself falls 4.603 → 3.694 over the run, so the model does learn to agree
@@ -335,6 +337,8 @@ the tables — no labels, no arithmetic supplied):
 | `--assoc 0.3` seed 0 | 0.000 | **0.000** | 0.000 | 2.343 | 0.215 | 0.225 | **0.002** |
 | `--sym+--inv+--assoc` seed 0 | 0.000 | **0.000** | 0.000 | 4.707 | 0.290 | 0.250 | 0.973 |
 | `--sym+--inv+--assoc` seed 1 | 0.000 | **0.000** | 0.000 | 4.894 | 0.280 | 0.250 | 0.936 |
+| **all four laws** (`+--cancel`) seed 0 | 0.000 | **0.000** | 0.000 | 4.744 | 0.295 | 0.263 | 0.982 |
+| **all four laws** (`+--cancel`) seed 1 | 0.000 | **0.000** | 0.001 | 4.543 | 0.270 | 0.237 | 0.916 |
 | ties + `--assoc 1.0` seed 0 | 0.000 | **0.000** | 0.000 | 2.459 | 0.215 | 0.212 | **0.002** |
 | ties + `--assoc 1.0` seed 1 | 0.001 | **0.000** | 0.000 | 4.865 | 0.245 | 0.200 | 0.020 |
 
@@ -352,9 +356,14 @@ alone is minimised by destroying the map. `mul_gauge` does **not** catch this
 (it reads 0.2–0.5, not 0.1) — `out_div` does, which is why it was added.
 
 **Cancellativity blocks the collapse and buys nothing.** Adding `--cancel`
-takes `out_div` from 0.002 back to 0.97–0.99 with `train_exact_hard` unchanged
-at 0.000. The `--sym+--inv+--assoc` rows show the same: no collapse, no gain,
-and `local_ce` *worse* than baseline (4.7–4.9 vs 3.5–4.2).
+takes `out_div` from 0.002 back to 0.92–0.98 with `train_exact_hard` unchanged
+at 0.000. **The full stack — all four legal algebraic laws together with the
+task loss, 2 seeds — is the strongest legal configuration this branch can
+build, and it is null**: `train_exact_hard` 0.000, structure scores 0.237–0.295
+against a 0.23–0.28 random baseline, and `local_ce` 4.54–4.74, *worse* than the
+untouched baseline's 3.5–4.2. Adding true, non-vacuous, correctly-anchored
+algebraic constraints makes each op fit its own local task slightly less well,
+not more.
 
 ### 5.2 The sharpest negative: the associativity penalty does not descend at all
 
@@ -593,7 +602,7 @@ argument has four steps, three measured and one structural.
 
 **1. The gap is not marginal, it is three orders of magnitude.** The legal
 baseline at Stage-1 conditions sits at `local_ce` 3.5–4.2 against a cliff at
-0.005–0.0073 (§2). Nothing in this report — **38 completed training runs**
+0.005–0.0073 (§2). Nothing in this report — **41 completed training runs**
 across three families, plus **23 discrete searches** and 3 basin ladders —
 moved it below 2.34. The best `local_ce`
 anywhere here (`--assoc`, 2.34) belongs to a run whose composed map had
@@ -764,13 +773,15 @@ Job files: `lab/jobs_ab.txt` (baseline + algebraic re-screen), `jobs_c.txt` /
 The session lost its process once mid-branch and the GPU was shared throughout,
 so this is stated explicitly rather than implied.
 
-**Complete and reported above:** the correctness gate; the legal baseline
+**Complete and reported above** (41 training runs, 23 discrete searches, one
+full basin ladder): the correctness gate; the legal baseline
 (3 seeds + 3 tied seeds); the relational ceiling `--rel true` (3 seeds + a
 weight sweep); dual-path agreement on all three paths (`fold` 3 seeds,
 `redall` 3 seeds, `horner` 2 seeds); multiplicative associativity (2 seeds);
-the algebraic re-screen (`--sym`, `--inv`, `--assoc`, combinations, 2 seeds
-each); algebra-only (3 runs); the basin ladder
-to `k = 100`; the discrete-search repair ladder (10/20/50/100/150/200) and
+the algebraic re-screen (`--sym`, `--inv`, `--assoc`, `--cancel`, and the
+full four-law stack, 2 seeds each); algebra-only (3 runs); both legal forms of
+the increment law (`--rel affine` 2 seeds, `--rel free` 2 seeds); the **full**
+basin ladder `k = 0 … 1000`; the discrete-search repair ladder (10/20/50/100/150/200) and
 from-random init (7 seeds + a resampled control + the assoc-only control);
 basin hopping (2 seeds, run to completion).
 
@@ -784,16 +795,16 @@ V=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
 #    table).  The full ladder in §6.1 is complete; this would only sharpen it.
 $V lab/probe_rel.py --basin --basin-module Tadd --basin-reps 6 --tag basin_tadd
 
-# 2. All five laws stacked (h_mas_all).  The individual laws are all measured;
-#    this is the only combination not run to completion.
+# 2. A second seed of the five-law stack (h_mas_all_s1).  Seed 0 is measured
+#    and null; every individual law is measured at 2 seeds.
 bash lab/rel_sweep.sh lab/jobs_h.txt 3
 
 # 3. The straight-through variants (--hard) of the algebra-only objective, and
-#    a second --rel free seed.  The question the ST runs ask -- can SGD see the
-#    graded DISCRETE landscape? -- is answered more decisively by the discrete
-#    search in §6.2/§6.3, which operates on integers with no relaxation at all.
+#    the affine increment law without its non-degeneracy anchor.  The question
+#    the ST runs ask -- can SGD see the graded DISCRETE landscape? -- is
+#    answered more decisively by the discrete search in §6.2/§6.3, which
+#    operates on integers with no relaxation at all.
 bash lab/rel_sweep.sh lab/jobs_e2.txt 4
-bash lab/rel_sweep.sh lab/jobs_final.txt 5
 ```
 
 None of these changes the verdict: §8's argument rests on the relational
