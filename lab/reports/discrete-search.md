@@ -188,7 +188,7 @@ block-greedy with prefix verification, N = 323.
 | 2 | 2/5 | 0.965 | 0.963 | 1.000 |
 | 3 | 3/5 | 0.962 | 0.979 | 1.000 |
 | 5 | 1/5 | 0.846 | 0.821 | 0.967 |
-| 10 | 2/7 | 0.727 | 0.613 | 0.945 |
+| 10 | 2/7 (7 reps) | 0.727 | 0.613 | 0.945 |
 | 20 | 1/5 | 0.474 | 0.374 | 0.893 |
 | 50 | 0/5 | 0.264 | 0.189 | 0.783 |
 | 100 | 0/5 | 0.078 | 0.021 | 0.693 |
@@ -240,6 +240,20 @@ table agrees with the truth on 0.258 of cells: 600 cells at 1/10 and 400 at
 1/2), and so are all four structure scores against the 0.23–0.28 random
 baseline.
 
+Three comparisons make this the decisive number:
+
+* **Against gradient descent.** `alu-credit` §9's best legal `train_exact_hard`
+  over 19 configurations and ~130 runs is **0.020**. Discrete greedy gets
+  **0.048** — 2.4× better, and *identical in kind*: both are at the floor with
+  chance-level tables. Two optimisers with nothing in common find the same
+  degenerate solutions.
+* **Against the basin.** `digit` 0.40 is the value the construction has at
+  `k` ≈ 20 wrong cells. The search's solution has ~735 wrong cells. **The same
+  objective value is reached by assignments 700 cells apart** — the level sets
+  are enormously degenerate, and the degenerate branch is overwhelmingly the
+  larger one.
+* **Against a stronger search** (§5, §6).
+
 ### 4.1 A gradient warm start does not put you in the basin either
 
 The obvious hybrid: train the float model, snap it, and let the discrete search
@@ -266,24 +280,9 @@ The hybrid does produce the **best `train_exact_hard` anywhere in this family:
 branch's cold-start 0.048. It is still at the floor, `held_exact_hard` is still
 0.000, and the tables are still at chance. Four times a floor is a floor.
 
-Three comparisons make this the decisive number:
-
-* **Against gradient descent.** `alu-credit` §9's best legal `train_exact_hard`
-  over 19 configurations and ~130 runs is **0.020**. Discrete greedy gets
-  **0.048** — 2.4× better, and *identical in kind*: both are at the floor with
-  chance-level tables. Two optimisers with nothing in common find the same
-  degenerate solutions.
-* **Against the basin.** `digit` 0.40 is the value the construction has at
-  `k` ≈ 20 wrong cells. The search's solution has ~735 wrong cells. **The same
-  objective value is reached by assignments 700 cells apart** — the level sets
-  are enormously degenerate, and the degenerate branch is overwhelmingly the
-  larger one.
-* **Against a stronger search** (§5, §6).
-
 ---
 
-## 5. Module-restricted search — the result that removes every alternative
-## explanation
+## 5. Module-restricted search — the result that removes every alternative explanation
 
 If the failure were about *depth*, *credit assignment through 39 steps*, or
 *many interacting tables*, then giving the search everything except one table
@@ -302,7 +301,7 @@ searched. 3 seeds each, greedy, N = 323.
 | all (§4) | — | 1,007 | 0.037 / 0.048 | 0.383 | chance |
 | `Tsub` only, **annealed** (§6) | mul, add, consts, sel | 400 | 0.072 | 0.435 | `sub_shift` 0.267 (chance) |
 
-**Read the last column.** A 200-cell table — `Tmul`, the multiplication table,
+**Read the right-hand column.** A 200-cell table — `Tmul`, the multiplication table,
 sitting at the very front of the graph with a *perfect* adder, a *perfect*
 subtractor, perfect constants and a perfect quotient selector downstream of it —
 is not identifiable from the end-of-chain label. Its `mul_lo` finishes at 0.24–0.35
@@ -340,8 +339,10 @@ machine around it, and a global optimiser with a serious budget.
 | **annealing + polish, top 3 chains** | **0.435** | **0.072** | **0.000** | **0.267** | 0.737 |
 | the truth | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
 
-`cell_agree` 0.737 decomposes exactly as chance: the 607 frozen cells are
-correct (0.603) plus ~0.13 of the 400 searched cells by luck. **Seventy-seven
+`cell_agree` 0.737 is exactly the chance value: the 607 frozen cells are all
+correct (0.603 of 1,007) and the 400 searched ones are right on 0.30 of
+themselves, which is the random rate for 200 ten-way plus 200 two-way cells
+(0.119 of 1,007). **Seventy-seven
 million evaluations on a 400-cell table, with the rest of the transducer
 perfect, leave that table at chance.** The reheat round never beat round 0
 (best 0.4320 → 0.4333 over a second 15,000 steps), so this is a saturated
@@ -436,8 +437,10 @@ values.
 
 Both keep the target in the class: `--construct` still reads
 `digit = exact = held_exact = 1.000` under the ties. Free cells fall
-**1,007 → 337** and the description length **2,318 → ~850 bits**, taking the
-identifiability ratio from 1.075 to **~2.9**.
+**1,007 → 337** (verified by the tool: `cells=337 candidates=2442`) and the
+description length of the whole table **2,402 → ~850 bits** (computed from the
+free-cell alphabets; `--exercise` counts untied cells), taking the
+identifiability ratio of §7 from 1.075 to **~2.9**.
 
 **It measurably improves the landscape near the solution:**
 
