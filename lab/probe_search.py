@@ -120,6 +120,39 @@ class IntALU:
             self.t[name] = torch.zeros((P,) + shape, dtype=dt, device=self.dev)
         self._eps = torch.arange(self.M - 1, device=self.dev,
                                  dtype=torch.float32) * 1e-6
+        self.ties = set()
+
+    # ---- LEGAL hypothesis-class ties (weight sharing, no value supplied) ----
+    def set_ties(self, ties):
+        """`sym`: Tmul and Tadd are symmetric in their two digit indices
+        (commutativity is a structural property, not a value).
+        `inv`: Tsub is DERIVED from Tadd -- sub_d[add_d[u,v,c],v,c] = u and
+        sub_b[...] = add_c[u,v,c].  This is weight tying: it supplies no
+        arithmetic, it says the subtract table is the add table read backwards.
+        Both keep the construction inside the class (verified by --construct)."""
+        self.ties = set(t for t in ties if t)
+        idx = torch.zeros(100, dtype=torch.long)
+        for u in range(10):
+            for v in range(10):
+                idx[u * 10 + v] = min(u, v) * 10 + max(u, v)
+        self.sym100 = idx.to(self.dev)
+        self.sym200 = (idx[:, None] * 2
+                       + torch.arange(2)[None]).reshape(-1).to(self.dev)
+
+    def canon(self):
+        if not self.ties:
+            return
+        P = self.P
+        if "sym" in self.ties:
+            for nm, ix in (("mul_lo", self.sym100), ("mul_hi", self.sym100),
+                           ("add_d", self.sym200), ("add_c", self.sym200)):
+                f = self.t[nm].reshape(P, -1)
+                f.copy_(f.gather(1, ix[None].expand(P, -1)))
+        if "inv" in self.ties:
+            ad, ac = self.t["add_d"], self.t["add_c"]
+            u = torch.arange(10, device=self.dev).view(1, 10, 1, 1).expand_as(ad)
+            self.t["sub_d"].zero_().scatter_(1, ad, u)
+            self.t["sub_b"].zero_().scatter_(1, ad, ac)
 
     # ---- population plumbing -------------------------------------------------
     def flat(self, name):
@@ -168,6 +201,32 @@ class IntALU:
                 "borrow0": torch.zeros(1, dtype=torch.int64), "sel": sel}
         self.load({k: v.to(self.dev) for k, v in snap.items()})
 
+    # ---- cell-exercise counting (identifiability diagnostic) ----------------
+    def count_on(self):
+        self.counts = {name: torch.zeros(
+            int(torch.tensor(shape).prod()), dtype=torch.long, device=self.dev)
+            for name, shape, _ in CELLS}
+
+    def _rec(self, name, idx):
+        c = getattr(self, "counts", None)
+        if c is not None:
+            c[name].scatter_add_(0, idx.reshape(-1),
+                                 torch.ones_like(idx.reshape(-1)))
+
+    def G2(self, name, i, j):
+        tab = self.t[name]
+        P, A, B = tab.shape
+        idx = i * B + j
+        self._rec(name, idx)
+        return tab.reshape(P, A * B).gather(1, idx)
+
+    def G3(self, name, i, j, k):
+        tab = self.t[name]
+        P, A, B, C = tab.shape
+        idx = (i * B + j) * C + k
+        self._rec(name, idx)
+        return tab.reshape(P, A * B * C).gather(1, idx)
+
     # ---- scans ---------------------------------------------------------------
     def add_scan(self, r, a):
         """r,a (P,N,W) -> (P,N,W).  Mirrors DigitALU.add_scan with hard states."""
@@ -176,8 +235,8 @@ class IntALU:
         outs = []
         for m in range(W):
             u, v = r[:, :, m], a[:, :, m]
-            outs.append(_g3(self.t["add_d"], u, v, c))
-            c = _g3(self.t["add_c"], u, v, c)
+            outs.append(self.G3("add_d", u, v, c))
+            c = self.G3("add_c", u, v, c)
         return torch.stack(outs, -1)
 
     def sub_scan(self, r, a):
@@ -186,8 +245,8 @@ class IntALU:
         outs = []
         for m in range(W):
             u, v = r[:, :, m], a[:, :, m]
-            outs.append(_g3(self.t["sub_d"], u, v, c))
-            c = _g3(self.t["sub_b"], u, v, c)
+            outs.append(self.G3("sub_d", u, v, c))
+            c = self.G3("sub_b", u, v, c)
         return torch.stack(outs, -1), c
 
     def tree_sum(self, regs):
@@ -233,7 +292,7 @@ class IntALU:
         c = c.view(P, B, M)
         a = c[:, :, :-1].reshape(P, B * (M - 1))
         b = c[:, :, 1:].reshape(P, B * (M - 1))
-        score = _g2(self.t["sel"], a, b).view(P, B, M - 1) - self._eps
+        score = self.G2("sel", a, b).view(P, B, M - 1) - self._eps
         w = score.argmax(-1)
         return t.gather(2, w[:, :, None, None].expand(P, B, 1, W)).squeeze(2)
 
@@ -257,6 +316,7 @@ class IntALU:
     @torch.no_grad()
     def forward(self, s):
         """s (B,S) int digits of x, LSB first -> (P,B,S) predicted digits."""
+        self.canon()
         P, B, S, W = self.P, s.shape[0], self.S, self.W
         z = self.t["zero"][:, 0:1].expand(P, B)
         prod = {}
@@ -264,8 +324,8 @@ class IntALU:
             si = s[:, i].view(1, B).expand(P, B)
             for j in range(S):
                 sj = s[:, j].view(1, B).expand(P, B)
-                prod[(i, j)] = (_g2(self.t["mul_lo"], si, sj),
-                                _g2(self.t["mul_hi"], si, sj))
+                prod[(i, j)] = (self.G2("mul_lo", si, sj),
+                                self.G2("mul_hi", si, sj))
         mults = self.multiples()
         Pr = self.tree_sum(self._leaves(prod, z))                    # (P,B,F)
         r = z[:, :, None].expand(P, B, W)
@@ -349,22 +409,39 @@ def expand_modules(spec):
     return names
 
 
-def cell_index(only=None):
+def free_cols(name, ties):
+    """Flat columns that are FREE under the ties (the rest are derived)."""
+    shape = dict((a, b) for a, b, _ in CELLS)[name]
+    k = 1
+    for d in shape:
+        k *= d
+    if "inv" in ties and name in ("sub_d", "sub_b"):
+        return []
+    if "sym" in ties and name in ("mul_lo", "mul_hi"):
+        return [u * 10 + v for u in range(10) for v in range(u, 10)]
+    if "sym" in ties and name in ("add_d", "add_c"):
+        return [(u * 10 + v) * 2 + c for u in range(10)
+                for v in range(u, 10) for c in range(2)]
+    return list(range(k))
+
+
+def cell_index(only=None, ties=()):
     """flat list of (name, col, n_candidates)"""
     out = []
     for name, shape, n in CELLS:
         if only is not None and name not in only:
             continue
-        k = 1
-        for d in shape:
-            k *= d
-        for c in range(k):
+        for c in free_cols(name, ties):
             out.append((name, c, n))
     return out
 
 
+def _flog(msg):
+    print(msg, flush=True)
+
+
 def search(model, s, tgt, cells, obj="digit", block=64, sweeps=40, gen=None,
-           log=print, tag="", patience=3, time_budget=0.0):
+           log=_flog, tag="", patience=3, time_budget=0.0):
     """Block-greedy coordinate search with prefix verification.
 
     Each block evaluates every (cell, candidate) single mutation of the current
@@ -477,12 +554,11 @@ class Genome:
         self.idx = torch.arange(off, device=model.dev)   # searchable positions
 
     def restrict(self, only):
-        if only is None:
-            return
         keep = []
         for name, shape, n, o, s in self.spec:
-            if name in only:
-                keep += list(range(o, o + s))
+            if only is not None and name not in only:
+                continue
+            keep += [o + c for c in free_cols(name, self.model.ties)]
         self.idx = torch.tensor(keep, dtype=torch.long, device=self.model.dev)
 
     def push(self, g):
@@ -511,7 +587,7 @@ class Genome:
         return out
 
 
-def anneal(model, gm, s, tgt, steps, t0, t1, gen, log=print, tag="",
+def anneal(model, gm, s, tgt, steps, t0, t1, gen, log=_flog, tag="",
            init=None, log_every=500):
     """P independent Metropolis chains, one proposal each per forward pass.
 
@@ -646,6 +722,10 @@ def main() -> int:
     ap.add_argument("--verify", action="store_true")
     ap.add_argument("--verify-seeds", type=int, default=3)
     ap.add_argument("--basin", action="store_true")
+    ap.add_argument("--exercise", action="store_true",
+                    help="identifiability diagnostic: how many table cells does "
+                         "the training set actually read, and how many bits of "
+                         "supervision are available per bit of table?")
     ap.add_argument("--repair", type=int, default=0,
                     help="corrupt this many cells of the construction, then search")
     ap.add_argument("--repair-reps", type=int, default=1)
@@ -664,6 +744,11 @@ def main() -> int:
                          "the current best chains")
     ap.add_argument("--pop", type=int, default=0,
                     help="population size for --anneal (default block*10)")
+    ap.add_argument("--tie", default="",
+                    help="LEGAL hypothesis-class ties: 'sym' (Tmul/Tadd "
+                         "symmetric in the two digit indices), 'inv' (Tsub "
+                         "derived from Tadd).  Weight sharing only -- the "
+                         "construction stays in the class.")
     ap.add_argument("--modules", default="",
                     help="LAB DIAGNOSTIC: search ONLY these modules "
                          "(mul/add/sub/const/sel or raw table names); every "
@@ -682,10 +767,12 @@ def main() -> int:
     (xin, xt), (hin, ht), nd, tr, he = build_task(
         args.modulus, args.slots, args.train_x, args.split_seed, device)
     only = expand_modules(args.modules)
-    cells = cell_index(only)
+    ties = tuple(t for t in args.tie.split(",") if t)
+    cells = cell_index(only, ties)
     CMAX = max(n for _, _, n in cells)
     P = args.block * CMAX
     model = IntALU(P, args.slots, nd, 2, 2, args.max_quot, device)
+    model.set_ties(ties)
     ndl = nd.tolist()
     print(f"[{args.tag}] N={args.modulus} S={args.slots} train={len(tr)} "
           f"held={len(he)} cells={len(cells)} "
@@ -700,6 +787,33 @@ def main() -> int:
           f"{structure_scores(truth, ndl)}", flush=True)
 
     gen = torch.Generator().manual_seed(args.seed)
+
+    if args.exercise:
+        import math as _m
+        for split, inp, tg in (("train", xin, xt), ("held", hin, ht)):
+            one = IntALU(1, args.slots, nd, 2, 2, args.max_quot, device)
+            one.construct()
+            one.count_on()
+            one.forward(inp)
+            tot_cells = tot_used = 0
+            bits_all = bits_used = 0.0
+            per = []
+            for name, shape, n in CELLS:
+                c = one.counts[name]
+                used = int((c > 0).sum())
+                tot_cells += c.numel()
+                tot_used += used
+                bits_all += c.numel() * _m.log2(n)
+                bits_used += used * _m.log2(n)
+                per.append(f"{name}={used}/{c.numel()}")
+            sup = inp.shape[0] * args.slots * _m.log2(10)
+            print(f"[{args.tag}] {split}: cells_read={tot_used}/{tot_cells} "
+                  f"({' '.join(per)})", flush=True)
+            print(f"[{args.tag}] {split}: table_bits(all)={bits_all:.0f} "
+                  f"table_bits(read)={bits_used:.0f} "
+                  f"supervision_bits={sup:.0f} "
+                  f"ratio_sup/read={sup / max(bits_used, 1e-9):.3f}", flush=True)
+        return 0
 
     if args.basin:
         for k in (0, 1, 2, 3, 5, 10, 20, 50, 100, 200, 500, 1007):
@@ -795,6 +909,7 @@ def main() -> int:
             model.construct()
             base = model.snapshot(0)
             rndm = IntALU(1, args.slots, nd, 2, 2, args.max_quot, device)
+            rndm.set_ties(ties)
             rndm.randomize(g)
             rs = rndm.snapshot(0)
             for name in only:
