@@ -61,19 +61,68 @@ Three things this pins down:
 | e1 ctl | full | 0.584 | 0.028 | 0.026 | 0.0477 |
 | e1 ctl (s1) | full | 0.568 | 0.048 | 0.053 | 0.0454 |
 
-   1 of 6 m1-scale runs solved it. Note the ordering is by `local_ce`, not by
-   seed or ties — `local_ce` predicts the outcome and nothing else does. A
-   7-seed 8,000-step reliability sweep was still running at cutoff
-   (`lab/logs/c_*.log`, `lab/logs/_s1c.out`); at the 2,000-step checkpoint all
-   four fresh seeds read `train_exact_hard` 0.000, so **8,000 steps is not
-   obviously better than 4,000 and the success rate should be treated as
-   "roughly 1 in 5, not yet reliable" until that sweep lands.**
+   The ordering is by `local_ce`, not by seed or ties — **`local_ce` predicts
+   the outcome and nothing else does.**
+
+   The 8,000-step reliability sweep makes the rate *worse*, not better. Fresh
+   seeds 3–6 at 8,000 steps:
+
+| seed | steps | `train_exact` | **`train_exact_hard`** | `local_ce` |
+|---|---|---|---|---|
+| 4 | 8,000 | 0.545 | 0.000 | 0.0238 |
+| 5 | 8,000 | 0.168 | 0.000 | 0.0570 |
+| 3 | 8,000 | 0.162 | 0.011 | 0.0824 |
+| 6 | 8,000 | 0.058 | 0.000 | 0.1306 |
+
+   **Honest success rate: 1 of 10 m1-scale runs.** Doubling the step count from
+   4,000 to 8,000 bought nothing — the successful seed had already plateaued at
+   **step 1,000** (`train_exact_hard` 0.953 at step 1,000, 0.953 at 2,000, 0.951
+   at 4,000). This is a *basin* problem, not a *budget* problem: runs either
+   fall into the right basin early or never.
+
+   The practical consequence is good news for the budget question (§0B) and bad
+   news for reliability: what needs fixing is the 9-in-10 failure to find the
+   basin, not the number of steps.
 
 **Compliance, unchanged:** the targets come from running a *constructed* copy of
 the model through the same code path, so this is a **LAB DIAGNOSTIC** (rules 2
 and 7), not a submission. It measures a ceiling, not a recipe. §12.2 is my
 assessment of the proposed legal bridge — and I do not think the one proposed
 works, for reasons independent of its legality.
+
+### 0B. Budget feasibility — the good news
+
+The coordinator asked me to flag early if the winning procedure needs thousands
+of sequential steps. It does not. The successful seed reached
+`train_exact_hard` **0.953 by step 1,000** and did not improve afterwards:
+
+| step | 1 | 1,000 | 2,000 | 3,000 | 4,000 |
+|---|---|---|---|---|---|
+| `train_exact_hard` | 0.000 | **0.953** | 0.953 | 0.953 | 0.951 |
+| `held_exact_hard` | 0.000 | **0.946** | 0.946 | 0.946 | 0.946 |
+
+Against the tier budgets on `tree:quotient` (Easy ~65–80 steps, Medium ~170,
+Hard ~1,300): **the ceiling is reachable inside a Hard budget** and is ~6×
+outside Medium's. That makes this a candidate rather than only a proof of
+concept — *if* the 1-in-10 basin problem is solved and *if* a legal source of
+the per-step signal exists. Both are open.
+
+### 0C. Legal vs diagnostic — the status of every result in this report
+
+The coordinator asked for this to be impossible to confuse. Every number in
+this report is exactly one of:
+
+| status | what it means | which results |
+|---|---|---|
+| **DIAGNOSTIC — ceiling only** | uses the constructed tables or the true register trace; **can never be a submission** (rules 2, 7) | `--construct` ceilings; **all of §0A Stage 1** (0.951/0.946) — the tape comes from a constructed model; `--teacher-force`; `--deep-sup`; the basin sweep (§2.3) |
+| **LEGAL — expressible under the evaluator's fixed loop** | learns every tensor from random init; one `optimizer.step()` per batch | **target propagation** (§6.5, §11); every relaxation/init/curriculum/regulariser/optimiser row in §4; truncated BPTT; the state-pressure grid in §9 |
+| **ANALYTIC** | derived from repo source, no run | the Stage-2 co-residency table (§12.2) |
+| **LAB-ONLY BUT NOT A CEILING** | legal in principle, but needs data a submission never sees | cross-`(modulus, slots)` curriculum (§4.3) |
+
+The one-line version: **the 0.951 is a ceiling, not a result.** It says the
+discrete solution is reachable by gradient descent given per-step inputs. It
+does *not* say any submission can get there. The only legal candidate for
+supplying those inputs is target propagation (§11).
 
 ---
 
