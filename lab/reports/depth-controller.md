@@ -236,6 +236,7 @@ in the same graph and the same failure mode is available to it. Measured with
 | Easy, N=329, 3 seeds | 64 / 64 / 0 | **64 / 64 / 4** |
 | Medium, N=329, 3 seeds | 64 / 0 / 0 | **64 / 0 / 0** |
 | Medium, m1, 3 seeds | 64 / 64 / 0 | **64 / 64 / 0** |
+| Medium, N=329, log detector, 5 seeds | 0 / 0 / 64 / 64 / 0 | **0 / 0 / 64 / 64 / 0** |
 
 **The controller is not riding a continuous relaxation.** Every converging seed
 is unchanged at 1.000 on every rung under the snap. That is expected from the
@@ -649,8 +650,9 @@ bash lab/dc_gridD.sh          # m1 (N=10403) and hp1 (N=4028033), sum detector
 bash lab/dc_gridJ.sh          # the log detector at m1 and hp1
                               #   J1 (m1 Medium, log)  DONE: 0/5  -- SS7.2
                               #   J2 (m1 Easy,   log)  DONE: 4/5  -- SS4.3
-                              #   J3 (N=329 Medium, log, --eval-hard)  running at cutoff
-                              #   J4 (hp1 Medium, log)                 not started
+                              #   J3 (N=329 Medium, log, --eval-hard)  DONE: 2/5, identical
+                              #        seed by seed to the soft-state run -- SS4.4
+                              #   J4 (hp1 Medium, log)  running at cutoff
 
 # SS8  the evaluation budget
 $VENV lab/make_manifest.py --dataset e1 --mode wallclock --max-steps 5 \
