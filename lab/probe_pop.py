@@ -731,6 +731,7 @@ def main() -> int:
         if args.avg_replicas:
             avg = PopALU(1, S, 2, 2, args.max_quot, 1.0, False, args.tie,
                          args.tie_sub).to(dev)
+            avg.fast = model.fast
             with torch.no_grad():
                 for name, p in model.named_parameters():
                     if name == "alpha":
