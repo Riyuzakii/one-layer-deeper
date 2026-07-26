@@ -74,11 +74,24 @@ Three things this pins down:
 | 3 | 8,000 | 0.162 | 0.011 | 0.0824 |
 | 6 | 8,000 | 0.058 | 0.000 | 0.1306 |
 
-   **Honest success rate: 1 of 10 m1-scale runs.** Doubling the step count from
-   4,000 to 8,000 bought nothing — the successful seed had already plateaued at
-   **step 1,000** (`train_exact_hard` 0.953 at step 1,000, 0.953 at 2,000, 0.951
-   at 4,000). This is a *basin* problem, not a *budget* problem: runs either
-   fall into the right basin early or never.
+   **Honest success rate: 1 of 7 distinct seeds untied, 0 of 3 tied.** Doubling
+   the step count from 4,000 to 8,000 bought nothing — the successful seed had
+   already plateaued at **step 1,000**. This is a *basin* problem, not a
+   *budget* problem: runs either fall into the right basin early or never.
+
+   **It reproduces exactly.** Seed 2 untied, re-run at 8,000 steps:
+   `train_exact_hard` **0.951**, `held_exact_hard` **0.946**, `local_ce`
+   **0.0050** — identical to the 4,000-step run to three decimals. The success
+   is deterministic given the seed, not a lucky fluctuation.
+
+   **And the `local_ce` threshold is now pinned between 0.0050 and 0.0073:**
+
+| `local_ce` | 0.0050 | 0.0073 | 0.0076 | 0.0238 | 0.057 | 0.082 | 0.121 |
+|---|---|---|---|---|---|---|---|
+| `train_exact_hard` | **0.951** | 0.103 | 0.202 | 0.000 | 0.000 | 0.000 | 0.011 |
+
+   A 1.5× change in per-op error rate is the difference between 0.951 and 0.103.
+   That is the `(1−ε)^50` cliff, measured.
 
    The practical consequence is good news for the budget question (§0B) and bad
    news for reliability: what needs fixing is the 9-in-10 failure to find the
@@ -984,13 +997,31 @@ a constant map is trivially "a function of `a·b`").
 graph (0.6–0.8 soft), so the auxiliary term is not merely unhelpful, it is
 actively destroying the solution the ordinary loss would have found.
 
-Three seeds at weight 1.0, plus weight 0.3, weight 3.0 and a tied run, were
-still completing at cutoff (`lab/logs/p_tp*.log`, `lab/logs/_tp.out`); the
-weight sweep is the one thing that could change this reading, since the collapse
-is a balance problem between the anchor and the consistency term. **My
-expectation is that lowering the weight recovers the baseline rather than
-finding the basin — i.e. that there is no weight at which this works — but that
-is a prediction, not a measurement, and the runs will settle it.**
+**All six configurations completed, and the result is unanimous:**
+
+| config | `train_exact` | `train_exact_hard` | `mul_gauge` | `local_ce` |
+|---|---|---|---|---|
+| weight 0.3, seed 0 | 0.000 | 0.000 | **0.100** | 3.31 |
+| weight 1.0, seed 0 | 0.000 | 0.000 | **0.100** | 3.46 |
+| weight 1.0, seed 1 | 0.000 | 0.000 | **0.100** | 3.54 |
+| weight 1.0, seed 2 | 0.000 | 0.000 | **0.100** | 5.27 |
+| weight 1.0, seed 2, **tied** | 0.000 | 0.000 | **0.100** | 3.03 |
+| weight 3.0, seed 0 | 0.000 | 0.000 | **0.100** | 3.62 |
+
+`mul_gauge` is **0.100 in every single run** — a constant map every time — across
+a 10× span of the auxiliary weight, three seeds, and both tie settings.
+`local_ce` sits at 3.0–5.3 against the 0.005 of the successful teacher-forcing
+run: the ops are not locally fitting anything.
+
+**I made a prediction here and half of it was wrong, which is worth recording.**
+I predicted (a) that no weight would work and (b) that lowering the weight would
+*recover the baseline*. (a) is confirmed. (b) is **false**: at weight 0.3 the
+model is still at `train_exact` 0.000 with `mul_gauge` 0.100, not back at the
+baseline's 0.6–0.8 soft. Even a weak auxiliary term collapses it. That is a
+worse failure than I expected and it strengthens the conclusion — the collapse
+is not a balance problem between two terms that could be tuned, it is that the
+self-consistency objective has an attractor the ordinary loss cannot pull out
+of at any mixing ratio I tried.
 
 **Why I think it fails where teacher forcing succeeds.** Teacher forcing pins
 the trace to *one specific* sequence of states. Target propagation only requires
