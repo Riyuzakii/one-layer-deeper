@@ -314,24 +314,38 @@ def run_cell(args, model, train, held, device, S):
             tg = targets(tr_mods, tr_xs, t, S, device)
             sx, sn, st = model.slots_of(ids, mask)
             stack, _ = model.iterate(sx, sn, L)
-            pre.append((st.float(), stack.float(), tg))
+            st = st.float()
+            # With the parser constructed, every row of a fixed-T batch has the
+            # SAME T slots, so the halting distribution is one vector per
+            # training T rather than one per example.  Checked, not assumed.
+            row = st[:1] if float((st - st[:1]).abs().max()) < 1e-3 else st
+            pre.append((row, st.shape[0], stack.float(), tg))
     torch.cuda.empty_cache()
 
+    G = max(args.halt_grid or L, L)
     sigma0 = args.sel_sigma0 or max(1.0, L / 2.0)
     t0 = time.time()
     for step in range(1, args.sel_steps + 1):
         frac = min(1.0, step / max(1, args.sel_anneal))
         sigma = max(args.sel_sigma1, sigma0 - (sigma0 - args.sel_sigma1) * frac)
         loss = torch.zeros((), device=device)
-        for st, stack, tg in pre:
-            w = model.weights(st, L, sigma, args.hard_sel)
+        for st, nrow, stack, tg in pre:
+            # The halting grid may be DEEPER than the candidate stack.  The
+            # controller's chain is ~200x cheaper than one ALU application, so a
+            # 64-slot halting distribution over a 3-deep stack costs nothing --
+            # and any mass that leaks past the stack is then visible to the
+            # halting penalty, which is the only term that can see it.
+            wf = model.weights(st, G, sigma, args.hard_sel)
+            w = wf[:, :L]
+            if w.shape[0] != nrow:
+                w = w.expand(nrow, -1)
             mixed = torch.einsum("bt,btsd->bsd", w, stack)
             loss = loss + F.cross_entropy(mixed.reshape(-1, 10), tg.reshape(-1))
             if args.halt_pen > 0:
                 loss = loss + args.halt_pen * ((1.0 - w.sum(-1)) ** 2).mean()
         if args.cons > 0:
             # registers depend only on T, so one representative row per T
-            for st, _, _ in pre:
+            for st, _, _, _ in pre:
                 reg = st[:1, : model.n_t]
                 regs = orbit_regs(reg, model, args.cons_j, args.cons_jd,
                                   args.cons_hard)
@@ -348,7 +362,7 @@ def run_cell(args, model, train, held, device, S):
 
     with torch.no_grad():
         fitted = []
-        for (st, _, _), t in zip(pre, args.train_t):
+        for (st, _, _, _), t in zip(pre, args.train_t):
             fitted.append(float(model.loc(st, max(L, 64), 0.15,
                                           args.hard_sel).float().mean()))
     diag = param_diag(model)
@@ -356,32 +370,70 @@ def run_cell(args, model, train, held, device, S):
           + " ".join(f"{t}->{v:.3f}" for t, v in zip(args.train_t, fitted))
           + f"   [{diag}]", flush=True)
 
-    print(f"\n{'T':>4} {'loc':>8} {'route':>7} {'exact':>7} {'sec':>6}")
-    print("-" * 40)
-    results, routes = {}, {}
+    # The candidate stack out_k = ALU^(k+1)(x) does not depend on T -- only the
+    # T *slots* do -- so it is computed once and reused at every rung.  The
+    # marker-relative parse is checked against the rung's own prompt each time,
+    # so this is a speedup, not an assumption (a distance-from-the-end parser
+    # would fail the check at T=16/32/64).
+    # Two readouts are reported at every rung.
+    #   exact_mix : the soft PonderNet mixture sum_k w_k out_k (what training
+    #               optimises).
+    #   exact_arg : commit to the MODE of the learned halting distribution,
+    #               out_argmax_k w_k.  This is the honest number for a
+    #               *controller*: a halting signal that only works as a
+    #               continuous blend of candidate answers is a relaxation
+    #               riding the simplex, not a decision about depth.  It is also
+    #               what an ACT inference rule that commits actually computes.
+    # `--eval-hard` additionally snaps every ALU inter-step state to argmax.
+    stack = None
+    model.alu.hard = args.eval_hard
+    print(f"\n{'T':>4} {'loc':>8} {'route':>7} {'ex_mix':>7} {'ex_arg':>7} "
+          f"{'wmax':>6} {'sec':>6}")
+    print("-" * 56)
+    results, res_arg, routes = {}, {}, {}
     for t in args.ladder:
         ids, mask = make_batch(mods, xs, t, device)
         tg = targets(mods, xs, t, S, device)
         t1 = time.time()
         with torch.no_grad(), torch.autocast("cuda", torch.bfloat16, enabled=amp):
             sx, sn, st = model.slots_of(ids, mask)
-            stack, _ = model.iterate(sx, sn, args.eval_loops)
+            if stack is None:
+                stack, _ = model.iterate(sx, sn, args.eval_loops)
+                sx0, sn0 = sx, sn
+            else:
+                d = max(float((sx - sx0).abs().max()),
+                        float((sn - sn0).abs().max()))
+                if d > 1e-2:
+                    print(f"  [parse drift {d:.4f} at T={t}: recomputing stack]")
+                    stack, _ = model.iterate(sx, sn, args.eval_loops)
             w = model.weights(st.float(), args.eval_loops, args.sigma,
                               args.hard_sel).to(stack.dtype)
             mixed = torch.einsum("bt,btsd->bsd", w, stack)
-        route = (w.argmax(-1) == (t - 1)).float().mean().item()
+            k = w.argmax(-1)
+            picked = stack.gather(
+                1, k[:, None, None, None].expand(-1, 1, S, 10)).squeeze(1)
+        route = (k == (t - 1)).float().mean().item()
         ok = (mixed.float().argmax(-1) == tg).all(dim=1).float().mean().item()
-        results[t], routes[t] = ok, route
-        print(f"{t:>4} {float(w.argmax(-1).float().mean()):>8.3f} {route:>7.4f} "
-              f"{ok:>7.4f} {time.time()-t1:>6.2f}", flush=True)
-    maxt = 0
-    for t in args.ladder:
-        if results.get(t, 0.0) >= 1.0:
-            maxt = t
-        else:
-            break
-    print(f"\nMAX_T = {maxt}", flush=True)
-    return results, routes, maxt, fitted, diag
+        ok_a = (picked.float().argmax(-1) == tg).all(dim=1).float().mean().item()
+        wmax = float(w.float().max(-1).values.mean())
+        results[t], res_arg[t], routes[t] = ok, ok_a, route
+        print(f"{t:>4} {float(k.float().mean()):>8.3f} {route:>7.4f} "
+              f"{ok:>7.4f} {ok_a:>7.4f} {wmax:>6.3f} {time.time()-t1:>6.2f}",
+              flush=True)
+
+    def prefix(res):
+        m = 0
+        for t in args.ladder:
+            if res.get(t, 0.0) >= 1.0:
+                m = t
+            else:
+                break
+        return m
+    maxt, maxt_arg = prefix(results), prefix(res_arg)
+    print(f"\nMAX_T(mixture) = {maxt}   MAX_T(argmax readout) = {maxt_arg}",
+          flush=True)
+    return results, res_arg, routes, max(maxt, maxt_arg), maxt, maxt_arg, \
+        fitted, diag
 
 
 def param_diag(model):
@@ -423,7 +475,14 @@ def main() -> int:  # noqa: C901
                     help="0 = max(train T), i.e. probe_compose's setting")
     ap.add_argument("--no-dump", action="store_true",
                     help="do NOT pile unspent halting mass on the last index")
-    ap.add_argument("--halt-pen", type=float, default=0.0)
+    ap.add_argument("--halt-grid", type=int, default=0,
+                    help="depth of the halting distribution during training; "
+                         "0 = same as --train-loops.  Deeper than the candidate "
+                         "stack costs only the controller's own chain.")
+    ap.add_argument("--halt-pen", type=float, default=0.0,
+                    help="penalty on halting mass that leaks past the candidate "
+                         "stack -- the only term that can see leakage, since "
+                         "cross-entropy on saturated log-probs cannot")
     ap.add_argument("--hard-sel", "--reg-hard", dest="hard_sel",
                     action="store_true",
                     help="straight-through one-hot on the counter's digit "
@@ -431,6 +490,11 @@ def main() -> int:  # noqa: C901
                          "exactly discrete over 64 steps while the gradient "
                          "still reaches `one` (attacks cause (b) at its source)")
     ap.add_argument("--one-init", type=float, default=0.5)
+    ap.add_argument("--eval-hard", action="store_true",
+                    help="snap every ALU inter-step state to argmax at eval "
+                         "(alu-depth: a *trained* ALU collapses under this; the "
+                         "constructed one does not, so it isolates whether the "
+                         "CONTROLLER is riding a continuous relaxation)")
     ap.add_argument("--cons", type=float, default=0.0)
     ap.add_argument("--cons-j", type=int, default=8)
     ap.add_argument("--cons-jd", type=int, default=0)
@@ -472,14 +536,15 @@ def main() -> int:  # noqa: C901
         print(f"\n[{args.tag}] seed={seed} selector={args.selector} "
               f"train_T={args.train_t} train_loops="
               f"{args.train_loops or max(args.train_t)} eval_loops="
-              f"{args.eval_loops} cons={args.cons} j={args.cons_j}/"
+              f"{args.eval_loops} halt_grid={args.halt_grid} "
+              f"cons={args.cons} j={args.cons_j}/"
               f"{args.cons_jd} space={args.cons_space} dump={not args.no_dump} "
               f"halt_pen={args.halt_pen} hard={args.hard_sel} S={S} "
               f"sel_params={n_sel} train={len(train[1])} held={len(held[1])}",
               flush=True)
         print(f"[lambda] {lam_banner(set(held[0]), args.ladder)}", flush=True)
-        res, route, maxt, fitted, diag = run_cell(args, model, train, held,
-                                                  device, S)
+        res, res_a, route, maxt, maxt_mix, maxt_arg, fitted, diag = run_cell(
+            args, model, train, held, device, S)
         rows.append(dict(tag=args.tag, seed=seed, selector=args.selector,
                          modulus=(args.modulus if args.regime == "fixed"
                                   else args.bits),
@@ -488,14 +553,19 @@ def main() -> int:  # noqa: C901
                          cons=args.cons, cons_j=args.cons_j,
                          cons_jd=args.cons_jd, cons_space=args.cons_space,
                          dump=not args.no_dump, halt_pen=args.halt_pen,
-                         hard=args.hard_sel, exact=res, route=route,
-                         max_t=maxt, fitted=fitted, diag=diag))
+                         halt_grid=args.halt_grid, eval_hard=args.eval_hard,
+                         hard=args.hard_sel, exact=res, exact_arg=res_a,
+                         route=route, max_t=maxt, max_t_mix=maxt_mix,
+                         max_t_arg=maxt_arg, fitted=fitted, diag=diag))
         del model
         torch.cuda.empty_cache()
     print("\n=== summary ===")
     for r in rows:
-        print(f"  seed={r['seed']} MAX_T={r['max_t']:>2}  "
+        print(f"  seed={r['seed']} MAX_T={r['max_t']:>2} "
+              f"(mix {r['max_t_mix']}, arg {r['max_t_arg']})  mix="
               + " ".join(f"{t}:{r['exact'][t]:.3f}" for t in args.ladder))
+        print(f"          {'':>16} arg="
+              + " ".join(f"{t}:{r['exact_arg'][t]:.3f}" for t in args.ladder))
     if args.out:
         with open(args.out, "a") as fh:
             for r in rows:
