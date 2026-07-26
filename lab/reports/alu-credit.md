@@ -679,11 +679,11 @@ Read down the table: as pressure rises, sharpness climbs monotonically
 length, the soft fit keeps improving, and the discrete fit never starts. Full
 traces in `lab/logs/i_long_*.log`.
 
-Three confirmatory re-screens (`k_tf_hard_3k`, `k_tprop_hard`, `k_xcurr_hard`)
-were still running at cutoff; their logs land in `lab/logs/` and none of them
-can change a conclusion here — the configurations they re-measure already read
-`train_exact_hard` 0.064, 0.196-soft and 0.224-soft respectively on the runs
-that did finish.
+Two confirmatory re-screens (`k_tprop_hard`, `k_xcurr_hard`) were still running
+at cutoff; their logs land in `lab/logs/`. Neither can change a conclusion here —
+both configurations already read `train_exact` 0.196 and 0.224 soft, i.e. inside
+the baseline band before snapping, so their hard numbers are bounded above by
+that.
 
 ### 9.1 Which of my earlier conclusions survive the metric change
 
@@ -744,11 +744,21 @@ it is a statement about what the hypothesis class can be driven to, not a recipe
 
 Original 257-step graph, `lab/logs/k_*.log`:
 
-| run | `train_exact` | **`train_exact_hard`** | `held_exact_hard` | `sub_shift` |
-|---|---|---|---|---|
-| baseline, 1,000 steps | 0.100 | 0.008 | 0.000 | 0.417 |
-| **teacher forcing, 1,000 steps** (LAB ONLY) | 1.000 | **0.064** | **0.053** | **0.817** |
-| **N=91 S=2 short chain, 3,000 steps** | 0.750 | **0.183** | 0.000 | 0.45 |
+| run | `train_exact` | **`train_exact_hard`** | `held_exact` | `held_exact_hard` | `sub_shift` |
+|---|---|---|---|---|---|
+| baseline, 1,000 steps | 0.100 | 0.008 | 0.000 | 0.000 | 0.417 |
+| **teacher forcing, 1,000 steps** (LAB ONLY) | 1.000 | **0.064** | 0.789 | **0.053** | **0.817** |
+| **teacher forcing, 3,000 steps** (LAB ONLY) | 1.000 | **0.072** | 0.816 | 0.026 | **0.817** |
+| **N=91 S=2 short chain, 3,000 steps** | 0.750 | **0.183** | 0.000 | 0.000 | 0.45 |
+
+The 1,000-vs-3,000-step teacher-forcing pair is worth reading carefully, because
+it is the cleanest single demonstration of what the metric change exposed.
+Training 3× longer moves the soft metrics *up* (`held_exact` 0.789 → 0.816) and
+the hard held metric *down* (`held_exact_hard` 0.053 → **0.026**), with
+`train_exact_hard` essentially flat (0.064 → 0.072) and the structure scores
+unchanged (`sub_shift` 0.817 both times). **The extra training does not buy more
+algorithm; it buys more reliance on the soft channel.** Anyone ranking this
+family on `train_exact` or `held_exact` would have read that as steady progress.
 
 Two things I did not expect and am reporting straight.
 
