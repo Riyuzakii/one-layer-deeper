@@ -64,15 +64,25 @@ Three things this pins down:
    The ordering is by `local_ce`, not by seed or ties — **`local_ce` predicts
    the outcome and nothing else does.**
 
-   The 8,000-step reliability sweep makes the rate *worse*, not better. Fresh
-   seeds 3–6 at 8,000 steps:
+   The complete 8,000-step reliability sweep — every distinct seed:
 
-| seed | steps | `train_exact` | **`train_exact_hard`** | `local_ce` |
-|---|---|---|---|---|
-| 4 | 8,000 | 0.545 | 0.000 | 0.0238 |
-| 5 | 8,000 | 0.168 | 0.000 | 0.0570 |
-| 3 | 8,000 | 0.162 | 0.011 | 0.0824 |
-| 6 | 8,000 | 0.058 | 0.000 | 0.1306 |
+| seed | ties | `train_exact` | **`train_exact_hard`** | `held_exact_hard` | `local_ce` |
+|---|---|---|---|---|---|
+| **2** | none | 0.950 | **0.951** | **0.946** | **0.0050** |
+| 0 | none | 0.801 | 0.103 | 0.071 | 0.0073 |
+| 4 | none | 0.545 | 0.000 | 0.000 | 0.0238 |
+| 5 | none | 0.168 | 0.000 | 0.000 | 0.0570 |
+| 3 | none | 0.162 | 0.011 | 0.007 | 0.0824 |
+| 6 | none | 0.058 | 0.000 | 0.000 | 0.1306 |
+| 1 | none | 0.014 | 0.000 | 0.000 | 0.1209 |
+| 2 | **full** | 0.003 | 0.000 | 0.000 | 0.1187 |
+
+   **Weight tying is not helpful and on this evidence is harmful.** Seed 2 is
+   the seed that solves the problem untied (`local_ce` 0.0050, 0.951); *tied*,
+   the same seed gives `local_ce` 0.1187 and 0.000. Across all runs, tied is
+   0 for 3 seeds and untied is 1 for 7. `discrete-search` measured that ties
+   improve *repair* from a near-solution (k=3: 3/5 → 5/5); that does not
+   transfer to *learning* from random init, and I would drop them.
 
    **Honest success rate: 1 of 7 distinct seeds untied, 0 of 3 tied.** Doubling
    the step count from 4,000 to 8,000 bought nothing — the successful seed had
