@@ -324,9 +324,13 @@ session has a measured configuration that fools it:
 | `sub_shift` (structure) | target propagation | 0.567 | `train_exact_hard` 0.004 |
 | `held_exact` | teacher forcing, 3k | 0.816 | `held_exact_hard` 0.026 |
 | `train_exact_hard` alone | short chain | 0.183 | `held_exact_hard` 0.000 |
+| `mul_fn` (structure) | a constant map | 1.000 | `mul_gauge` 0.100 |
+| algebraic objective | basin hopping, 38x compute | 0.786 -> 0.211 | `add_shift` driven *below* chance, 0.285 -> 0.205 |
 
-Note the third row especially: **parameter-level progress and discrete correctness are
-close to independent.** Target propagation has the best structure score of any legal
+Note two rows especially. **Parameter-level progress and discrete correctness are close
+to independent** (target propagation). And in the last row **objective and structure are
+anticorrelated** over the range a stronger searcher explores — which closes the "just try
+a better optimiser" objection with a measurement rather than an expectation. Target propagation has the best structure score of any legal
 procedure and the worst hard correctness in the table. So "per-step signal teaches the
 tables" should be read as *it moves the parameters*, not as *it nearly solves it*.
 
