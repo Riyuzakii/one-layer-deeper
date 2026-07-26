@@ -543,7 +543,7 @@ S = 5, **9,000 distinct operands**, 3 seeds.
 | all cells, untied (§7.2) | 1,007 | 0.289 | **0.0003** | 0.0000 | 0.256 (0.258) | 0.24–0.30 (chance) |
 | **+ weight ties** `sym,inv` | 337 | 0.286 | **0.0000** (3/3) | 0.0000 | 0.263 (0.258) | 0.27–0.33 (chance) |
 | **`Tsub` only, rest EXACT** | 400 | 0.290 | **0.0001** | 0.0000 | 0.724 (0.722) | `sub_shift` 0.212–0.275 (chance) |
-| annealed, all cells | 1,007 | SA9K_DIGIT | **SA9K_HARD** | SA9K_HELD | SA9K_CA (0.258) | chance |
+| annealed, all cells (2 × 6,000 × 320 chains) | 1,007 | 0.298 | **0.0000** | 0.0000 | 0.264 (0.258) | 0.24–0.29 (chance) |
 | the truth | — | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
 
 The third row is the sharpest single statement in this report. **At Medium's
@@ -760,6 +760,31 @@ $V lab/probe_search.py --modules sub --anneal 15000 --anneal-rounds 2 \
    --block 256 --polish 3 --sweeps 60 --t0 5e-3 --t1 1e-5 --seed 11 \
    --tag sa_sub --jsonl lab/search_runs.jsonl
 
+# --- the coordinator's data-volume challenge (§7) ---
+# per-tier identifiability ratio: pure arithmetic from the generator config
+# (scripts/generate_datasets.sh, lab/gen_hard_proxy.sh) x the measured table bits
+
+# the operand ladder at m1's modulus -- THE TEST
+for tx in 250 1000 3000 9000; do
+  $V lab/probe_search.py --modulus 10403 --slots 5 --train-x $tx \
+     --chunk 1000 --block 16 --restarts 3 --sweeps 40 --tag m1x$tx \
+     --jsonl lab/search_runs.jsonl; done
+
+# the basin at m1 volume, with error bars (45,000 supervised digits)
+$V lab/probe_search.py --modulus 10403 --slots 5 --train-x 9000 --chunk 3000 \
+   --block 4 --basin --basin-reps 5 --tag basin9k
+
+# ties and the module-restricted control, both at m1 volume
+$V lab/probe_search.py --modulus 10403 --slots 5 --train-x 9000 --chunk 1000 \
+   --block 16 --tie sym,inv --restarts 3 --sweeps 60 --tag m1tie9k \
+   --jsonl lab/search_runs.jsonl
+$V lab/probe_search.py --modulus 10403 --slots 5 --train-x 9000 --chunk 1000 \
+   --block 8 --modules sub --restarts 3 --sweeps 60 --tag m1mod9k \
+   --jsonl lab/search_runs.jsonl
+$V lab/probe_search.py --modulus 10403 --slots 5 --train-x 9000 --chunk 1000 \
+   --block 32 --anneal 6000 --anneal-rounds 2 --polish 3 --sweeps 40 \
+   --t0 5e-3 --t1 1e-5 --seed 21 --tag m1sa9k --jsonl lab/search_runs.jsonl
+
 # the legal hypothesis-class ties
 $V lab/probe_search.py --tie sym,inv --basin --tag basin_tie
 $V lab/probe_search.py --tie sym,inv --restarts 5 --sweeps 80 --tag tie_scratch \
@@ -788,7 +813,7 @@ gauge-invariant `struct` scores, `cell_agree`). Per-run logs in `lab/logs/`.
   from random init with the standard AdamW cell and touches no oracle — but the
   *discrete polish* that follows it is a participant-controlled search and is
   therefore lab-only too.
-* 110 searches are archived in `lab/search_runs.jsonl`, one JSON line each with
+* 128 searches are archived in `lab/search_runs.jsonl`, one JSON line each with
   the full argv. `lab/logs/` is gitignored by repo convention, so the raw stdout
   does not survive the branch; every number quoted above is either in the JSONL
   or reproducible from §11 in minutes.
