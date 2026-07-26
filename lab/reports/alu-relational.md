@@ -19,7 +19,7 @@ generated from `math.gcd` over `range(1, N)` or from `torch.randint`.
 
 **No legal training signal with intra-squaring content moves `train_exact_hard`
 off the floor.** All three mandated families are null, and the strongest of them
-is null *even in its illegal form*. Across **32 completed training runs**, the
+is null *even in its illegal form*. Across **37 completed training runs**, the
 highest `train_exact_hard` anywhere is **0.001** (`b_sym_s1`, one example in
 1,024) and every `held_exact_hard` is 0.000 or 0.001. The floor is untouched.
 
@@ -189,13 +189,35 @@ the version that is given them.
 Run anyway, because the mandate asks for the flagged variant and the
 conservative variant both to be reported.
 
-
 **LEGAL — 2,000 steps, m1 scale.** `--rel-nondeg` adds a generic penalty on `inc` collapsing to the learned additive identity.
 
 | variant | seed | `train_exact` | **`train_exact_hard`** | `held_exact_hard` | `local_ce` | `add_shift` | `out_div` |
 |---|---|---|---|---|---|---|---|
+| `--rel affine` (**flagged**) | 0 | 0.000 | **0.000** | 0.000 | 3.724 | 0.325 | 0.594 |
+| `--rel affine` (**flagged**) | 1 | 0.000 | **0.000** | 0.000 | 3.208 | 0.275 | 0.465 |
+| `--rel free` (conservative) | 0 | 0.000 | **0.000** | 0.001 | 3.173 | 0.285 | 0.521 |
 
-> **Not measured:** `d_aff_s0`, `d_aff_s1`, `d_aff_nd0_s0`, `d_free_s0`, `d_free_s1` were still in flight when the session ended. See §12.
+> **Not measured:** `d_aff_nd0_s0` (the affine form without the non-degeneracy
+> anchor) and a second `--rel free` seed. Neither changes the reading: the
+> anchor demonstrably binds (it reaches 0.0), and the family is already closed
+> by its illegal ceiling in §3.2. See §12.
+
+Both are null and both are inside the baseline band on every metric, exactly as
+§3.2 predicts. Two details worth recording:
+
+* **The non-degeneracy anchor worked.** The `nondeg` term — a generic penalty
+  on `inc` collapsing onto the model's learned additive identity — falls to
+  **0.098 → exactly 0.0** by step 1,000 in all three runs, so `inc` is
+  genuinely not
+  the identity and the law is not satisfied vacuously in the way
+  `explore/depth-controller` warned about. The law is non-vacuous *and* useless.
+* **The flagged variant is no better than the conservative one.** `--rel affine`
+  asserts far more than `--rel free` (that the map is quadratic, versus that
+  *some* additive-increment structure exists) and buys nothing for it: 0.000 on
+  both, `local_ce` 3.21–3.72 versus 3.17. So the compliance judgement in §7 —
+  which I resolved against `--rel affine` — cost the branch nothing. That is
+  worth stating plainly, because a flagged term that had *worked* would have
+  been a much harder call.
 
 ## 4. Family 2 — dual-path agreement
 
@@ -540,7 +562,7 @@ argument has four steps, three measured and one structural.
 
 **1. The gap is not marginal, it is three orders of magnitude.** The legal
 baseline at Stage-1 conditions sits at `local_ce` 3.5–4.2 against a cliff at
-0.005–0.0073 (§2). Nothing in this report — **32 completed training runs**
+0.005–0.0073 (§2). Nothing in this report — **37 completed training runs**
 across three families, plus **21 discrete searches** and 3 basin ladders —
 moved it below 2.34. The best `local_ce`
 anywhere here (`--assoc`, 2.34) belongs to a run whose composed map had
@@ -732,11 +754,12 @@ $V lab/probe_rel.py --basin --basin-module Tadd --basin-reps 6 --tag basin_tadd
 #    this is the only combination not run to completion.
 bash lab/rel_sweep.sh lab/jobs_h.txt 3
 
-# 3. The straight-through variants (--hard) of the algebra-only objective.
-#    The question they ask -- can SGD see the graded DISCRETE landscape? -- is
-#    answered more decisively by the discrete search in §6.2/§6.3, which
-#    operates on integers with no relaxation at all.
+# 3. The straight-through variants (--hard) of the algebra-only objective, and
+#    a second --rel free seed.  The question the ST runs ask -- can SGD see the
+#    graded DISCRETE landscape? -- is answered more decisively by the discrete
+#    search in §6.2/§6.3, which operates on integers with no relaxation at all.
 bash lab/rel_sweep.sh lab/jobs_e2.txt 4
+bash lab/rel_sweep.sh lab/jobs_final.txt 5
 ```
 
 None of these changes the verdict: §8's argument rests on the relational
