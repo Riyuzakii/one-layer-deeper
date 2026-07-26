@@ -645,6 +645,57 @@ def build_task(modulus, slots, train_x, split_seed, device):
     return tens(tr), tens(he), nd, tr, he
 
 
+def float_init(args, device, nd, xin, xt, steps, seed):
+    """Train the FLOAT tree:quotient model for `steps` AdamW steps, then snap its
+    argmax into the integer search space.  Answers: does gradient descent land
+    inside the discrete basin, so that a discrete polish could finish the job?"""
+    from probe_alu_depth import DigitALU
+    import torch.nn.functional as F
+    W = args.slots + 1
+    ndf = torch.zeros(W, 10, device=device)
+    for i, d in enumerate(nd.tolist()):
+        ndf[i, d] = 1.0
+    xinf = F.one_hot(xin, 10).float()
+    torch.manual_seed(seed)
+    fm = DigitALU(args.slots, 2, 2, 11, 1.0, 0.0, False, "quotient",
+                  args.max_quot, "tree", "serial").to(device)
+    opt = torch.optim.AdamW(fm.parameters(), lr=3e-2, betas=(0.9, 0.95))
+    for st in range(steps):
+        lg = fm(xinf, ndf)
+        loss = F.cross_entropy(lg.reshape(-1, 10), xt.reshape(-1))
+        opt.zero_grad(set_to_none=True)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(fm.parameters(), 1.0)
+        opt.step()
+    fm.eval()
+    with torch.no_grad():
+        was, fm.hard = fm.hard, False
+        lg = fm(xinf, ndf)
+        soft = (lg.argmax(-1) == xt).all(1).float().mean().item()
+        fm.hard = True
+        lg = fm(xinf, ndf)
+        hard = (lg.argmax(-1) == xt).all(1).float().mean().item()
+        fm.hard = was
+        snap = {"mul_lo": fm.Tmul[..., :10].argmax(-1),
+                "mul_hi": fm.Tmul[..., 10:].argmax(-1),
+                "add_d": fm.Tadd[..., :10].argmax(-1),
+                "add_c": fm.Tadd[..., 10:].argmax(-1),
+                "sub_d": fm.Tsub[..., :10].argmax(-1),
+                "sub_b": fm.Tsub[..., 10:].argmax(-1),
+                "zero": fm.zero.argmax().view(1),
+                "carry0": fm.carry0.argmax().view(1),
+                "borrow0": fm.borrow0.argmax().view(1)}
+        w, bs = fm.sel.weight[0], fm.sel.bias[0]
+        sel = torch.zeros(2, 2, device=device)
+        for a in range(2):
+            for b in range(2):
+                sel[a, b] = w[a] + w[2 + b] + bs
+        snap["sel"] = sel
+    print(f"[{args.tag}] float warm start: {steps} AdamW steps -> "
+          f"train_exact(soft)={soft:.3f} train_exact_hard={hard:.3f}", flush=True)
+    return snap
+
+
 def verify(args, device):
     """Correctness gate: the integer sim must equal the float sim with hard
     states, on the construction AND on random inits."""
@@ -744,6 +795,9 @@ def main() -> int:
                          "the current best chains")
     ap.add_argument("--pop", type=int, default=0,
                     help="population size for --anneal (default block*10)")
+    ap.add_argument("--float-steps", type=int, default=0,
+                    help="warm start from a FLOAT model trained this many AdamW "
+                         "steps, snapped to argmax, then discretely polished")
     ap.add_argument("--tie", default="",
                     help="LEGAL hypothesis-class ties: 'sym' (Tmul/Tadd "
                          "symmetric in the two digit indices), 'inv' (Tsub "
@@ -918,6 +972,14 @@ def main() -> int:
             d, e = model.score(xin, xt)
             print(f"[{args.tag}] rep={rep} modules={sorted(only)} random, rest "
                   f"CONSTRUCTED: digit={d[0]:.4f} exact={e[0]:.4f}", flush=True)
+        elif args.float_steps:
+            base = float_init(args, device, nd, xin, xt, args.float_steps,
+                              args.seed * 100 + rep)
+            model.load(base)
+            d, e = model.score(xin, xt)
+            print(f"[{args.tag}] rep={rep} float-warm-start snapped: "
+                  f"digit={d[0]:.4f} exact={e[0]:.4f} "
+                  f"struct={structure_scores(base, ndl)}", flush=True)
         else:
             model.randomize(g)
             base = model.snapshot(0)

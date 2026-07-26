@@ -18,9 +18,12 @@ The headline number: from a uniformly random table assignment, greedy
 coordinate descent over all 1,007 discrete cells converges in ~5 sweeps to
 `train_exact_hard` **0.028–0.048** (5 seeds), `held_exact_hard` **0.000**, and
 gauge-invariant structure scores **0.23–0.31** — i.e. *chance*. Parallel
-simulated annealing with 2,560 independent chains and ~1.5 × 10⁸ objective
-evaluations lands in the same place. That is the same signature ~160 gradient
-procedures produce, reached by a completely different optimiser.
+simulated annealing with 2,560 independent chains and **1.5 × 10⁸ objective
+evaluations** finishes at `train_exact_hard` **0.064**, `held_exact_hard`
+**0.000**, structure **0.24–0.28** — the same place, with the table agreeing
+with the truth on 0.262 of cells against a chance value of 0.258. That is the
+same signature ~160 gradient procedures produce, reached by a completely
+different optimiser.
 
 Three measurements say *why*, and together they are stronger than the negative
 result itself:
@@ -34,10 +37,12 @@ result itself:
 2. **Handing the search three of the four modules *exactly* does not help.**
    With `Tmul`, `Tadd`, the constants and the quotient scorer set to the truth
    and only `Tsub` (400 cells) random, greedy reaches `train_exact_hard` 0.008 /
-   0.024 / 0.044 and `sub_shift` 0.233–0.283 — chance. Same for `Tadd` alone and
-   `Tmul` alone. **This is not a credit-assignment problem, a chain-length
-   problem, or a joint-search problem. A single 400-cell table is not
-   identifiable from the end-of-chain label when everything else is perfect.**
+   0.024 / 0.044 and `sub_shift` 0.233–0.283 — chance; annealing with 7.7 × 10⁷
+   evaluations on that same 400-cell subproblem reaches 0.072 and `sub_shift`
+   0.267 — still chance. Same for `Tadd` alone and `Tmul` alone. **This is not a
+   credit-assignment problem, a chain-length problem, or a joint-search problem.
+   A single 400-cell table is not identifiable from the end-of-chain label when
+   everything else is perfect.**
 3. **The information budget is exhausted.** The 250 training operands read 967
    of the 1,007 cells; describing those cells costs **2,318 bits**, and the
    labels supply **2,491 bits** (250 × 3 digits × log₂10). Ratio **1.075**. The
@@ -52,6 +57,13 @@ objective*. My search already evaluates that objective 10⁸ times from within
 what is, semantically, "one forward per candidate batch"; a tier-faithful Easy
 run affords perhaps 10⁶. The objective, not the estimator and not the step
 budget, is what is empty. **I did not ship a submission.**
+
+**The one number that moved, for the record.** The best `train_exact_hard`
+anywhere in this family is **0.080** — a float model trained 2,000 AdamW steps,
+snapped to argmax, then discretely polished (§4.1) — against `alu-credit`'s best
+legal gradient result of 0.020. It is 4× a floor and it is still a floor:
+`held_exact_hard` 0.000, tables at chance, `cell_agree` 0.239 (*below* the 0.258
+chance level).
 
 **What this closes and what it does not.** It closes *learning `DigitALU` from
 the end-of-chain label by any optimiser*. It does **not** touch the hypothesis
@@ -187,13 +199,15 @@ Two things worth stating plainly.
 
 **The search reaches `held_exact_hard` = 1.000.** Every rep that recovers gets
 *all 38* held-out operands exactly right, from a 250-operand training set, with
-a 6,820-parameter digit-indexed model. As far as I can tell that is the first
-1.000 held-out exact number produced by any *search* in this repo (teacher
-forcing's best was 0.816, and it is illegal). It confirms — from a third
-independent direction, after `--construct` and after `alu-credit` §6.3's table
-dump — that the target is reachable, that the parameterisation is right, and
-that nothing about generalisation is the obstacle. **Only the route to it is
-missing.**
+a 6,820-parameter digit-indexed model. The starting point is oracle-derived (a
+corrupted construction), so this is **not** a claim that anything was learned —
+but it is the first 1.000 held-out exact produced in this repo by an *optimiser*
+rather than by `--construct` itself, and the best comparable number from a
+procedure is teacher forcing's 0.816 (which is also illegal). It confirms —
+from a third independent direction, after `--construct` and after `alu-credit`
+§6.3's table dump — that the target is reachable, that the parameterisation is
+right, and that nothing about generalisation is the obstacle. **Only the route
+to it is missing.**
 
 **The failures are not near-misses; they are departures.** At `k` = 10, rep 1
 started 10 cells wrong and finished **103 cells wrong** (`cell_agree`
@@ -222,8 +236,35 @@ Uniformly random assignment, greedy block-coordinate search, 5 seeds, N = 323:
 | 4 | 0.108 | 0.380 | 0.036 | 0.000 | 0.249 | 0.28 | 0.250 | 0.25 |
 
 Converged in ~5 sweeps every time. `cell_agree` ≈ 0.27 is **chance** (a random
-table agrees with the truth on ~0.28 of cells given the 10/2 alphabets), and so
-are all four structure scores against the 0.23–0.28 random baseline.
+table agrees with the truth on 0.258 of cells: 600 cells at 1/10 and 400 at
+1/2), and so are all four structure scores against the 0.23–0.28 random
+baseline.
+
+### 4.1 A gradient warm start does not put you in the basin either
+
+The obvious hybrid: train the float model, snap it, and let the discrete search
+finish the job. `--float-steps 2000` trains `tree:quotient` with the standard
+AdamW lr 3e-2 full-batch cell, then snaps to argmax and searches. 3 seeds.
+
+| seed | float `train_exact` (soft) | float `train_exact_hard` | **snapped** `digit` | after polish `digit` | after polish `train_exact_hard` | `held_exact_hard` | `cell_agree` |
+|---|---|---|---|---|---|---|---|
+| 0 | 0.312 | 0.004 | 0.155 | 0.453 | **0.056** | 0.000 | 0.223 |
+| 1 | 0.424 | 0.008 | 0.167 | 0.424 | 0.052 | 0.000 | 0.253 |
+| 2 | 0.372 | 0.000 | 0.140 | 0.449 | **0.080** | 0.000 | 0.239 |
+
+(The float column independently reproduces `alu-depth` §2.3's `tree:quotient`
+cell — soft 0.37–0.44, hard 0.000–0.008 — which is a useful cross-check that
+this branch and that one are measuring the same object.)
+
+Read the "snapped" column: **2,000 steps of gradient descent leave the table at
+`digit` 0.14–0.17 against a random-table floor of 0.10.** After 2,000 steps the
+discrete content of the model is barely distinguishable from a random draw, and
+`cell_agree` after polishing (0.22–0.25) is *below* the 0.258 chance level.
+
+The hybrid does produce the **best `train_exact_hard` anywhere in this family:
+0.080**, against `alu-credit`'s best legal gradient result of 0.020 and this
+branch's cold-start 0.048. It is still at the floor, `held_exact_hard` is still
+0.000, and the tables are still at chance. Four times a floor is a floor.
 
 Three comparisons make this the decisive number:
 
@@ -259,6 +300,7 @@ searched. 3 seeds each, greedy, N = 323.
 | `Tadd`+`Tsub` | mul, consts, sel | 800 | 0.017 / 0.024 | 0.343 | chance |
 | `Tmul`+`Tsub` | add, consts, sel | 600 | 0.029 / 0.040 | 0.359 | chance |
 | all (§4) | — | 1,007 | 0.037 / 0.048 | 0.383 | chance |
+| `Tsub` only, **annealed** (§6) | mul, add, consts, sel | 400 | 0.072 | 0.435 | `sub_shift` 0.267 (chance) |
 
 **Read the last column.** A 200-cell table — `Tmul`, the multiplication table,
 sitting at the very front of the graph with a *perfect* adder, a *perfect*
@@ -285,7 +327,53 @@ chain per step and accepted on the digit objective; every chain advances by one
 proposal per forward pass. Population is free (§1.2), so this is 2,560 chains at
 ~60 ms per generation.
 
-SA_RESULTS_PLACEHOLDER
+**`sa_sub` — 400 cells, everything else exact, 2,560 chains, 2 × 15,000
+proposals per chain = 7.7 × 10⁷ objective evaluations, then a greedy polish of
+the three best chains.** This is the most favourable configuration I can
+construct for a search: the smallest interesting subproblem, with a perfect
+machine around it, and a global optimiser with a serious budget.
+
+| | `digit` | `train_exact_hard` | `held_exact_hard` | `sub_shift` | `cell_agree` |
+|---|---|---|---|---|---|
+| random `Tsub`, rest exact | 0.089–0.112 | 0.000 | 0.000 | ~0.25 | 0.72 (chance) |
+| greedy (§5) | 0.327 | 0.025 | 0.000 | 0.261 | 0.721 |
+| **annealing + polish, top 3 chains** | **0.435** | **0.072** | **0.000** | **0.267** | 0.737 |
+| the truth | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+
+`cell_agree` 0.737 decomposes exactly as chance: the 607 frozen cells are
+correct (0.603) plus ~0.13 of the 400 searched cells by luck. **Seventy-seven
+million evaluations on a 400-cell table, with the rest of the transducer
+perfect, leave that table at chance.** The reheat round never beat round 0
+(best 0.4320 → 0.4333 over a second 15,000 steps), so this is a saturated
+result, not a truncated one.
+
+**`sa_big` — the full 1,007-cell space, 2,560 chains, 3 × 20,000 proposals per
+chain = 1.5 × 10⁸ evaluations.**
+
+| | `digit` | `train_exact_hard` | `held_exact_hard` | `cell_agree` | `mul_lo` | `add_shift` | `sub_shift` |
+|---|---|---|---|---|---|---|---|
+| random init | 0.089–0.111 | 0.000 | 0.000 | 0.26 | 0.28 | 0.275 | 0.233 |
+| greedy, 5 seeds (§4) | 0.352–0.424 | 0.028–0.048 | 0.000 | 0.249–0.289 | 0.24–0.28 | 0.25–0.31 | 0.25–0.28 |
+| **annealing + polish, top 4 chains** | **0.476–0.479** | **0.060–0.064** | **0.000** | 0.260–0.264 | 0.28 | 0.27 | 0.25–0.27 |
+| the truth | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+
+The three reheat rounds returned best-of-population 0.4600 → 0.4613 → 0.4627:
+**saturated after the first**. `cell_agree` 0.262 is the 0.258 chance value, and
+all four structure scores are inside the random baseline. Annealing buys
+`digit` 0.42 → 0.48 and `train_exact_hard` 0.048 → 0.064 over greedy, and buys
+**nothing at all** on the question of whether the transducer was found.
+
+Note what `digit` 0.48 means by the §2 table: the *construction* has `digit`
+0.43 at 20 corrupted cells. So the annealed solution scores *better* than a
+table that is 20 cells from the truth, while being 743 cells from it. The
+degenerate branch of the level set does not merely exist; it dominates.
+
+For scale: a tier-faithful Easy run affords 65–80 optimizer steps. Even a
+surrogate that evaluated 10⁴ candidates inside every one of those forwards
+would reach ~10⁶ evaluations — **two orders of magnitude below what is
+demonstrated here to be insufficient**, on an objective whose signal at 20 %
+corruption is one standard error. The search budget is not the binding
+constraint, and neither is the step budget. The objective is.
 
 ---
 
@@ -389,7 +477,7 @@ because it is the part that redirects the calendar.
 | proposed surrogate | legal? | does it help? |
 |---|---|---|
 | **Population evaluation inside one forward** (thousands of candidate assignments on a batch dim, combined by a loss-weighted softmax) | **Yes** — one forward, one backward, one `optimizer.step()`; the evaluator never sees inside `forward`. `runner.py:316-338` is satisfied. | **No.** This is exactly what §4–§6 do, at a scale the evaluator cannot approach. I ran ~1.5 × 10⁸ objective evaluations; a tier-faithful Easy run affords ~10⁶ (65–80 steps × ~10⁴ candidates). The objective is flat over that whole region. |
-| **Score-function / ES estimators** | **Yes, honestly constructible.** The path exists: draw candidates from a learned categorical, evaluate them in the forward, and let `training_loss` return `Σ_i (L_i.detach() − b) · log p_θ(cand_i)` — the gradient flows to θ through `log p_θ`, no Jacobian through the discrete states, and every input-dependent computation stays in the graph. I am satisfied this respects rule 8. | **No.** REINFORCE/ES estimate `E[L]` under a distribution over the *same* discrete objective. §2 says that objective has ~1 σ of signal at 20 % corruption. A zeroth-order estimator of a flat function is a flat estimator. |
+| **Score-function / ES estimators** | **Constructible, with one caveat I want on the record.** Draw candidate tables from a learned categorical, evaluate them in the forward, and have `training_loss` return `Σ_i (L_i.detach() − b) · log p_θ(cand_i)` — one finite differentiable scalar, no Jacobian through the discrete states, all input-dependent computation inside the graph. The caveat: the gradient reaches θ through `log p_θ`, i.e. through the *sampling distribution*, not through the prediction path itself. That is the standard REINFORCE structure and I think it is defensible under rule 8, but a strict reading of "unbroken gradient path from the loss to the parameters responsible for the prediction" could reject it. **Flagged as compliance-uncertain.** | **No.** REINFORCE/ES estimate `E[L]` under a distribution over the *same* discrete objective. §2 says that objective has ~1 σ of signal at 20 % corruption. A zeroth-order estimator of a flat function is a flat estimator. |
 | **A custom optimizer reading state the model wrote in `forward`** | **Compliance-uncertain, and I would not ship it.** `optimizer.step()` receives no loss, so the pattern needs a non-persistent buffer written in `forward` and read in `step()`. That is a side channel around the "unbroken gradient path from the loss to the parameters responsible for the prediction". It is arguably within the letter of rule 8 (the prediction path is still differentiable) and clearly against its spirit. | **Moot** — same objective again. |
 | **Weight tying (§8)** | **Yes, cleanly** — architecture only, no values supplied, construction stays in the class. | Improves conditioning near the solution (5/5 repair at k=3, versus 3/5); does not move from random init. **Keep it, do not rely on it.** |
 | **Algebraic constraints strong enough to pin the tables** (mul-from-repeated-add, additive identity on the learned `zero`, base-case anchoring) | **No, in my judgement.** A constraint set that determines base-10 arithmetic up to relabelling *without any data* is implementing the arithmetic — rule 2 in the loss instead of the forward pass. `alu-credit` already measured the weak, generic forms (`--sym`, `--inv`) as soft penalties and they were null. | Not tested, deliberately. I do not think a result obtained this way would be a legitimate submission, and reporting it as a "win" would mislead the team. |
@@ -465,6 +553,10 @@ for m in mul add sub mul,add add,sub mul,sub; do
   $V lab/probe_search.py --modules $m --restarts 3 --sweeps 60 --tag mod_$m \
      --jsonl lab/search_runs.jsonl; done
 
+# the gradient-warm-start hybrid (best train_exact_hard in the family: 0.080)
+$V lab/probe_search.py --float-steps 2000 --restarts 3 --sweeps 60 \
+   --tag warm2000 --jsonl lab/search_runs.jsonl
+
 # a strong global search: 2,560 independent Metropolis chains
 $V lab/probe_search.py --anneal 20000 --anneal-rounds 3 --block 256 \
    --polish 4 --sweeps 60 --t0 5e-3 --t1 1e-5 --seed 7 --tag sa_big \
@@ -497,6 +589,14 @@ gauge-invariant `struct` scores, `cell_agree`). Per-run logs in `lab/logs/`.
   DIAGNOSTICS**. They set tables to the truth or measure distance to it, and are
   never part of a submission (rule 7: no hard-coded algorithm in the forward
   pass). Every table above says which side of that line a row is on.
+  `--float-steps` (§4.1) is not in that category — it trains the float model
+  from random init with the standard AdamW cell and touches no oracle — but the
+  *discrete polish* that follows it is a participant-controlled search and is
+  therefore lab-only too.
+* 110 searches are archived in `lab/search_runs.jsonl`, one JSON line each with
+  the full argv. `lab/logs/` is gitignored by repo convention, so the raw stdout
+  does not survive the branch; every number quoted above is either in the JSONL
+  or reproducible from §11 in minutes.
 * The `--tie` transformations (§8) are **not** in that category: they are weight
   sharing, they supply no value, and the construction is not used to derive
   them. They would be legal in a submission. I did not ship one because there is
