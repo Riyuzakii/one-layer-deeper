@@ -129,6 +129,7 @@ conditioning *near* the solution and do not create a path from random init).
 
 This is the number every row below is measured against, and **nothing in this
 report moved it by even one order of magnitude.**
+
 ## 3. Family 1 — the relational increment law. Closed by its own illegal ceiling.
 
 ### 3.1 What was built
@@ -255,15 +256,24 @@ operands. This is the only generic algebraic law that touches `Tmul` beyond
 commutativity, so it matters for the closure argument in §8. It costs four
 chains per evaluation.
 
-*(`h_mas_s0`, `h_mas_s1`, and `h_mas_all_s0` — all laws stacked — were in flight
-when the session ended; see §12 for their state and resume command. What had
-been measured at the last checkpoint is `train_exact_hard` 0.000 with the
-`massoc` term falling 4.60 → 4.37, i.e. the same shape as every other
-chain-composed law. §6.1's `mas` column is the parameter-free version of the
-same statement, and it is complete: multiplicative associativity is the
-*fastest-saturating* objective of all — 17.1 at `k = 1` and 44.0 at `k = 2`,
-already near its random-table value of ~72 by `k = 5`. It is the most
-chain-composed law in the report and the most rugged.)*
+**LEGAL — 2,000 steps, m1 scale, 2 seeds.**
+
+| run | `train_exact` | **`train_exact_hard`** | `held_exact_hard` | `local_ce` | `mul_gauge` | `add_shift` | `out_div` |
+|---|---|---|---|---|---|---|---|
+| `--massoc 1.0` seed 0 | 0.000 | **0.000** | 0.000 | 3.574 | 0.50 | 0.275 | 0.682 |
+| `--massoc 1.0` seed 1 | 0.000 | **0.000** | 0.000 | 3.582 | 0.80 | 0.305 | 0.629 |
+
+Null, inside the baseline band on every metric, with no collapse. The `massoc`
+term itself falls 4.603 → 3.694 over the run, so the model does learn to agree
+with itself about the order in which it multiplies — and is no more correct
+for it.
+
+This matters for §8 because multiplicative associativity is the **only generic
+algebraic law that touches `Tmul` beyond commutativity**, and both are now
+measured null at Stage-1 conditions. §6.1 explains why: at four chains per
+evaluation, `mas` is the most chain-composed law in the report and the most
+rugged of all — 17.1 at `k = 1` and already at its random-table value of ~72
+by `k = 20`.
 
 ## 5. Family 3 — re-screening the algebraic regularisers at Stage-1 conditions
 
