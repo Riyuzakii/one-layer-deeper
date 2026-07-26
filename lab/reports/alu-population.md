@@ -382,6 +382,82 @@ objective.
 
 ---
 
+## 7. Cheaper alternatives, tested first — only one moves the rate, and not enough
+
+The mandate said to test variance reduction, weight averaging, restarts and
+init before concluding a population is needed. **The population is the cheapest
+instrument for testing them**: one P=32 run *is* 32 basin draws, so a single
+600 s run resolves a rate that would take 32 separate runs to measure. Every
+row below is one run at P=32, seed 0, 1,200 steps, against the two baseline
+runs at **11/32 and 10/32**. **DIAGNOSTIC** (teacher forcing throughout).
+
+| lever | replicas in basin | best `train_exact_hard` | verdict |
+|---|---|---|---|
+| **baseline** (lr 3e-2, batch 512, init 0.5, per-replica clip) | **11/32, 10/32** | 1.000 | — |
+| batch 512 -> **2048** (gradient variance /4) | 10/32 | 1.000 | **no effect**, and 2.8x the cost/step |
+| lr decayed 3e-2 -> 3e-3 over the run | 11/32 | 1.000 | **no effect** |
+| lr 3e-2 -> **1e-1** | 11/32 | 0.953 | **no effect** on the rate |
+| lr 3e-2 -> **3e-3** | **0/32** | 0.281 | **destroys it** — too slow to arrive in 1,200 steps |
+| **init scale 0.5 -> 0.25** | **17/32** | 1.000 | **the only lever that helps: 0.34 -> 0.53** |
+| init scale spread over a 16x log range across replicas | 9/32 | 1.000 | no effect (dilutes with bad scales) |
+| **global** grad clip (as the evaluator does) instead of per-replica | 11/32 | 1.000 | **no effect — see §7.1** |
+| reinitialise the worst 50% every 200 steps (80 reinits) | 9/32 | 1.000 | **no effect** — see §7.2 |
+| **weight averaging** across replicas (P=8) | — | **0.001** | **catastrophic — see §7.3** |
+
+**Conclusion: ordinary variance reduction does not move the basin rate.** Batch
+size, learning rate and learning-rate schedule are all flat; the only knob that
+moves it is the *initialisation scale*, and halving it takes the per-replica
+rate from 0.34 to 0.53 — useful, worth stacking, and **not remotely enough on
+its own**: a single model at 0.53 still fails once in two runs, and the
+evaluator gives you one run. A population is not merely the best option here,
+it is the only one that reaches ~1.
+
+### 7.1 Global gradient clipping does not couple the replicas — this matters for legality
+
+The evaluator clips with `clip_grad_norm_(raw_model.parameters(), 1.0)`
+(`benchmark/runner.py:331-334`), which is a **global** norm over the whole
+population — so one exploding replica rescales everybody's update. That is a
+real coupling and it would break the "P independent runs" claim if it mattered.
+It does not: global clipping gives **11/32**, identical to per-replica clipping.
+The reason is that AdamW normalises per parameter, so a common scale factor on
+the gradient is almost entirely absorbed. **A submission can use the
+evaluator's own clipping and still get independent replicas.**
+
+### 7.2 Reinitialising losers inside `optimizer.step()` — flagged, and it does not help anyway
+
+`AdamWReinit` (in `lab/probe_pop.py`) re-randomises the lowest-`alpha` half of
+the population every 200 steps and zeroes their Adam moments. 80 reinitialisations
+over the run gave **9/32**, indistinguishable from the 10–11/32 baseline: a
+replica that is going to find the basin does so in the first few hundred steps,
+so recycling losers just restarts a clock that has already run out.
+
+**Compliance, as the mandate asked me to judge it.** I do not think this breaks
+rule 8 — the gradient path from the loss to every parameter is rebuilt and
+intact on every step, and a custom `torch.optim.Optimizer` is explicitly
+permitted — but it is a discrete, non-gradient jump applied to the parameters
+that produce the prediction, and which replica survives to eval depends on when
+the jumps happened. It is a gray area, and since it **buys nothing** there is no
+reason to spend the argument. **Flagged, not shipped.** The mixture head is
+unambiguous and does the job.
+
+### 7.3 Weight averaging is catastrophic, and the reason is instructive
+
+Averaging the replicas' parameters (P=8, one replica at 1.000 and another at
+0.896) gives `train_exact_hard` = **0.001**. This is not a near miss, it is the
+floor.
+
+The mechanism is the **gauge**. `Tmul`'s output code is only identified up to a
+relabelling of the 10 digit classes — `probe_tf2`'s `mul_gauge` score exists
+precisely because a solved table can use any bijection of the output alphabet.
+Two replicas that have both solved the task will in general have solved it in
+*different gauges*, and the average of two one-hot tables in different gauges is
+a uniform table. **Any parameter-space averaging or ensembling of these models
+is meaningless**; only output-space mixing (which is what `alpha` does) or
+selection is coherent. That generalises beyond this branch — it applies to every
+learned-table architecture in this repo.
+
+---
+
 ## 9. Compliance
 
 * **No file under `data/generated/` was read, printed, sampled or summarised.**
