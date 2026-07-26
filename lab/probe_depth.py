@@ -170,12 +170,27 @@ class CounterSel2(nn.Module):
     """
 
     def __init__(self, n_t: int, init_scale: float = 0.5,
-                 dump: bool = True, thresh_init: float | None = None) -> None:
+                 dump: bool = True, thresh_init: float | None = None,
+                 detector: str = "sum") -> None:
         super().__init__()
         self.n_t = n_t
         self.dump = dump
+        self.detector = detector
         self.one = nn.Parameter(torch.randn(10) * init_scale)
         self.gain = nn.Parameter(torch.tensor(2.0))
+        if detector == "log":
+            # "every digit of the register matches the learned zero digit" is a
+            # CONJUNCTION.  Scoring it as a SUM of per-slot match masses puts
+            # the decision boundary between sum = n_t and sum = n_t - 1, i.e. a
+            # margin of ONE, so the whole ladder rides on gain*(thresh-1) -- and
+            # that product is what the measured seed spread tracks exactly
+            # (>3 reaches T=64, <2 stops at T=2).  In log space a conjunction is
+            # a mean of logs: all-match scores 0 and any-mismatch scores
+            # log(eps)/1, so the margin is ~14 instead of 1 and any positive
+            # gain works.  Same two learned scalars, same information.
+            self.thresh = nn.Parameter(torch.tensor(
+                -3.0 if thresh_init is None else thresh_init))
+            return
         # `thresh_init = 0` is the SHALLOW init: an untrained detector then
         # fires with probability ~0.6, so an untrained model costs ~2 loops at
         # eval instead of ~37, which is what decides whether the run finishes
@@ -189,12 +204,18 @@ class CounterSel2(nn.Module):
         o[1] = BIG
         self.one.copy_(o)
         self.gain.fill_(BIG)
-        self.thresh.fill_(self.n_t - 0.5)
+        self.thresh.fill_(-3.0 if self.detector == "log"
+                          else self.n_t - 0.5)
 
     def is_zero(self, c, alu):
         z = alu._sm(alu.zero).to(c.dtype)
-        m = torch.einsum("btd,d->b", c, z)[:, None]
-        return torch.sigmoid(self.gain.to(c.dtype) * (m - self.thresh.to(c.dtype)))
+        if self.detector == "log":
+            ms = torch.einsum("btd,d->bt", c, z).clamp_min(0.0)
+            s = torch.log(ms + 1e-6).mean(-1, keepdim=True)
+        else:
+            s = torch.einsum("btd,d->b", c, z)[:, None]
+        return torch.sigmoid(self.gain.to(c.dtype)
+                             * (s - self.thresh.to(c.dtype)))
 
     def forward(self, st, alu, loops, hard=False):
         c = st[:, : self.n_t]
@@ -220,11 +241,12 @@ class Depth(Composed):
 
     def __init__(self, slots, n_t=2, reduce_steps=11, tau=1.0,
                  sel_kind="counter2", one_init=0.5, dump=True,
-                 thresh_init=None):
+                 thresh_init=None, detector="sum"):
         super().__init__(slots, n_t, reduce_steps, tau,
                          "construct" if sel_kind == "counter2" else sel_kind)
         if sel_kind == "counter2":
-            self.sel = CounterSel2(n_t, one_init, dump, thresh_init)
+            self.sel = CounterSel2(n_t, one_init, dump, thresh_init,
+                                   detector)
             self.sel_kind = "counter2"
         # a learned unit digit for the consistency orbit; for the counters it
         # IS the counter's own `one`, so the orbit and the countdown are tied.
@@ -349,7 +371,7 @@ def run_cell(args, model, train, held, device, S):
             loss = loss + F.cross_entropy(mixed.reshape(-1, 10), tg.reshape(-1))
             if args.halt_pen > 0:
                 loss = loss + args.halt_pen * ((1.0 - w.sum(-1)) ** 2).mean()
-        if args.cons > 0:
+        if args.cons > 0 and step > args.cons_start:
             # Registers depend only on T, so one representative row per T -- and
             # ONE anchor is enough: the law is a chain, so anchoring the
             # smallest training T and walking the orbit up reaches every
@@ -499,6 +521,8 @@ def main() -> int:  # noqa: C901
                          "exactly discrete over 64 steps while the gradient "
                          "still reaches `one` (attacks cause (b) at its source)")
     ap.add_argument("--one-init", type=float, default=0.5)
+    ap.add_argument("--detector", default="sum", choices=("sum", "log"),
+                    help="how the zero detector scores the register: `sum` of per-slot match masses with a threshold (margin 1), or `log` -- the mean of the log match masses, which scores a CONJUNCTION with margin ~14")
     ap.add_argument("--thresh-init", type=float, default=None,
                     help="halting threshold at init; 0.0 is the SHALLOW init "
                          "that keeps an untrained model inside the Easy eval "
@@ -514,6 +538,8 @@ def main() -> int:  # noqa: C901
     ap.add_argument("--cons-loops", type=int, default=0)
     ap.add_argument("--cons-space", default="w", choices=("w", "loc"))
     ap.add_argument("--cons-hard", action="store_true")
+    ap.add_argument("--cons-start", type=int, default=0,
+                    help="delay the consistency term until this step: the law PROPAGATES an anchor, so the anchor has to exist first")
     ap.add_argument("--cons-all", action="store_true",
                     help="run the consistency chain from every training T "
                          "instead of only the smallest")
@@ -542,7 +568,7 @@ def main() -> int:  # noqa: C901
         n_t = max(2, max(len(str(t)) for t in args.ladder))
         model = Depth(S, n_t, args.reduce, args.tau, args.selector,
                       args.one_init, not args.no_dump,
-                      args.thresh_init).to(device)
+                      args.thresh_init, args.detector).to(device)
         # parser + ALU constructed (LAB DIAGNOSTIC); the controller is random
         model.construct(parse=True, alu=True, sel=False)
         model.eval()
