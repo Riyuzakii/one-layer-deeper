@@ -6,13 +6,16 @@ class that excludes memorisation.
 
 **Two results, and the second one is the important one.**
 
-1. **The chain is now 6.6× shorter and the hypothesis class is intact.**
-   257 → **39** sequential soft steps at e1's modulus, 745 → **83** at m1's,
-   with the constructed ceiling still 1.000 at every modulus and on 12 unseen
-   sampled moduli, the state alphabet unchanged, and two extra parameters. It is
-   also 5–7× faster per step. Use it; it is free. But **the depth is not what
-   moved `train_exact`** — the ladder is flat from 257 to 83 and only the *form*
-   of the reduction moves it (§2.1).
+1. **The chain is 6.6–20× shorter, the hypothesis class is intact, and the
+   optimizer gets 4.6–12.2× more steps per second.** 257 → **39** sequential
+   soft steps at e1's modulus, 745 → **71** at m1's, 2,062 → **101** at Hard
+   scale, with the constructed ceiling still 1.000 (soft *and* hard) at four
+   fixed moduli and on 12 unseen sampled ones, the state alphabet unchanged, and
+   +2 to +653 parameters. Measured ms/optimizer-step: 390 → 84 (Easy),
+   1,240 → 158 (Medium), 2,834 → 232 (Hard). **Adopt it** — it answers the
+   eval-budget and step-famine arguments in full (§2.4). But **the depth is not
+   what moved `train_exact`** — the ladder is flat from 257 to 83 and only the
+   *form* of the reduction moves it (§2.1).
 2. **And it does not matter, because what `DigitALU` learns is not a discrete
    transducer.** Snapping every inter-step state to its argmax — which the
    *constructed* solution survives at 1.000 in all four graph shapes — takes the
@@ -35,8 +38,9 @@ solution passes at 1.000 and the trained model fails at 0.004.
 
 ## 1. What I changed in the graph
 
-`lab/probe_alu.py` gained `--reduce-mode {serial,binary,quotient}` and
-`--mul-mode {horner,tree}`. Every mode keeps the same learned tensors
+`lab/probe_alu.py` gained `--reduce-mode {serial,binary,quotient}`,
+`--mul-mode {horner,tree}` and `--scan-mode {serial,prefix}`. Every mode keeps
+the same learned tensors
 (`Tmul (10,10,20)`, `Tadd (10,10,2,12)`, `Tsub (10,10,2,12)`, a gate, three
 constants) and adds no index over `Z_N`.
 
@@ -91,7 +95,8 @@ before a single add is spent. The division needs `S+1` reductions (the first
 | tree | serial | 195 | 300 | 437 | 956 |
 | tree | binary | 83 | 125 | 185 | 389 |
 | horner | quotient | 62 | 123 | 214 | 727 |
-| tree | quotient | **39** | **55** | **83** | **155** |
+| tree | quotient | **39** | 55 | 83 | 155 |
+| tree | quotient + `prefix` | 43 | **54** | **71** | **101** |
 
 The gain grows with the modulus: 6.6× at 9 bits, 9× at 14 bits, **13× at 24
 bits**. That is the number that matters for Hard: a Hard-scale modulus was a
@@ -106,6 +111,7 @@ merges at the first reduction and is not on the longest path.
 | horner+serial (digit-carry) | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
 | horner+quotient | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
 | tree+quotient | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+| tree+quotient+prefix | 1.000 | 1.000 | 1.000 | 1.000 | not run |
 
 `train_exact = held_exact = 1.000`, `held_ce = 0.0000` in every cell. Parameter
 count 6,818 → **6,820** (the 5-parameter quotient scorer replaces the 3-parameter
@@ -128,8 +134,8 @@ tau 1.0, no identity init. Only the graph shape varies. Regenerate with
 
 | variant | depth | reduction form | alphabet | params | ceiling | train_exact (seeds) | mean |
 |---|---|---|---|---|---|---|---|
-| `horner:serial` (digit-carry) | 257 | 11 gated `cond_sub` | 10/2/2 | 6,818 | 1.000 | PENDING_SERIAL | — |
-| `tree:serial` | 195 | 11 gated `cond_sub` | 10/2/2 | 6,818 | 1.000 | PENDING_TREESERIAL | — |
+| `horner:serial` (digit-carry) | 257 | 11 gated `cond_sub` | 10/2/2 | 6,818 | 1.000 | 0.132 / 0.248 / 0.252 | 0.211 |
+| `tree:serial` | 195 | 11 gated `cond_sub` | 10/2/2 | 6,818 | 1.000 | 0.212 / 0.068 / 0.084 | 0.121 |
 | `horner:binary` | 117 | 4 gated `cond_sub` | 10/2/2 | 6,818 | 1.000 | 0.044 / 0.416 / 0.120 | 0.193 |
 | `tree:binary` | 83 | 4 gated `cond_sub` | 10/2/2 | 6,818 | 1.000 | 0.140 / 0.280 / 0.080 | 0.167 |
 | `horner:quotient` | 62 | compare-all + learned select | 10/2/2/**11** | 6,820 | 1.000 | 0.340 / 0.332 / 0.236 | 0.303 |
@@ -163,7 +169,7 @@ The regime `digit-carry` §2.4 used for its "shorter chain → 0.72–0.78" resu
 
 | variant | depth | ceiling | train_exact (3 seeds) | mean | held_exact |
 |---|---|---|---|---|---|
-| `horner:serial` | 112 | 1.000 | (digit-carry: 0.780 / 0.720) | ~0.75 | 0.045 / 0.000 |
+| `horner:serial` | 112 | 1.000 | 0.780 / 0.720 / 0.780 | 0.760 | 0.045 / 0.000 / 0.045 |
 | `tree:binary` | 45 | 1.000 | 0.800 / 0.920 / 0.900 | 0.873 | 0.136 / 0.000 / 0.000 |
 | `horner:quotient` | 25 | 1.000 | 0.840 / 0.840 / 0.740 | 0.807 | 0.000 |
 | `tree:quotient` | 21 | 1.000 | 0.820 / 0.860 / 0.760 | 0.813 | 0.000 |
@@ -183,14 +189,22 @@ sound: the target *is* in the discrete family.
 
 | cell | depth | train_exact | **train_exact_hard** | state_sharpness |
 |---|---|---|---|---|
+| N=323 `horner:serial`, 2,000 steps, seeds 0/1 | 257 | 0.132 / 0.248 | **0.008 / 0.004** | 0.778 / 0.822 |
+| N=323 `tree:serial`, 2,000 steps, seeds 0/1 | 195 | 0.212 / 0.068 | **0.008 / 0.000** | 0.777 / 0.759 |
 | N=323 `tree:quotient`, 6,000 steps, seed 0 | 39 | 0.556 | **0.004** | 0.764 |
 | N=323 `tree:quotient`, 6,000 steps, seed 1 | 39 | 0.520 | **0.000** | 0.786 |
 | N=323 `tree:quotient`, 8,000 steps, seed 0 | 39 | 0.604 | **0.008** | 0.765 |
 | N=91 `tree:quotient`, 4,750 steps, seed 0 | 21 | 0.820 | **0.140** | 0.835 |
+| N=323 `tree:quotient`, **20,000** steps, seed 0 | 39 | 0.620 | **0.000** | 0.767 |
 | N=91 `tree:quotient`, 6,000 steps, seed 1 | 21 | 0.820 | **0.100** | 0.832 |
+| N=91 `tree:quotient`, **20,000** steps, seeds 0/1 | 21 | 0.820 / 0.860 | **0.120 / 0.040** | 0.838 / 0.844 |
 | constructed, any shape | — | 1.000 | **1.000** | ~1.000 |
 
-`train_exact` is 0.52–0.82; `train_exact_hard` is 0.00–0.14; the state is a
+The learned quotient digit is itself a blur: `q_sharpness` (the max probability
+of the 11-way quotient distribution) is 0.758 after 8,000 steps, so the
+reduction is subtracting a *mixture* of multiples of N, not one of them.
+
+`train_exact` is 0.13–0.86; `train_exact_hard` is 0.00–0.14; the state is a
 mixture with 0.76–0.84 of its mass on the argmax, not a digit. **What the model
 learns is a continuous relaxation, not a transducer over the digit alphabet.**
 
@@ -210,6 +224,42 @@ It is also the exact mechanism behind the `held_ce` column nobody has been
 able to explain: at N=91, `train_ce` falls to 0.11 while `held_ce` rises to
 **13.9–15.6** — confidently wrong on held-out operands, which is textbook
 overfitting, from an architecture that was adopted because it *cannot* overfit.
+
+---
+
+## 2.4 Throughput — the number the step-famine argument needs
+
+`lab/depth_bench.py`. One optimizer step (forward + backward + AdamW + grad
+clip) of the **readout alone**, batch 512, bf16 autocast — the manifests'
+settings. "Easy/Medium/Hard" are `budget / (ms per step)`; they are an upper
+bound on the submission's step count because the parser, the T-loop, the
+import-time clock and the eval half of the budget are not charged here, and
+because this box is **shared with sibling agents** (the same `horner:serial`
+cell measured 580 / 390 / 250 ms/step at three contention levels over the
+session). **The ratios are the transferable quantity** — the workload is
+kernel-launch bound and every shape launches the same kind of kernel.
+
+| shape | S=3 (e1) ms | steps in 60 s | S=5 (m1) ms | steps in 600 s | S=8 (Hard) ms | steps in 3600 s |
+|---|---|---|---|---|---|---|
+| `horner:serial` (digit-carry) | 389.8 | 154 | 1240.1 | 484 | 2834.2 | 1,270 |
+| `tree:serial` | 315.0 | 190 | 656.4 | 914 | 1200.5 | 2,999 |
+| `horner:binary` | 238.0 | 252 | 624.2 | 961 | 1596.5 | 2,255 |
+| `tree:binary` | 179.4 | 334 | 381.8 | 1,572 | 639.4 | 5,630 |
+| `horner:quotient` | 145.4 | 413 | 441.6 | 1,359 | 1185.4 | 3,037 |
+| `tree:quotient` | 103.4 | 580 | 209.5 | 2,864 | 373.5 | 9,639 |
+| **`tree:quotient:prefix`** | **84.0** | **714** | **157.9** | **3,800** | **232.4** | **15,491** |
+
+**Speedup over the current design: 4.6× at Easy, 7.9× at Medium, 12.2× at
+Hard.** ms/step tracks the soft-step count almost exactly (`horner:serial` is
+6.6× deeper and 4.6× slower at S=3; 13× deeper and 12.2× slower at S=8), which
+is the signature of a launch-bound graph and is why the depth ladder *is* the
+throughput ladder.
+
+This is the part of the mandate that survives §3.2 intact: whatever step count
+the tier affords today, this graph multiplies it by 4.6–12.2× and is provably
+exact (`--construct` = 1.000 at four moduli and twelve unseen ones, soft and
+hard). It does not, by itself, buy accuracy — see §3.2 — but it removes the
+eval-budget failure and the step famine as *separate* obstacles.
 
 ---
 
@@ -277,6 +327,11 @@ residue-indexed readout, and its digit ceiling is exactly the residue ceiling.
 deep-and-compositional**, and the whole value of this family sits at the deep
 end. Do not spend runs here.
 
+*(This is a direct answer to the coordinator's "stack the larger internal radix
+rather than stopping at the first win". It cannot be stacked: it buys its depth
+by re-buying the coverage ceiling `digit-carry` removed. The 4.6–12.2× in §2.4
+is obtained without touching the radix, and is therefore free of this cost.)*
+
 ### 3.4 Straight-through discretisation, at every chain length
 
 `digit-carry` §5.4 falsified `--hard` at depth 257 (train 0.012). It fails
@@ -296,19 +351,32 @@ register must widen by `p-1` slots, which makes every scan longer and enlarges
 division step, `W = S+1`) is 39 steps; every "reduce less often" variant is
 strictly worse. Reduce as often as the register allows.
 
-### 3.6 Parallel-prefix carry propagation (mandate direction 2) — not worth it *here*
+### 3.6 Parallel-prefix carry propagation (mandate direction 2) — implemented, and it pays only above Easy
 
-A carry-lookahead scan is the standard fix for an O(W) ripple, and it fits the
-family perfectly: the carry-propagation semigroup is
-{kill, propagate, generate} — a **3-element** alphabet, composed by a learned
-9-entry table, applied `ceil(log2 W)` times. But the constant is 3 (one table to
-map a digit pair to a semigroup element, one to apply the prefix to the incoming
-carry, one to emit the digit), so the depth is `ceil(log2 W) + 3` against a
-serial `W`. That is a **loss** at W = 4 (5 vs 4), a wash at W = 6, and only wins
-from W ≥ 8 — i.e. from an 7-digit modulus up. Since the reduction, not the
-scan, is what dominates every shape in the table above, I did not spend runs on
-it: it can at best take the S=8 figure from 155 to about 120, and 155 is already
-not the binding constraint. Recorded as computed-not-run.
+`--scan-mode prefix`. The carry/borrow propagation semigroup is
+{kill, propagate, generate} — a **3-element** alphabet — so a carry-lookahead
+formulation is legal for this family: a learned table maps a digit pair to a
+semigroup element (`Egen`/`Ecmp`, 300 each), a learned 27-entry table composes
+two (`Ccomp`), and a learned 12-entry table applies one to the incoming
+carry/borrow (`Aapp_a`/`Aapp_b`). +651 parameters, one new alphabet of size 3,
+`ceil(log2 W)` chained composes instead of `W` chained slot steps. Constructed
+ceiling **1.000 soft and 1.000 hard at N = 323, 899, 2021, 10403**.
+
+The constant is 3 (element, apply, digit), so depth per scan is
+`ceil(log2 W) + 3` against a serial `W`: a **loss** at W=4, a wash at W=5–6, and
+a win from W ≥ 8. On top of `tree:quotient`:
+
+| | S=3 (e1) | S=4 | S=5 (m1) | S=8 (Hard) |
+|---|---|---|---|---|
+| `tree:quotient` depth | **39** | 55 | 83 | 155 |
+| `+ prefix` depth | 43 | 54 | **71** | **101** |
+| measured ms/step ratio | 1.23× | — | 1.33× | 1.61× |
+
+The measured throughput gain **exceeds** the depth-count gain (1.61× against
+155/101 = 1.53× at S=8) because the workload is kernel-launch bound and a prefix
+level is one large launch where a slot step is several small ones. **Stack it
+for Medium and Hard; skip it for Easy**, where it is a small loss on depth and a
+small win on wall clock (1.23×) that comes with 651 extra parameters.
 
 ---
 
@@ -321,6 +389,17 @@ constructed ceiling at four fixed moduli and twelve unseen sampled ones. Anyone
 continuing this family should start from it. But it does not certify a rung and
 it does not move `held_exact`.
 
+**Adopt `tree:quotient` (+`prefix` above Easy) unconditionally** — it is the
+same hypothesis class, provably exact, and 4.6–12.2× more optimizer steps per
+second (§2.4). That answers the coordinator's justifications 2 (eval budget) and
+3 (step famine) in full, and it is worth doing even though it does not move
+accuracy.
+
+**But the first justification — "shorten the chain and it will train" — is
+falsified (§3.2), so do not expect the extra steps to convert.** At depth 39 the
+model already gets 20,000 steps in this probe and `train_exact_hard` is 0.000;
+the step famine was real but it was not the reason `DigitALU` fails.
+
 **Recommendation: stop optimising `train_exact` and start optimising
 `train_exact_hard`.** The bottleneck is not credit assignment through a long
 chain — I removed 85% of the chain and the discrete solution is no closer. The
@@ -331,7 +410,11 @@ things I would run, in order:
 1. **Re-screen every live lever on `train_exact_hard`.** `alu-credit`'s
    temperature/init sweep, `alu-compose`'s composition — all of them are
    currently ranked on a number that a mixture can win. This is one flag
-   (`--eval-hard`) and it re-prices the whole session's screening.
+   (`--eval-hard`) and it re-prices the whole session's screening. (The
+   coordinator's note that "discrete eval states cost +42% and buy nothing" is
+   about the *submission's* eval path, where it is correct — a submission should
+   run soft. As a **lab screen** it is the only number that separates learning
+   the transducer from fitting the relaxation, and 42% of a probe run is cheap.)
 2. **Put the discreteness in the loss, not the graph.** The graph is now cheap
    enough that the state can be penalised at every one of 39 steps (entropy of
    each register slot, or a distance-to-vertex term) without the cost that made

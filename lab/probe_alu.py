@@ -88,7 +88,7 @@ class DigitALU(nn.Module):
                  reduce_steps: int = 11, tau: float = 1.0,
                  identity_init: float = 0.0, hard: bool = False,
                  reduce_mode: str = "serial", max_quot: int = 10,
-                 mul_mode: str = "horner"):
+                 mul_mode: str = "horner", scan_mode: str = "serial"):
         super().__init__()
         self.S = slots
         self.K = 2 * slots - 1
@@ -99,6 +99,7 @@ class DigitALU(nn.Module):
         self.hard = hard
         self.reduce_mode = reduce_mode
         self.mul_mode = mul_mode
+        self.scan_mode = scan_mode
         self.Q = max_quot
         if reduce_mode == "binary":
             p, self.bin_list = 1, []
@@ -123,6 +124,18 @@ class DigitALU(nn.Module):
         # (= final borrow) states and scores "m is the largest non-borrowing
         # multiple".  2*n_borrow inputs -> 1 logit; 5 parameters.
         self.sel = nn.Linear(2 * n_borrow, 1)
+        # ---- carry-lookahead tables (--scan-mode prefix) ----------------
+        # The carry/borrow propagation semigroup is {kill, propagate, generate}
+        # -- a THREE element alphabet, which is what makes a parallel-prefix
+        # formulation legal for this family.  Egen/Ecmp map a digit pair to a
+        # semigroup element, Ccomp composes two, Aapp applies one to an incoming
+        # carry/borrow.  Depth per scan becomes ceil(log2 W) + 3 instead of W.
+        self.Fp = 3
+        self.Egen = nn.Parameter(torch.randn(10, 10, self.Fp) * 0.5)
+        self.Ecmp = nn.Parameter(torch.randn(10, 10, self.Fp) * 0.5)
+        self.Ccomp = nn.Parameter(torch.randn(self.Fp, self.Fp, self.Fp) * 0.5)
+        self.Aapp_a = nn.Parameter(torch.randn(self.Fp, n_carry, n_carry) * 0.5)
+        self.Aapp_b = nn.Parameter(torch.randn(self.Fp, n_borrow, n_borrow) * 0.5)
         # A 280-step soft chain from random init is badly conditioned: every
         # scan scrambles the register before any of them is right.  A learned
         # copy-through path makes each scan the IDENTITY at init, so the chain
@@ -136,7 +149,8 @@ class DigitALU(nn.Module):
 
     # ---------------- construction (LAB DIAGNOSTIC ONLY) ----------------
     @torch.no_grad()
-    def construct(self, which=("mul", "add", "sub", "gate", "zero", "sel")):
+    def construct(self, which=("mul", "add", "sub", "gate", "zero", "sel",
+                               "prefix")):
         if "mul" in which:
             t = torch.full_like(self.Tmul, -BIG)
             for a in range(10):
@@ -167,6 +181,28 @@ class DigitALU(nn.Module):
         if "gate" in which:
             self.gate.weight.copy_(torch.tensor([[BIG, -BIG]]))
             self.gate.bias.zero_()
+        if "prefix" in which:
+            # 0 = kill, 1 = generate, 2 = propagate
+            e = torch.full_like(self.Egen, -BIG)
+            c = torch.full_like(self.Ecmp, -BIG)
+            for u in range(10):
+                for v in range(10):
+                    e[u, v, 1 if u + v >= 10 else (2 if u + v == 9 else 0)] = BIG
+                    c[u, v, 1 if u < v else (2 if u == v else 0)] = BIG
+            self.Egen.copy_(e)
+            self.Ecmp.copy_(c)
+            t = torch.full_like(self.Ccomp, -BIG)
+            for a in range(self.Fp):
+                for b in range(self.Fp):
+                    t[a, b, a if a != 2 else b] = BIG   # apply b, then a
+            self.Ccomp.copy_(t)
+            for P, n in ((self.Aapp_a, self.Ca), (self.Aapp_b, self.Cb)):
+                t = torch.full_like(P, -BIG)
+                for s in range(n):
+                    t[0, s, 0] = BIG      # kill  -> state 0 (no carry/borrow)
+                    t[1, s, 1] = BIG      # gen   -> state 1
+                    t[2, s, s] = BIG      # prop  -> unchanged
+                P.copy_(t)
         if "sel" in which:
             # state 0 of the borrow alphabet is "no borrow" (see the Tsub
             # construction above).  The quotient digit is the unique m with
@@ -199,7 +235,37 @@ class DigitALU(nn.Module):
             p = h + p - p.detach()
         return p
 
+    def _prefix(self, e):
+        """Inclusive parallel prefix over the 3-element propagation semigroup.
+
+        ceil(log2 W) chained composes (Hillis-Steele); every level is ONE
+        batched table read, so the sequential-step count is log, not linear."""
+        W = e.shape[1]
+        x, off = e, 1
+        while off < W:
+            comb = self._sm(torch.einsum("bwa,bwc,acf->bwf",
+                                         x[:, off:], x[:, :-off], self.Ccomp))
+            x = torch.cat([x[:, :off], comb], dim=1)
+            off *= 2
+        return x
+
+    def _lookahead(self, r, other, Etab, Aapp, init, Ttab, n_state):
+        e = self._sm(torch.einsum("bwu,bwv,uvf->bwf", r, other, Etab))
+        x = self._prefix(e)
+        s0 = self._sm(init).expand(r.shape[0], n_state)
+        cin = self._sm(torch.einsum("bwf,bc,fcd->bwd", x[:, :-1], s0, Aapp)
+                       + self.copy_scale * s0[:, None])
+        cin = torch.cat([s0[:, None], cin], dim=1)
+        o = torch.einsum("bwu,bwv,bwc,uvco->bwo", r, other, cin, Ttab)
+        digits = self._sm(o[..., :10] + self.copy_scale * r)
+        last = self._sm(torch.einsum("bf,bc,fcd->bd", x[:, -1], s0, Aapp)
+                        + self.copy_scale * s0)
+        return digits, last
+
     def add_scan(self, r, addend):
+        if self.scan_mode == "prefix":
+            return self._lookahead(r, addend, self.Egen, self.Aapp_a,
+                                   self.carry0, self.Tadd, self.Ca)[0]
         c = self._sm(self.carry0).expand(r.shape[0], self.Ca)
         outs = []
         for m in range(r.shape[1]):
@@ -222,6 +288,9 @@ class DigitALU(nn.Module):
 
     def sub_scan(self, r, sub):
         """r - sub, slot scan LSB->MSB.  Returns (digits, final borrow state)."""
+        if self.scan_mode == "prefix":
+            return self._lookahead(r, sub, self.Ecmp, self.Aapp_b,
+                                   self.borrow0, self.Tsub, self.Cb)
         b = r.shape[0]
         c = self._sm(self.borrow0).expand(b, self.Cb)
         outs = []
@@ -368,21 +437,26 @@ class DigitALU(nn.Module):
         tree, a shared prefix merged in at the first reduction.
         """
         W, S, K = self.W, self.S, self.K
+
+        def scan(width):
+            return (math.ceil(math.log2(width)) + 3
+                    if self.scan_mode == "prefix" else width)
+
         if self.reduce_mode == "serial":
-            per = self.R * W
+            per = self.R * scan(W)
         elif self.reduce_mode == "binary":
-            per = len(self.bin_list) * W
+            per = len(self.bin_list) * scan(W)
         else:
-            per = W + 1                        # one scan + one select
+            per = scan(W) + 1                  # one scan + one select
         if self.mul_mode == "tree":
             F = 2 * S
             counts = [min(k + 1, S, 2 * S - 1 - k) for k in range(2 * S - 1)]
             n_leaf = max([counts[k] for k in range(0, 2 * S - 1, 2)] or [0]) \
                 + max([counts[k] for k in range(1, 2 * S - 1, 2)] or [0])
-            adds = math.ceil(math.log2(n_leaf)) * F if n_leaf > 1 else 0
+            adds = math.ceil(math.log2(n_leaf)) * scan(F) if n_leaf > 1 else 0
             red = (S + 1) * per
         else:
-            adds = S * S * W                   # one add_scan per (i,j) pair
+            adds = S * S * scan(W)             # one add_scan per (i,j) pair
             red = K * per
         prefix = 0
         if self.needed:
@@ -390,7 +464,8 @@ class DigitALU(nn.Module):
             while m < max(self.needed):
                 m *= 2
                 prefix += 1
-            prefix *= W
+            prefix *= (math.ceil(math.log2(W)) + 3
+                       if self.scan_mode == "prefix" else W)
         return {"main": 1 + adds + red, "adds": adds, "reduce": red,
                 "prefix": prefix}
 
@@ -399,6 +474,8 @@ class DigitALU(nn.Module):
         a = {"digit": 10, "carry": self.Ca, "borrow": self.Cb}
         if self.reduce_mode == "quotient":
             a["quotient"] = self.Q + 1
+        if self.scan_mode == "prefix":
+            a["propagate"] = self.Fp
         return a
 
 
@@ -413,6 +490,12 @@ def main() -> int:
                     help="serial: R tied cond_sub(r,N) [digit-carry default]. "
                          "binary: cond_sub against 8N,4N,2N,N. "
                          "quotient: one learned quotient digit + one subtract")
+    ap.add_argument("--scan-mode", default="serial",
+                    choices=["serial", "prefix"],
+                    help="prefix: carry-LOOKAHEAD.  The carry/borrow "
+                         "propagation semigroup {kill,propagate,generate} is a "
+                         "3-element alphabet, so a parallel prefix is legal for "
+                         "this family; depth per scan becomes log2(W)+3.")
     ap.add_argument("--mul-mode", default="horner", choices=["horner", "tree"],
                     help="horner: reduce after every place of x^2 [default]. "
                          "tree: full 2S-digit product by a log-depth tree, "
@@ -481,12 +564,12 @@ def main() -> int:
 
     model = DigitALU(S, args.carry, args.borrow, args.reduce, args.tau,
                      args.identity_init, args.hard, args.reduce_mode,
-                     args.max_quot, args.mul_mode).to(device)
+                     args.max_quot, args.mul_mode, args.scan_mode).to(device)
     frozen = []
     if args.construct:
         model.construct()
         frozen = ["Tmul", "Tadd", "Tsub", "gate", "sel", "zero", "carry0",
-                  "borrow0"]
+                  "borrow0", "Egen", "Ecmp", "Ccomp", "Aapp"]
     elif args.freeze:
         model.construct(tuple(args.freeze))
         name = {"mul": ["Tmul"], "add": ["Tadd"], "sub": ["Tsub"],
@@ -498,6 +581,9 @@ def main() -> int:
         if any(n.startswith(f) for f in frozen):
             p.requires_grad_(False)
     unused = {"serial": ["sel"], "binary": ["sel"], "quotient": ["gate"]}
+    if args.scan_mode == "serial":
+        unused = {k: v + ["Egen", "Ecmp", "Ccomp", "Aapp"]
+                  for k, v in unused.items()}
     n_par = sum(p.numel() for n, p in model.named_parameters()
                 if not any(n.startswith(u) for u in unused[args.reduce_mode]))
     n_tr = sum(p.numel() for n, p in model.named_parameters()
@@ -525,7 +611,7 @@ def main() -> int:
                 qmax = max(qmax, rr // modulus)
                 rr %= modulus
     print(f"[{args.tag}] modulus={modulus} S={S} K={model.K} W={W} "
-          f"mul={args.mul_mode} mode={args.reduce_mode} R={model.R} "
+          f"mul={args.mul_mode} scan={args.scan_mode} mode={args.reduce_mode} R={model.R} "
           f"Q={args.max_quot} "
           f"units={len(units)} train={len(train_x)} held={len(held_x)} "
           f"params={n_par:,} trainable={n_tr:,} frozen={frozen}", flush=True)
