@@ -50,8 +50,42 @@ rung-1 anywhere is 3/38 on e1, against a trivial-predictor floor of 1/38.
 | 2 | per-step arithmetic on unseen operands | representation **solved and uncapped** (digit readout, below); *training* it is open |
 | 3 | prompt → digit-slot parsing | **solved**, verified at multi-digit T |
 | 4 | **training the discrete transducer** | open — credit assignment through ~280 sequential soft steps (`alu-depth`, `alu-credit`) |
-| 5 | **depth controller cannot extrapolate in T** | open — found by `alu-compose`, owned by `depth-controller` |
-| 6 | **eval budget binds on Easy** | open — a fixed 64-iteration readout makes the run *fail*, not score 0 |
+| 5 | depth controller extrapolating in T | **SOLVED** — 12 learned scalars reach 1.000 at every rung T=1..64, hard-committed and under `--eval-hard`, at Easy and Medium settings and at 22-bit hp1 |
+| 6 | eval budget | **manageable, but only on the cheap graph** — early halting is necessary and NOT sufficient on the 257-step ALU |
+
+**Bottleneck 5, solved (`explore/depth-controller`).** Per-rung 1.000 at T = 1,2,4,8,16,32,64;
+seeds at MAX_T=64: Easy/N=329 5/5, Easy/N=10403 4/5, Medium/N=10403 2/3, Medium/hp1 22-bit
+2/3. Baseline in the same setting was Easy 4/4/0, Medium 0/0/0. All moduli non-degenerate
+(7/7 distinct rungs), unlike e1/e2.
+
+Attribution — four changes, ablated, and **not** the ones the mandate predicted:
+1. **Do not dump unspent halting mass on the last candidate** (highest leverage, one line):
+   otherwise "never halt" is exactly correct for the deepest training T.
+2. **Commit to the mode, not the blend** — Medium 0 -> 4 with no retraining. A good part of
+   alu-compose's "Medium fails downward" was a **readout artifact**; the decision at T=1,2
+   was already right.
+3. Straight-through one-hot register.
+4. **Detector margin scored in log space** — the ladder rode on one scalar; widening the
+   margin 1 -> 14 took Easy 3/5 -> 5/5.
+
+Self-consistency `step(k+1)=step(step(k),1)` is **sufficient but not necessary**, and is
+**actively harmful on `(place,digit)`-indexed heads** (2 -> 0): the orbit's increment
+collapses to identity because nothing anchors it. The law has content only when its orbit
+operator is anchored by the task loss — true in a counter, false in a pointer head. Cause
+(a), coverage in the T field, remains exactly true for the pointer family.
+
+**Eval budget, measured (contended GPU, pessimistic):** Easy 7.3s/30s (4.1x), Medium
+60.8s/300s (4.9x), all 16 splits, both full ladders. But `fixed64` loses both ladders on
+Easy, and `fixed16` — the proxy for a correctly trained controller on the 257-step
+`DigitALU` — costs **31.3s of 30s** and forfeits 2 OOD-N rungs. **"ACT fits the Easy budget"
+is FALSE on the 257-step graph**; with `tree:quotient` the projection is ~15s (2.0x). This
+is an independent reason the cheap graph is load-bearing.
+
+Residual: the learned unit digit lands on the wrong digit in 1 of 5 seeds (a *deterministic*
+attractor on Medium; more steps and higher lr both measured flat). Diagnosed fix, one loss
+term, not yet run: the countdown step and the consistency orbit's increment are the same
+vector, so requiring `dec(inc(r)) = r` identifies it with no labels. Command in
+`lab/reports/depth-controller.md` §12.
 
 ### Second round — the endgame, measured (`explore/alu-compose`, complete)
 
