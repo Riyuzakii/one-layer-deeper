@@ -17,8 +17,16 @@ exact** — then by OOD-N Max T, then by earliest submission. No partial credit.
 the *previous* session optimises that obsolete metric; read it for what was ruled
 out, not for what to do.
 
-**~230 experiments across six branches. Every single one scored MAX_T = 0.** Best
+**~900 experiments across thirteen branches. Every single one scored MAX_T = 0.** Best
 rung-1 anywhere is 3/38 on e1, against a trivial-predictor floor of 1/38.
+
+**FINAL STATE: four of five components are solved; the fifth is closed.** Parsing,
+composition in T, the depth controller and the readout representation all work
+end-to-end. Training the arithmetic tables has a *provably exact, reachable* solution
+(`train_exact_hard` **1.000** / held **1.000** by step 600, inside a Hard budget) and
+**no legal way to reach it**. See "Round 4" below — the closure survives 544-replica
+screening and is structural, not empirical. **My recommendation is to stop the
+architecture search.**
 
 ### Settled — do not re-derive
 
@@ -240,6 +248,57 @@ anyway, so the ruling cost nothing.
    closed the strongest family in `alu-relational`.
 2. **Measure a signal's BASIN before optimising it.** Costs no training and predicts
    whether optimisation can go anywhere.
+
+### Round 4 — the closure, made robust (`explore/alu-population`, complete)
+
+**The conditional question, answered positively.** Replicas inside one run are as
+independent as separate seeds — the basin is selected by *initialisation*, not data
+order. Per-replica rate **0.26** under the working (diagnostic) signal: P=1 gives 1/7,
+P=8 gives 3/3 runs containing a solved replica, P=32 gives 2/2; `1-(1-0.26)^P` puts
+P=8 at 0.91 and P=32 at 0.9999. **The hit is `train_exact_hard` 1.000 / held 1.000 by
+step 600** — higher and cheaper than the 0.951 quoted earlier in this log.
+
+- **Differentiable selection works completely and is LEGAL**: mixture = argmax =
+  CE-argmin = population best, in all six runs, held-out as well as train, under five
+  selector variants, with no sharpening schedule (`alpha` saturates on its own).
+- **Cost:** free to P=8 (1.29x), cheap to P=16 (1.55x), knee at P≈16-32; past 64 the
+  marginal cost is flat at 3.4 ms/replica. State ceiling is *not* binding (P=256 =
+  0.349%; ceiling P=73,313). Eval can slice the argmax replica and run at **P=1 cost**.
+- **The evaluator's global grad clip gives the same result as per-replica clipping** —
+  Adam absorbs the common scale, so replicas stay independent under the evaluator's
+  own loop.
+- **Cheaper alternatives do not suffice**: batch, LR decay, lr up/down, scale-spread,
+  reinit-losers all null; only init scale 0.5->0.25 moved the rate (0.34->0.53), not
+  enough alone.
+
+**THE DECISIVE RE-SCREEN.** Every legal-signal screen in this project had been run at
+P=1, and the basin is initialisation-selected — so the closure could have been an
+artifact of screening design. It is not. All six terms `alu-relational` rules LEGAL,
+ported to a replica dimension: **16 configurations, 544 replicas, 1,200 steps each.**
+
+- **0 of 544 replicas reached `local_ce` 1.0**, against a cliff at 0.006. Best anywhere
+  **2.304** vs 2.343 at P=1 — **32x the draws bought 1.7%**.
+- **The one apparent exception is a degeneracy.** `--assoc` shifts the distribution left
+  22% (median 3.35 -> 2.62), reproducibly over 3 seeds and at P=64 — but its best
+  replicas predict the same answer for 80-96% of inputs and its worst collapse to a
+  **literal constant** (diversity 0.004 = 1 answer in 256). It lowers `local_ce` by
+  destroying the map. **`--cancel` does not prevent this**: it prices the *adder*, while
+  the collapse is in the *composed map*.
+- **Shape is the story.** Same P, graph and budget: the working diagnostic signal gives
+  a **bimodal** population with a spike at zero (11/32 below the cliff); every legal
+  term gives a **tight unimodal blob ~400x away** (relative spread 0.39-0.89). A
+  population is the right instrument for a *stochastic* obstruction and the wrong one
+  for a *systematic* one — and it reads systematic across all 544 replicas.
+
+**Three corrections this branch makes to earlier entries in this log:**
+1. The ceiling is **1.000/1.000 by step 600**, not 0.951.
+2. **"Always commit to the mode" is not general** — at P=64 step 400 the blend *beat*
+   the commit because `alpha` had not concentrated. Reported alongside
+   `depth-controller`'s opposite finding; the accurate rule is **check `wmax` first**.
+3. **Parameter-space averaging/ensembling is meaningless for every learned-table
+   architecture here**, for a gauge reason: `Tmul`'s output code is a gauge, two solved
+   replicas solve in *different* gauges, and their average is uniform. Stated as a
+   general result, not a sweep null.
 
 ### Corrections to earlier entries in this log
 
