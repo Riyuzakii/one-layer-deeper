@@ -12,6 +12,25 @@ logs in `lab/logs/`.
 
 ---
 
+## HEADLINE
+
+| | | status |
+|---|---|---|
+| **A population of 8 replicas turns a 1-in-7 basin into 6-of-6 runs containing a solution** | run-level: P=1 **1/7**, P=8 **3/3**, P=32 **2/2**, P=64 **1/1** | LEGAL machinery / DIAGNOSTIC signal |
+| **It costs 29% of wall clock at P=8**, 2.0x at P=32 | replicas are nearly free because the model is kernel-launch bound | LEGAL |
+| **Differentiable selection recovers the good replica every time** | mixture = argmax = CE-argmin = best replica, in all 6 runs, held-out too | **LEGAL** |
+| **Replicas inside one run are as independent as separate seeds** | per-replica rate 0.26 over 159 replicas, flat in P | — |
+| **The state ceiling is not the constraint** | P=256 uses 0.349% of 5e8; the ceiling is P = 73,313 | — |
+| **Cheaper alternatives do not work** | batch, LR, LR schedule all flat; weight averaging is **catastrophic** (0.001) | — |
+| **A population does NOT rescue the legal objective** | `--tf 0`: 0/64 replicas, `local_ce` 3.0-4.1 vs a cliff at 0.006 | **LEGAL, and null** |
+
+**Read the last row with the first.** The 1.000s in this report are reached
+with teacher forcing, which is a lab diagnostic and illegal in a submission.
+This branch shows that **if** a legal per-step signal is found, the 1-in-7 basin
+is not a blocker. It does not supply one, and no submission was produced.
+
+---
+
 ## 0. THE FRAME — read this before any number
 
 The signal that reaches the 0.951 basin **at all** is teacher forcing on a tape
@@ -340,6 +359,33 @@ Three separate points, because they do not all point the same way:
    the state ceiling), but it commits by an argmin over a buffer rather than by
    a trained parameter, so I would ship `alpha` and keep this as a fallback.
 
+### 5.1 Every selection variant I tried is the same — the selector is not delicate
+
+P=32, seed 0, 1,200 steps, against the `b32_s0` baseline (mixture 1.000,
+argmax 1.000, 11/32 in basin):
+
+| selection variant | mixture | argmax | CE-argmin | replicas in basin |
+|---|---|---|---|---|
+| baseline (soft mixture, `alpha` lr = 3e-2, replicas detached) | 1.000 | 1.000 | 1.000 | 11/32 |
+| **straight-through commit to the mode** (`--sel-hard`) | 1.000 | 1.000 | 1.000 | 11/32 |
+| `sel_tau` annealed 5 -> 0.2 | 1.000 | 1.000 | 1.000 | 11/32 |
+| `alpha` lr 3e-2 -> 3e-1 | 1.000 | 1.000 | 1.000 | 11/32 |
+| mixture loss **not** detached (backprops into the replicas) | 1.000 | 1.000 | 1.000 | 11/32 (but `local_ce`<0.006 count 11 -> 8) |
+
+Nothing is needed. I expected the rich-get-richer failure — `alpha`
+concentrating on a bad replica before a good one emerges — and it does not
+happen, because the good replicas separate in likelihood *long* before `alpha`
+saturates. **No sharpening schedule, no annealing, no learning-rate tuning on
+the selector.**
+
+One negative worth recording: letting the end-of-chain mixture loss backprop
+into the replicas (rather than detaching) leaves the basin count unchanged but
+drops the number of replicas at `local_ce` < 0.006 from 11 to 8. That is
+consistent with `alu-credit`'s finding that the end-of-chain objective pulls
+toward the degenerate solution. **Detach the replicas in the selector loss**
+when a per-step signal is doing the real training. In a legal submission there
+is no per-step signal, so the question does not arise.
+
 **Eval cost.** Because the argmax replica reproduces the population's best
 result exactly, a submission can slice that replica's tables at eval and run
 the readout at **P=1 cost**. The population is a training-time device. Given
@@ -455,6 +501,93 @@ a uniform table. **Any parameter-space averaging or ensembling of these models
 is meaningless**; only output-space mixing (which is what `alpha` does) or
 selection is coherent. That generalises beyond this branch — it applies to every
 learned-table architecture in this repo.
+
+---
+
+## 8. Verdict
+
+**A population of independent replicas converts the 1-in-7 basin into ~1 inside
+a single evaluator run, at P >= 8, for a 29% wall-clock premium. Selection is
+free and reliable. Both halves are LEGAL. And it does not currently matter,
+because the signal that reaches the basin at all is not.**
+
+The three numbers, in the conditional frame of §0:
+
+1. **Basin hits vs P** — run-level 1/7 at P=1, **3/3 at P=8, 2/2 at P=32, 1/1
+   at P=64**; per-replica rate 0.26 pooled over 159 replicas, statistically
+   identical at every P. Replicas inside one run are as independent as separate
+   seeds because **the basin is chosen by initialisation, not by data order**.
+   `1 - (1-0.26)^P` puts P=8 at 0.91 and P=32 at 0.9999.
+2. **Selection recovers the good replica** — mixture, argmax replica and
+   CE-argmin all return the population's best replica in all six runs, on
+   held-out data as well as train, under five selector variants. The blend does
+   *not* hide a correct component here, because `alpha` saturates; but there is
+   a real window (P=64, step 400: blend 0.999 vs commit 0.943) where the blend
+   is *better*, so **report both** rather than assuming the mode always wins.
+3. **Cost** — replicas are nearly free to P=8 (1.29x) and cheap to P=16
+   (1.55x); the knee is P~16-32 and past P=64 the marginal cost is a flat
+   3.4 ms/replica. **P=8 is the sweet spot**: it costs 22% of your optimizer
+   steps and takes the failure probability from 6/7 to 1/11.
+
+**What this does not do.** The legal end-of-chain objective is unmoved: 64
+replicas all sit at `local_ce` 3.0-4.1 against a cliff at 0.006, and 0/64 reach
+the basin (§6). A population multiplies draws from a distribution; it cannot
+move a distribution whose entire support is 600x from the target. **This result
+is conditional on `explore/alu-relational`, or someone, finding a legal per-step
+signal.** That has not happened — the sibling has since measured the plain legal
+baseline at `local_ce` 3.5-4.2 and closed the relational-law family by measuring
+its *illegal* ceiling and finding that null too.
+
+**No submission.** There is no legal end-to-end candidate on this branch, so
+`submissions/explore/alu-population/` was not created and no evaluator cell was
+run. Shipping a population trained by the legal objective would score MAX_T = 0
+like everything else, and shipping the teacher-forced one is a compliance
+violation. Building either would have produced a number that a reader could
+mistake for a result.
+
+### 8.1 The single highest-value recommendation
+
+**Stop discounting a legal per-step signal by its seed-fragility, and make the
+replica dimension standard equipment for every seed-fragile procedure in this
+repo.**
+
+Before this branch the honest summary of `alu-credit` Stage 1 was "there is a
+solution, but you only find it 1 time in 10, and the evaluator gives you one
+seed" — which reads as *two* blockers, and makes the search for a legal signal
+look less worth funding. **It is one blocker.** The seed-fragility half is
+solved, cheaply, legally, and with no tuning: 8 replicas, a softmax over them,
+one `optimizer.step()`, +29% wall clock, and the selector needs no schedule. If
+a legal per-step signal is found and it lands anywhere near the same basin
+structure, the path from it to a certified rung is short.
+
+The corollary is general and costs almost nothing: **any procedure in this repo
+whose outcome depends on the seed should be run with a replica axis rather than
+with more seeds.** One P=32 run is 32 draws for 2x the cost of one — a 16x
+improvement in draws per GPU-second — and it is the instrument that made §7's
+alternatives measurable at all. Three concrete places it applies today:
+`depth-controller`'s residual "1 of 5 seeds lands on the wrong unit digit",
+`alu-relational`'s search over relational laws, and any future grokking-style
+recipe search.
+
+### 8.2 What I would run next, in order
+
+1. **Re-run `alu-relational`'s best legal candidates at P=32.** The instrument
+   is built and costs 2x a single run. If any legal signal has *any* tail of
+   replicas below `local_ce` 0.01, a population finds it and the current
+   single-seed screens would have missed it. This is the highest-value use of
+   `lab/probe_pop.py` and it is one command per candidate.
+2. **Stack init scale 0.25 with the population.** It is the only cheap lever
+   that moved the rate (0.34 -> 0.53) and it composes with P for free; at P=8 it
+   takes the run-level success from 0.91 to 0.99. Sweep the scale properly —
+   I tested two values.
+3. **Measure the population's step-budget curve.** Everything here is at 1,200
+   steps (the `tree:quotient` Hard budget). The basin is entered by step 400-800
+   at P>=32, so a population may fit Medium's ~170 steps once the per-step
+   signal exists; that is worth knowing before anyone assumes Hard is the only
+   viable tier.
+4. **Do not spend more time on weight averaging, restarts, batch size or LR
+   schedules** for this failure mode. All four are measured flat or negative
+   (§7).
 
 ---
 
