@@ -613,8 +613,20 @@ $VENV lab/probe_compose.py --mode time --batch 38 512 4096 --loops 64 --train-lo
 $VENV lab/probe_compose.py --mode time --batch 128 --loops 1 3 16 --train-loops-max 16
 $VENV lab/make_manifest.py --dataset e1 --mode wallclock --max-steps 5 \
     --eval-batch-size 4096 --name alu_e1_evalonly
+# submissions/alu-compose/{mix64,bs32,bs512}/ are LAB VARIANTS of the deliverable,
+# kept only so the archived runs can be reproduced byte for byte.  `mix64` sets
+# HALT_EPS = 0, which disables the ACT early exit and forces every eval batch to
+# EVAL_LOOPS; it was copied before the shallow `sel_thresh` init landed, which
+# cannot affect it because it never exits early either way.
 $VENV lab/run_experiment.py --submission submissions/alu-compose/mix64/submission.py \
     --manifest lab/manifests/alu_e1_evalonly.json --tag C-evalbudget     # FAILS: TimeoutError
+$VENV lab/run_experiment.py --submission submissions/alu-compose/mix64/submission.py \
+    --manifest lab/manifests/alu_m1_evalonly.json --tag C-evalbudget     # 305.7s of 300s
+$VENV lab/make_manifest.py --dataset e1 --mode wallclock --max-steps 1000000 \
+    --eval-batch-size 4096 --name alu_e1_wc60
+for s in submissions/alu-compose/{,bs32/,bs512/}submission.py; do
+  $VENV lab/run_experiment.py --submission $s \
+      --manifest lab/manifests/alu_e1_wc60.json --tag D-tierbudget; done
 $VENV lab/run_experiment.py --submission submissions/alu-compose/submission.py \
     --manifest lab/manifests/alu_e1_evalonly.json --tag C-evalbudget     # ok, 24.8s of 30s
 ```
