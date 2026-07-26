@@ -1,0 +1,6 @@
+p_tp1_s0 --tprop 1.0 --steps 4000 --batch 512 --log-every 1000 --seed 0
+p_tp1_s1 --tprop 1.0 --steps 4000 --batch 512 --log-every 1000 --seed 1
+p_tp1_s2 --tprop 1.0 --steps 4000 --batch 512 --log-every 1000 --seed 2
+p_tp1_tie_s0 --tprop 1.0 --tie --tie-sub --steps 4000 --batch 512 --log-every 1000 --seed 0
+p_tp3_s0 --tprop 3.0 --steps 4000 --batch 512 --log-every 1000 --seed 0
+p_tp03_s0 --tprop 0.3 --steps 4000 --batch 512 --log-every 1000 --seed 0

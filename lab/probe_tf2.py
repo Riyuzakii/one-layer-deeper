@@ -55,6 +55,7 @@ class TFALU(DigitALU):
         self.tf_loss = None
         self.tf_n = 0
         self.tf_p = 1.0
+        self.latents: dict = {}
         super().__init__(*a, **kw)
 
     # ---- weight ties (a reparameterisation; the forward is unchanged) ----
@@ -78,6 +79,30 @@ class TFALU(DigitALU):
 
     # ---- the tap ----
     def _tap(self, x):
+        if self.mode == 'shape':
+            self.tape.append(tuple(x.shape))
+            return x
+        if self.mode == 'tprop':
+            # TARGET PROPAGATION (LEGAL).  Replace the op's output with a
+            # LEARNED latent and score the op locally against it, in both
+            # directions.  The op therefore sees a latent as input and is
+            # trained to reproduce the next latent -- teacher forcing with the
+            # trace learned instead of supplied.  Only per-example taps that
+            # are not the inner candidate scan carry latents; the x-independent
+            # multiples prefix and the batched candidate scan are left to
+            # ordinary backprop.
+            i = self.tpos
+            self.tpos += 1
+            lat = self.latents.get(i)
+            if lat is None:
+                return x
+            p = x.clamp_min(1e-9)
+            q = lat.clamp_min(1e-9)
+            self.tf_loss = self.tf_loss \
+                + -(lat.detach() * p.log()).sum(-1).mean() \
+                + -(x.detach() * q.log()).sum(-1).mean()
+            self.tf_n += 2
+            return lat
         if self.mode == 'record':
             self.tape.append(x.detach())
             return x
@@ -143,6 +168,33 @@ class TFALU(DigitALU):
         return self.forward_tree(s, ndig, mults, prod, z)
 
 
+class LatentTrace(torch.nn.Module):
+    """Predicts the per-step register trace from the same inputs the model
+    already sees.  LEGAL: no arithmetic is supplied, every target is either
+    another latent or the evaluator's label, and it is discarded at eval."""
+
+    def __init__(self, slots, shapes, hidden=256):
+        super().__init__()
+        self.shapes = shapes                      # {tap_index: (r, D, 10)}
+        self.inp = torch.nn.Linear(slots * 10, hidden)
+        self.heads = torch.nn.ModuleDict({
+            str(i): torch.nn.Linear(hidden, r * D * 10)
+            for i, (r, D) in shapes.items()})
+
+    def forward(self, s, tau=1.0):
+        h = torch.tanh(self.inp(s.flatten(1)))
+        b = s.shape[0]
+        out = {}
+        for i, (r, D) in self.shapes.items():
+            lg = self.heads[str(i)](h).view(b, r, D, 10)
+            # tree_sum concatenates pair-major (out[i*b:(i+1)*b]), so the
+            # latent must be r-major too or latent k would not line up with
+            # example k.
+            lg = lg.permute(1, 0, 2, 3).reshape(b * r, D, 10)
+            out[i] = F.softmax(lg / tau, -1)
+        return out
+
+
 @torch.no_grad()
 def scores(model, ref, ndigits):
     """cell_agree (raw argmax vs the construction) + the gauge-invariant
@@ -192,6 +244,11 @@ def main() -> int:
     ap.add_argument("--tie", action="store_true")
     ap.add_argument("--tie-sub", action="store_true")
     ap.add_argument("--teacher-force", type=float, default=1.0)
+    ap.add_argument("--tprop", type=float, default=0.0,
+                    help="LEGAL target propagation: learn the trace instead of "
+                         "being handed it.  Disables --teacher-force.")
+    ap.add_argument("--tprop-hidden", type=int, default=256)
+    ap.add_argument("--tprop-tau", type=float, default=1.0)
     ap.add_argument("--steps", type=int, default=400)
     ap.add_argument("--batch", type=int, default=512)
     ap.add_argument("--lr", type=float, default=3e-2)
@@ -264,26 +321,52 @@ def main() -> int:
               f"held_exact_hard={ev(model, hin, ht, True):.3f}", flush=True)
         return 0
 
-    opt = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(0.9, 0.95))
+    latent = None
+    if args.tprop > 0:
+        model.mode, model.tape = 'shape', []
+        with torch.no_grad():
+            model(xin[:8], nd)
+        model.mode = None
+        shapes = {}
+        for i, sh in enumerate(model.tape):
+            if sh[0] % 8:                      # x-independent (multiples)
+                continue
+            r, D = sh[0] // 8, sh[1]
+            if D == model.W and r > 1:         # inner candidate scan
+                continue
+            shapes[i] = (r, D)
+        latent = LatentTrace(S, shapes, args.tprop_hidden).to(dev)
+        print(f"[{args.tag}] tprop latents at {len(shapes)}/{len(model.tape)} "
+              f"taps, {sum(p.numel() for p in latent.parameters()):,} aux params",
+              flush=True)
+
+    params = list(model.parameters()) + \
+        (list(latent.parameters()) if latent is not None else [])
+    opt = torch.optim.AdamW(params, lr=args.lr, betas=(0.9, 0.95))
     t0 = time.time()
     nd_dig = digits_le(N, W)
     for step in range(1, args.steps + 1):
         idx = torch.randint(0, xin.shape[0], (args.batch,), device=dev)
         bi, bt = xin[idx], xt[idx]
-        with torch.no_grad():                       # tape the true trace
-            ref.mode, ref.tape = 'record', []
-            ref(bi, nd)
-            ref.mode = None
-        model.mode, model.tape = 'force', ref.tape
-        model.tf_loss, model.tf_n, model.tf_p = torch.zeros((), device=dev), 0, \
-            args.teacher_force
+        model.tf_loss, model.tf_n = torch.zeros((), device=dev), 0
+        if latent is not None:
+            model.latents = latent(bi, args.tprop_tau)
+            model.mode = 'tprop'
+        else:
+            with torch.no_grad():               # tape the true trace
+                ref.mode, ref.tape = 'record', []
+                ref(bi, nd)
+                ref.mode = None
+            model.mode, model.tape = 'force', ref.tape
+            model.tf_p = args.teacher_force
         logits = model(bi, nd)
         model.mode = None
+        w = args.tprop if latent is not None else 1.0
         loss = F.cross_entropy(logits.reshape(-1, 10), bt.reshape(-1)) \
-            + model.tf_loss / max(model.tf_n, 1)
+            + w * model.tf_loss / max(model.tf_n, 1)
         opt.zero_grad(set_to_none=True)
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        torch.nn.utils.clip_grad_norm_(params, 1.0)
         opt.step()
         if step == 1 or step % args.log_every == 0 or step == args.steps:
             sc = scores(model, ref, nd_dig)
