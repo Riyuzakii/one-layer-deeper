@@ -211,6 +211,145 @@ them composes. Rank on `local_ce`; do not rank on structure.
 
 ---
 
+## 4. THE RESULT — basin hits vs replica count
+
+**DIAGNOSTIC** (teacher forcing). All runs: 1,200 optimizer steps, m1 scale
+(N=10403, S=5, 8,000 train operands / 1,024 held-out), untied, `tree:quotient`,
+lr 3e-2, batch 512, mixture head with replicas detached (`--sel 1
+--sel-detach`).
+
+```
+bash lab/pop_sweep.sh lab/jobs_pop_ctl.txt 3      # P=1, seeds 0-6
+bash lab/pop_sweep.sh lab/jobs_pop_basin.txt 3    # P=8/32/64
+```
+
+### 4.1 Run-level: does the run contain a solution at all?
+
+| P | runs | runs containing a basin hit | wall-clock premium per run |
+|---|---|---|---|
+| **1** | 7 | **1 / 7** (14%) | 1.00x |
+| **8** | 3 | **3 / 3** (100%) | 1.29x |
+| **32** | 2 | **2 / 2** (100%) | 2.03x |
+| **64** | 1 | **1 / 1** (100%) | 3.02x |
+
+**Six of six population runs contained a solved replica; one of seven single
+models did.** At P=8 the expected number of hits per run is ~1.3 and the
+observed run-level success is 3/3; at P=32 and P=64 every replica-level
+distribution has 10–16 solved members, so a miss would be a ~10-sigma event.
+
+### 4.2 Replica-level: are replicas inside one run as independent as seeds?
+
+Fraction of replicas reaching the basin (`local_ce` < 0.006, equivalently
+`train_exact_hard` >= 0.95):
+
+| P | runs | replicas | in basin | rate | 95% CI |
+|---|---|---|---|---|---|
+| 1 | 7 | 7 | 1 | 0.14 | 0.00–0.58 |
+| 8 | 3 | 24 | 4 | 0.17 | 0.05–0.37 |
+| 32 | 2 | 64 | 21 | 0.33 | 0.22–0.46 |
+| 64 | 1 | 64 | 16 | 0.25 | 0.15–0.37 |
+| **pooled** | 13 | **159** | **42** | **0.26** | 0.20–0.34 |
+
+**Yes — replicas within one run behave like independent seeds.** All four rates
+are mutually compatible; the pooled per-replica rate is 0.26, and the P=1 rate
+of 1/7 is inside its own interval and inside the pooled one. The replicas share
+the minibatch *sequence* and differ only in initialisation, and that is enough:
+**the basin is selected by initialisation, not by data order.** That is the
+load-bearing fact — it is what makes a population inside one run equivalent to
+N restarts across runs, which is the thing the evaluator's single seed
+otherwise forbids.
+
+The run-level success probability is therefore `1 - (1 - 0.26)^P`:
+
+| P | predicted | observed |
+|---|---|---|
+| 1 | 0.26 | 1/7 |
+| 4 | 0.70 | — |
+| 8 | **0.91** | 3/3 |
+| 16 | 0.99 | — |
+| 32 | **0.9999** | 2/2 |
+| 64 | 1 - 1e-8 | 1/1 |
+
+### 4.3 `local_ce` is quantised, and the cliff is exactly where the coordinator put it
+
+Every replica in all six population runs lands on one of four values. Pooling
+159 replicas:
+
+| `local_ce` | `train_exact_hard` | n |
+|---|---|---|
+| 0.0000 | **1.000** | 34 |
+| 0.0050 | **0.953** | 8 |
+| 0.0089–0.0100 | 0.10 – 0.23 | 11 |
+| >= 0.014 | 0.000 – 0.070 | 106 |
+
+The gap between `local_ce` 0.0050 (0.953) and 0.0089 (0.206) is the whole
+result: **there is no continuum.** This reproduces `alu-credit`'s
+0.0050 -> 0.951 / 0.0076 -> 0.202 exactly and tightens it. `(1-eps)^50` with
+eps = 0.001 gives 0.951 and with eps = 0.003 gives 0.86 — the composition over
+~50 ops turns a factor-2 difference in per-op error into all-or-nothing.
+
+**Use `local_ce` and nothing else as the per-replica basin indicator.** The
+gauge-invariant structure scores (`mul_fn`, `mul_gauge`, `add_shift`,
+`sub_shift`) read 1.000 for essentially every replica, solved or not.
+
+---
+
+## 5. Does differentiable selection recover the good replica?
+
+**Yes, completely, and by three different selectors.** In every one of the six
+population runs:
+
+| run | P | best replica | **mixture** | **argmax replica** | CE-argmin replica | held (argmax) | rank of argmax replica |
+|---|---|---|---|---|---|---|---|
+| `b8_s0` | 8 | 1.000 | **1.000** | **1.000** | 1.000 | 1.000 | 0 |
+| `b8_s1` | 8 | 1.000 | **1.000** | **1.000** | 1.000 | 1.000 | 0 |
+| `b8_s2` | 8 | 0.953 | **0.953** | **0.953** | 0.953 | 0.946 | 0 |
+| `b32_s0` | 32 | 1.000 | **1.000** | **1.000** | 1.000 | 1.000 | 2 |
+| `b32_s1` | 32 | 1.000 | **1.000** | **1.000** | 1.000 | 1.000 | 1 |
+| `b64_s0` | 64 | 1.000 | **1.000** | **1.000** | 1.000 | 1.000 | 11 |
+
+`alpha` is P scalars trained by the **ordinary end-of-chain task loss** on the
+training labels — no per-step signal, no held-out data, no labels at eval.
+The gradient path from the loss to every replica's parameters is unbroken. The
+selector is **LEGAL**; only the thing that fills the population with a solved
+replica is not.
+
+Three separate points, because they do not all point the same way:
+
+1. **The mixture does not dilute a correct replica — because it stops being a
+   mixture.** `alpha` concentrates fast: `wmax` goes 0.016 -> 0.229 -> 0.998 ->
+   1.000 over 1,200 steps at P=64 (0.032 -> 0.746 -> 0.990 at P=32). By the end
+   the "blend" *is* the argmax replica, which is why the two columns agree
+   everywhere.
+2. **But there is a window where the blend is better than the commit, and it is
+   the opposite of `depth-controller`'s finding.** At P=64, step 400:
+   `best` 1.000, **`mix` 0.999, `argmax` 0.943** — `alpha` had not yet
+   concentrated (`wmax` 0.229) and the argmax pointed at a `local_ce`=0.005
+   replica rather than a `local_ce`=0.000 one. The blend of 15 solved replicas
+   was better than one arbitrary solved replica. So: **at a tight step budget,
+   report the blend; at a comfortable one, commit.** The mode is only safe once
+   `wmax` says it is. This does not contradict `depth-controller` — there the
+   blend mixed *distinguishable decisions*, here it mixes near-identical correct
+   ones — but it does mean "always commit to the mode" is not a general rule.
+3. **A cheaper selector works from step 1: pick the replica with the lowest
+   per-replica training CE.** `ce_argmin` in the table is exactly that, and it
+   is 1.000 at step 400 at P=64 when the argmax is 0.943. It needs no learned
+   parameter and cannot get stuck in a rich-get-richer lock-in. It is legal in a
+   submission (`training_loss` receives the labels and can accumulate a running
+   per-replica CE in a **non-persistent** buffer, which does not count against
+   the state ceiling), but it commits by an argmin over a buffer rather than by
+   a trained parameter, so I would ship `alpha` and keep this as a fallback.
+
+**Eval cost.** Because the argmax replica reproduces the population's best
+result exactly, a submission can slice that replica's tables at eval and run
+the readout at **P=1 cost**. The population is a training-time device. Given
+`alu-compose` P2 — a model that runs to a fixed depth throws `TimeoutError` and
+the run status becomes *failed*, which is strictly below a leaderboard score of
+0 — a training-time-only cost is the difference between "affordable" and "does
+not fit".
+
+---
+
 ## 9. Compliance
 
 * **No file under `data/generated/` was read, printed, sampled or summarised.**
@@ -231,3 +370,43 @@ them composes. Rank on `local_ce`; do not rank on structure.
   branch): there is no legal end-to-end candidate to run, and running the
   evaluator on a DIAGNOSTIC model would produce a number that could be
   mistaken for a score.
+
+---
+
+## 10. Reproduction
+
+```bash
+V=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
+
+# the ceiling of the population graph -- must print 1.000 / 1.000 / 1.000
+$V lab/probe_pop.py --construct --pop 4 --eval-n 512 --held-x 512 --eval-chunk 128
+
+# cost vs replica count (one process, interleaved, contention-robust minimum)
+$V lab/pop_time.py --pops 1,2,4,8,16,32,64,128,256 --rounds 4 --iters 10
+$V lab/pop_time.py --pops 1,4,16,32,64 --rounds 3 --iters 8 --slow-quot
+$V lab/pop_time.py --pops 1,4,16,32,64,128 --rounds 3 --iters 8 --sel
+
+# the single-model control: 7 seeds, 1 basin hit          [DIAGNOSTIC]
+bash lab/pop_sweep.sh lab/jobs_pop_ctl.txt 3
+
+# the population, P = 8 / 32 / 64                          [DIAGNOSTIC]
+bash lab/pop_sweep.sh lab/jobs_pop_basin.txt 3
+
+# the legal control (no teacher forcing at all)            [LEGAL]
+bash lab/pop_sweep.sh lab/jobs_pop_legal.txt 2
+
+# cheaper-than-a-population alternatives, all measured at P=32 so that ONE run
+# is 32 basin draws                                        [DIAGNOSTIC]
+bash lab/pop_sweep.sh lab/jobs_pop_var.txt 3
+
+# selection variants                                       [DIAGNOSTIC]
+bash lab/pop_sweep.sh lab/jobs_pop_sel.txt 3
+
+# render the tables
+$V lab/pop_table.py lab/pop_runs.jsonl
+```
+
+Job files: `lab/jobs_pop_{ctl,basin,legal,var,sel}.txt`. One JSON line per run
+in `lab/pop_runs.jsonl` with the full argv, the per-replica accuracy and
+`local_ce` vectors, the mixture / argmax / CE-argmin results, `n_basin`,
+`ms_per_step` and peak memory. Per-run logs in `lab/logs/<tag>.log`.
