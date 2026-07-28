@@ -1,0 +1,7 @@
+# LEGAL.  The control nobody ran: what is local_ce at RANDOM INITIALISATION?
+# Every "leftward shift" claimed in this project (--assoc 2.304, SOAP 2.005) is
+# near this number, so it has to be on the table.
+LI_init_lr0 --pop 32 --seed 0 --steps 1 --opt adamw --lr 0 --log-every 1
+LI_init_lr0_s1 --pop 32 --seed 1 --steps 1 --opt adamw --lr 0 --log-every 1
+LI_init_lr0_s2 --pop 32 --seed 2 --steps 1 --opt adamw --lr 0 --log-every 1
+LI_init_p64 --pop 64 --seed 0 --steps 1 --opt adamw --lr 0 --log-every 1

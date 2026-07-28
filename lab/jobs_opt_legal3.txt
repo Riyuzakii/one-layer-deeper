@@ -1,0 +1,10 @@
+# LEGAL, round 3.  The AdEMAMix configurations that PASS the diagnostic gate
+# (beta2 0.95 to match the AdamW baseline; beta3 0.9 reproduced AdamW's 11/32
+# exactly, beta3 0.99 gave 6/32 at alpha=2).  Round 1's AdEMAMix legal cells all
+# used gate-FAILING settings, so they were uninterpretable.
+LO3_ade_a8_b39_1e2 --pop 32 --seed 0 --steps 1200 --opt ademamix --lr 1e-2 --ade-alpha 8 --ade-beta2 0.95 --ade-beta3 0.9 --ade-warmup 200
+LO3_ade_a8_b39_3e2 --pop 32 --seed 0 --steps 1200 --opt ademamix --lr 3e-2 --ade-alpha 8 --ade-beta2 0.95 --ade-beta3 0.9 --ade-warmup 200
+LO3_ade_a2_b399_1e2 --pop 32 --seed 0 --steps 1200 --opt ademamix --lr 1e-2 --ade-alpha 2 --ade-beta2 0.95 --ade-beta3 0.99 --ade-warmup 300
+LO3_ade_a2_b399_3e3 --pop 32 --seed 0 --steps 1200 --opt ademamix --lr 3e-3 --ade-alpha 2 --ade-beta2 0.95 --ade-beta3 0.99 --ade-warmup 300
+LO3_ade_a2_b399_3e2 --pop 32 --seed 0 --steps 1200 --opt ademamix --lr 3e-2 --ade-alpha 2 --ade-beta2 0.95 --ade-beta3 0.99 --ade-warmup 300
+LO3_ade_a8_b39_3e3 --pop 32 --seed 0 --steps 1200 --opt ademamix --lr 3e-3 --ade-alpha 8 --ade-beta2 0.95 --ade-beta3 0.9 --ade-warmup 200
