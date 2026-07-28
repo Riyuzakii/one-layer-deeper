@@ -12,7 +12,8 @@ solve, then screen them on the legal objective.
 (self-checks), `--opt {adamw,soap,ademamix}` in `lab/probe_pop.py` and
 `lab/probe_pop_legal.py`, `lab/make_optsub.py` (dense-transformer submissions).
 **Runs** 29 in `lab/opt_runs.jsonl` (gate), 33 in `lab/opt_legal_runs.jsonl`
-(legal), logs in `lab/logs/`.
+(legal), 5 evaluator cells in `lab/archive.jsonl` (tag `B-opt2`), logs in
+`lab/logs/`.
 
 ---
 
@@ -27,7 +28,7 @@ solve, then screen them on the legal objective.
 | **SOAP breaks the `local_ce` cliff law** — a new metric-fooling row | 14 replicas below the cliff, **1** in the basin; under AdamW the law is a step function | DIAGNOSTIC |
 | **AdEMAMix's slow EMA is monotonically harmful here** | basin count 11 → 6 → 4 → 0 → 0 as β₃ goes 0.9 → 0.99 → 0.999 → 0.9999 | DIAGNOSTIC |
 | **Second-order costs almost nothing at this size** | SOAP is **+17%** ms/step at P=32; the ALU is 6,820 params and kernel-launch bound | — |
-| **Dense transformer** | see §7 | LEGAL |
+| **Dense transformer: SOAP and AdEMAMix are null there too** | 5 cells, all `MAX_T=0`; rung-1 spread 0–2 of 38 against a one-example variance floor | **LEGAL, and null** |
 
 **Verdict, in one line: conditioning is NOT the gap. The closure now also covers
 second-order and slow-EMA methods.** And the branch produces a correction that
@@ -36,8 +37,8 @@ the cliff relative to random initialisation**, so every "leftward shift" recorde
 in this project — including `alu-population`'s `--assoc` and this branch's own
 SOAP rows — is partial regression toward an untrained model, not progress.
 
-**No submission.** Nothing here scores above the floor; §7 says what was run on
-the dense model and what it read.
+**No submission.** Every cell run through the evaluator scored `MAX_T = 0`, at
+or below the field, so there is nothing to ship; §7.
 
 ---
 
@@ -481,23 +482,43 @@ into the emitted `submission.py` (one self-contained file, lints clean at 25 KB)
 bash lab/run_dense.sh      # 5 cells: AdamW ctl, SOAP x2, AdEMAMix x2
 ```
 
-> **STATUS: NOT MEASURED.** These five cells were launched but had not finished
-> when the branch was written up; the first (`G_adamw_ctl`) was still running.
-> No number from them appears anywhere in this report and no claim rests on
-> them. Resume with the command above; results append to `lab/archive.jsonl`
-> under tag `B-opt2`.
->
-> **My prediction, recorded before the fact so it can be scored:** rung-1 = 0/38
-> for all five, `MAX_T = 0`, i.e. indistinguishable from the 50-run e1 histogram
-> (0/38 × 37, 1/38 × 12, 2/38 × 2). The reason is the sibling's, not mine: train
-> exact accuracy is already 1.00 by step 2,000 and holds for the next 198,000, so
-> there is no optimisation headroom for a better optimizer to consume. **This is
-> the one part of the mandate I did not complete, and it is stated as not
-> completed rather than inferred.**
+**Five cells, all `MAX_T = 0` and all `OOD_N_MAX_T = 0`** (tag `B-opt2` in
+`lab/archive.jsonl`; per-rung tables in `lab/logs/_dense.out`):
 
-The ALU result does not depend on this cell. The ALU is the architecture the
+| run | optimizer | lr | **rung-1** | test | ood | mean acc | train s |
+|---|---|---:|---:|---:|---:|---:|---:|
+| `G_adamw_ctl` | AdamW (control) | 1e-3 | **0.000** (0/38) | 0.027 | 0.030 | 0.0283 | 389 |
+| `G_soap_1e3` | SOAP | 1e-3 | 0.026 (1/38) | 0.020 | 0.050 | 0.0350 | 337 |
+| `G_soap_3e3` | SOAP | 3e-3 | **0.000** (0/38) | 0.020 | 0.050 | 0.0350 | 336 |
+| `G_ade_3e4` | AdEMAMix α=8 β₃0.9999 | 3e-4 | 0.026 (1/38) | 0.020 | 0.020 | 0.0200 | 286 |
+| `G_ade_1e3` | AdEMAMix α=8 β₃0.9999 | 1e-3 | 0.053 (2/38) | 0.020 | 0.030 | 0.0250 | 286 |
+
+**The control reproduces the sibling branch to three decimals** — its optimizer
+table reads AdamW rung-1 0.000 / test 0.027 / mean 0.028, and this run reads
+0.000 / 0.027 / 0.028. So the harness and recipe are the same one that branch
+measured, and the two new rows are directly comparable to its AdamW / Muon /
+Schedule-Free row.
+
+**Reading, per the branch's own screening discipline: report the row, not the
+cell.** The rung-1 spread across these five is 0–2 examples out of 38, against a
+stated variance floor of **one example** and a 50-run e1 histogram of 0/38 (×37),
+1/38 (×12), 2/38 (×2). Every cell sits inside that histogram. `G_ade_1e3`'s
+2/38 ties the best e1 value that branch ever recorded across 57 runs — and 2/38
+is `MAX_T = 0`, identical in score to 0/38, which is the whole point of the
+current metric. **Nothing here is distinguishable from the null.**
+
+I recorded a prediction of 0/38 for all five before running them. That was
+slightly conservative: three cells landed at 1–2/38. The prediction's *content* —
+`MAX_T = 0` everywhere, indistinguishable from the field — holds, and the reason
+holds with it: train exact accuracy is 1.00 by step 2,000 and holds it for the
+next 198,000, so a better optimizer has no headroom to consume. **The optimizer
+question is now closed for the dense transformer as well as for the ALU**, which
+is what made these five cells worth the 27 minutes.
+
+The ALU result does not depend on these cells. The ALU is the architecture the
 project's remaining hope rested on, it is where the optimizer sweep had the
-actual hole, and §2–§4 close it on 62 runs.
+actual hole, and §2–§4 close it on 62 runs; §7 closes the optimizer question for
+the dense model too, so it is now closed for the whole project.
 
 ---
 
@@ -531,7 +552,9 @@ actual hole, and §2–§4 close it on 62 runs.
   rather than deleted.
 * `explore/grok-optimization` and `explore/alu-population` were **read only**.
   Nothing in either worktree was edited or executed.
-* §7 is marked NOT MEASURED rather than inferred.
+* The five evaluator cells in §7 were run through `lab/run_experiment.py` on a
+  fixed-step manifest and every one is archived in `lab/archive.jsonl`,
+  including the ones that scored above the control.
 
 ---
 
@@ -558,7 +581,7 @@ bash lab/pop_legal_sweep.sh lab/jobs_opt_legal2.txt 4   # the lr control
 bash lab/pop_legal_sweep.sh lab/jobs_opt_legal3.txt 3   # gate-passing AdEMAMix
 bash lab/pop_legal_sweep.sh lab/jobs_opt_init.txt 2     # THE INIT CONTROL
 
-# the dense transformer                                       [LEGAL, NOT RUN]
+# the dense transformer -- 5 cells, all MAX_T=0                [LEGAL]
 bash lab/run_dense.sh
 ```
 
