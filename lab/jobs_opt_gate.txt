@@ -1,0 +1,15 @@
+# DIAGNOSTIC (teacher forcing).  The verification gate: AdamW reaches a
+# per-replica basin rate of 0.26 here.  If SOAP/AdEMAMix cannot match that, the
+# implementation is wrong, not the idea.  P=32, 1200 steps, m1 scale, untied.
+O_adamw_3e2 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt adamw --lr 3e-2
+O_soap_3e3 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt soap --lr 3e-3
+O_soap_1e2 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt soap --lr 1e-2
+O_soap_3e2 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt soap --lr 3e-2
+O_soap_1e1 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt soap --lr 1e-1
+O_ade_1e3_b999 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt ademamix --lr 1e-3 --ade-beta3 0.999 --ade-warmup 400
+O_ade_3e3_b999 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt ademamix --lr 3e-3 --ade-beta3 0.999 --ade-warmup 400
+O_ade_1e2_b999 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt ademamix --lr 1e-2 --ade-beta3 0.999 --ade-warmup 400
+O_ade_3e2_b999 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt ademamix --lr 3e-2 --ade-beta3 0.999 --ade-warmup 400
+O_ade_3e3_b9999 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt ademamix --lr 3e-3 --ade-beta3 0.9999 --ade-warmup 400
+O_ade_1e2_b9999 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt ademamix --lr 1e-2 --ade-beta3 0.9999 --ade-warmup 400
+O_ade_3e2_b9999 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt ademamix --lr 3e-2 --ade-beta3 0.9999 --ade-warmup 400

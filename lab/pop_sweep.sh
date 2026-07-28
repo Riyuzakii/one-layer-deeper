@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # LAB ONLY.  Run a file of `<tag> <args...>` lines through lab/probe_pop.py
-# with a concurrency cap.  Results append to lab/pop_runs.jsonl.
+# with a concurrency cap.  Results append to lab/opt_runs.jsonl.
 #   usage: bash lab/pop_sweep.sh jobs.txt [parallel]
 set -u
 V=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
@@ -10,7 +10,7 @@ mkdir -p "$ROOT/lab/logs"
 run_one() {
   local tag="$1"; shift
   "$V" "$ROOT/lab/probe_pop.py" --tag "$tag" \
-      --jsonl "$ROOT/lab/pop_runs.jsonl" "$@" \
+      --jsonl "$ROOT/lab/opt_runs.jsonl" "$@" \
       > "$ROOT/lab/logs/$tag.log" 2>&1
   grep -h "FINAL" "$ROOT/lab/logs/$tag.log" | tail -1
 }

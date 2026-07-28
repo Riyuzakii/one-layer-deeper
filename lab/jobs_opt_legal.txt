@@ -1,0 +1,19 @@
+# LEGAL.  probe_pop_legal.py with every extra term OFF = plain end-of-chain task
+# loss at Stage-1 conditions (m1 scale, tree:quotient, untied, P=32, 1200 steps).
+# Baseline: local_ce min 2.975 / med 3.347 / max 4.644, cliff at 0.006.
+# beta2 is held at the AdamW baseline's 0.95 unless the tag says otherwise.
+LO_adamw_s0 --pop 32 --seed 0 --steps 1200 --opt adamw --lr 3e-2
+LO_adamw_s1 --pop 32 --seed 1 --steps 1200 --opt adamw --lr 3e-2
+LO_adamw_s2 --pop 32 --seed 2 --steps 1200 --opt adamw --lr 3e-2
+LO_soap_3e3 --pop 32 --seed 0 --steps 1200 --opt soap --lr 3e-3
+LO_soap_1e2 --pop 32 --seed 0 --steps 1200 --opt soap --lr 1e-2
+LO_soap_3e2 --pop 32 --seed 0 --steps 1200 --opt soap --lr 3e-2
+LO_soap_1e1 --pop 32 --seed 0 --steps 1200 --opt soap --lr 1e-1
+LO_soap_3e1 --pop 32 --seed 0 --steps 1200 --opt soap --lr 3e-1
+LO_ade_a8_b399_1e2 --pop 32 --seed 0 --steps 1200 --opt ademamix --lr 1e-2 --ade-alpha 8 --ade-beta2 0.95 --ade-beta3 0.99 --ade-warmup 300
+LO_ade_a8_b399_3e2 --pop 32 --seed 0 --steps 1200 --opt ademamix --lr 3e-2 --ade-alpha 8 --ade-beta2 0.95 --ade-beta3 0.99 --ade-warmup 300
+LO_ade_a8_b3999_3e2 --pop 32 --seed 0 --steps 1200 --opt ademamix --lr 3e-2 --ade-alpha 8 --ade-beta2 0.95 --ade-beta3 0.999 --ade-warmup 400
+LO_ade_a8_b39999_3e2 --pop 32 --seed 0 --steps 1200 --opt ademamix --lr 3e-2 --ade-alpha 8 --ade-beta2 0.95 --ade-beta3 0.9999 --ade-warmup 400
+LO_ade_a2_b3999_3e2 --pop 32 --seed 0 --steps 1200 --opt ademamix --lr 3e-2 --ade-alpha 2 --ade-beta2 0.95 --ade-beta3 0.999 --ade-warmup 400
+LO_ade_a8_b3999_1e1 --pop 32 --seed 0 --steps 1200 --opt ademamix --lr 1e-1 --ade-alpha 8 --ade-beta2 0.95 --ade-beta3 0.999 --ade-warmup 400
+LO_ade_a0_3e2 --pop 32 --seed 0 --steps 1200 --opt ademamix --lr 3e-2 --ade-alpha 0 --ade-beta2 0.95 --ade-beta3 0.999

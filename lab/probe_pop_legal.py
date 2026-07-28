@@ -53,6 +53,7 @@ import torch.nn.functional as F
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from probe_alu_depth import digits_le                       # noqa: E402
 from probe_pop import PopALU, eval_pop, pop_clip_           # noqa: E402
+import optim_extra                                        # noqa: E402
 
 
 def sym_ce(p, q):
@@ -121,9 +122,25 @@ def main() -> int:
     ap.add_argument("--rel-batch", type=int, default=128)
     ap.add_argument("--rel-hidden", type=int, default=256)
     ap.add_argument("--div", default="ce", choices=["ce", "kl"])
+    ap.add_argument("--opt", default="adamw",
+                    choices=["adamw", "soap", "ademamix"],
+                    help="LEGAL: build_optimizer may return any "
+                         "torch.optim.Optimizer; the evaluator still owns the "
+                         "loop, the backward and the one-step-per-batch cadence")
+    ap.add_argument("--soap-freq", type=int, default=10)
+    ap.add_argument("--soap-max-dim", type=int, default=512)
+    ap.add_argument("--soap-merge", type=int, default=1)
+    ap.add_argument("--soap-beta", type=float, default=0.95)
+    ap.add_argument("--soap-mspace", default="rot", choices=["rot", "orig"])
+    ap.add_argument("--soap-warmup", type=int, default=0)
+    ap.add_argument("--ade-alpha", type=float, default=8.0)
+    ap.add_argument("--ade-beta2", type=float, default=0.999)
+    ap.add_argument("--ade-beta3", type=float, default=0.9999)
+    ap.add_argument("--ade-warmup", type=int, default=0)
     ap.add_argument("--steps", type=int, default=1200)
     ap.add_argument("--batch", type=int, default=512)
     ap.add_argument("--lr", type=float, default=3e-2)
+    ap.add_argument("--wd", type=float, default=0.0)
     ap.add_argument("--init-scale", type=float, default=0.5)
     ap.add_argument("--clip", type=float, default=1.0)
     ap.add_argument("--seed", type=int, default=0)
@@ -181,7 +198,8 @@ def main() -> int:
     n_state = assert_model_state(
         model, ModelSpec(vocab_size=17, max_seq_len=64,
                          maximum_model_state_elements=500_000_000))
-    print(f"[{args.tag}] POP={P} N={N} S={S} tree:quotient LEGAL "
+    print(f"[{args.tag}] POP={P} N={N} S={S} opt={args.opt} "
+          f"tree:quotient LEGAL "
           f"dual={args.dual} sym={args.sym} inv={args.inv} "
           f"assoc={args.assoc} cancel={args.cancel} rel={args.rel} "
           f"div={args.div} state={n_state:,}/5e8", flush=True)
@@ -191,7 +209,13 @@ def main() -> int:
         params += list(freeD.parameters())
     if rel_c is not None:
         params += [rel_c]
-    opt = torch.optim.AdamW(params, lr=args.lr, betas=(0.9, 0.95))
+    okw = dict(lr=args.lr, wd=args.wd, betas=(0.9, 0.95), batch_dims=1,
+               soap_freq=args.soap_freq, soap_max_dim=args.soap_max_dim,
+               soap_merge=args.soap_merge, soap_beta=args.soap_beta,
+               soap_mspace=args.soap_mspace, soap_warmup=args.soap_warmup,
+               ade_alpha=args.ade_alpha, ade_beta2=args.ade_beta2,
+               ade_beta3=args.ade_beta3, ade_warmup=args.ade_warmup)
+    opt = optim_extra.build(args.opt, params, **okw)
     agree = sym_ce if args.div == "ce" else sym_kl
     idx = torch.arange(10, device=dev)
 
@@ -340,7 +364,7 @@ def main() -> int:
     he = eval_pop(model, hin, ht, nd, True, args.eval_chunk)
     q = torch.quantile(lce, torch.tensor([0.0, 0.1, 0.25, 0.5, 0.75, 1.0]))
     out = {"tag": args.tag, "argv": sys.argv[1:], "pop": P,
-           "legal": True,
+           "legal": True, "opt": args.opt,
            "local_ce_min": round(float(lce.min()), 4),
            "local_ce_p10": round(float(q[1]), 4),
            "local_ce_med": round(float(q[3]), 4),

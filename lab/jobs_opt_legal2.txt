@@ -1,0 +1,16 @@
+# LEGAL, round 2.  SOAP at lr 3e-3 shifted the distribution left (median 3.62 ->
+# 2.77, min 3.18 -> 2.11).  3e-3 is also the lr at which SOAP barely trains on
+# the diagnostic gate, so the FIRST thing to check is whether plain AdamW at the
+# same lr does the same -- i.e. whether this is conditioning or just a smaller
+# step.  That control was never run: alu-population swept lr only on the
+# DIAGNOSTIC objective.
+LO2_adamw_1e3 --pop 32 --seed 0 --steps 1200 --opt adamw --lr 1e-3
+LO2_adamw_3e3 --pop 32 --seed 0 --steps 1200 --opt adamw --lr 3e-3
+LO2_adamw_1e2 --pop 32 --seed 0 --steps 1200 --opt adamw --lr 1e-2
+LO2_adamw_3e3_s1 --pop 32 --seed 1 --steps 1200 --opt adamw --lr 3e-3
+LO2_soap_1e3 --pop 32 --seed 0 --steps 1200 --opt soap --lr 1e-3
+LO2_soap_3e4 --pop 32 --seed 0 --steps 1200 --opt soap --lr 3e-4
+LO2_soap_3e3_s1 --pop 32 --seed 1 --steps 1200 --opt soap --lr 3e-3
+LO2_soap_3e3_s2 --pop 32 --seed 2 --steps 1200 --opt soap --lr 3e-3
+LO2_ade_a2_b399_1e2 --pop 32 --seed 0 --steps 1200 --opt ademamix --lr 1e-2 --ade-alpha 2 --ade-beta2 0.95 --ade-beta3 0.99 --ade-warmup 300
+LO2_ade_a2_b399_3e3 --pop 32 --seed 0 --steps 1200 --opt ademamix --lr 3e-3 --ade-alpha 2 --ade-beta2 0.95 --ade-beta3 0.99 --ade-warmup 300

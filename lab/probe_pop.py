@@ -45,6 +45,7 @@ from torch import nn
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from probe_alu_depth import digits_le  # noqa: E402
+import optim_extra  # noqa: E402
 
 BIG = 30.0
 
@@ -588,6 +589,21 @@ def main() -> int:
                          "the mixture loss instead of blending")
     ap.add_argument("--sel-tau-final", type=float, default=None)
     ap.add_argument("--sel-lr", type=float, default=None)
+    ap.add_argument("--opt", default="adamw",
+                    choices=["adamw", "soap", "ademamix"],
+                    help="LEGAL: build_optimizer may return any "
+                         "torch.optim.Optimizer; the evaluator still owns the "
+                         "loop, the backward and the one-step-per-batch cadence")
+    ap.add_argument("--soap-freq", type=int, default=10)
+    ap.add_argument("--soap-max-dim", type=int, default=512)
+    ap.add_argument("--soap-merge", type=int, default=1)
+    ap.add_argument("--soap-beta", type=float, default=0.95)
+    ap.add_argument("--soap-mspace", default="rot", choices=["rot", "orig"])
+    ap.add_argument("--soap-warmup", type=int, default=0)
+    ap.add_argument("--ade-alpha", type=float, default=8.0)
+    ap.add_argument("--ade-beta2", type=float, default=0.999)
+    ap.add_argument("--ade-beta3", type=float, default=0.9999)
+    ap.add_argument("--ade-warmup", type=int, default=0)
     ap.add_argument("--steps", type=int, default=1000)
     ap.add_argument("--batch", type=int, default=512)
     ap.add_argument("--lr", type=float, default=3e-2)
@@ -660,7 +676,8 @@ def main() -> int:
 
     n_par = sum(p.numel() for p in model.parameters())
     per_rep = (n_par - P) // P
-    print(f"[{args.tag}] POP={P} N={N} S={S} tree:quotient tie={args.tie} "
+    print(f"[{args.tag}] POP={P} N={N} S={S} opt={args.opt} "
+          f"tree:quotient tie={args.tie} "
           f"tie_sub={args.tie_sub} params={n_par:,} (~{per_rep:,}/replica) "
           f"train={len(tr_x)} held={len(he_x)} units={len(units)}", flush=True)
 
@@ -689,12 +706,18 @@ def main() -> int:
                "lr": args.lr},
               {"params": [model.alpha],
                "lr": args.sel_lr if args.sel_lr is not None else args.lr}]
-    okw = dict(weight_decay=args.wd, betas=(0.9, 0.95))
+    okw = dict(lr=args.lr, wd=args.wd, betas=(0.9, 0.95), batch_dims=1,
+               soap_freq=args.soap_freq, soap_max_dim=args.soap_max_dim,
+               soap_merge=args.soap_merge, soap_beta=args.soap_beta,
+               soap_mspace=args.soap_mspace, soap_warmup=args.soap_warmup,
+               ade_alpha=args.ade_alpha, ade_beta2=args.ade_beta2,
+               ade_beta3=args.ade_beta3, ade_warmup=args.ade_warmup)
     if args.reinit_period:
         opt = AdamWReinit(groups, model, args.reinit_period, args.reinit_frac,
-                          args.reinit_warm, **okw)
+                          args.reinit_warm,
+                          weight_decay=args.wd, betas=(0.9, 0.95))
     else:
-        opt = torch.optim.AdamW(groups, **okw)
+        opt = optim_extra.build(args.opt, groups, **okw)
 
     t0 = time.time()
     tstep = 0.0
@@ -768,6 +791,7 @@ def main() -> int:
         if args.steps > 10 else float('nan')
 
     out = {"tag": args.tag, "argv": sys.argv[1:], "pop": P,
+           "opt": args.opt,
            "ms_per_step": round(ms, 2),
            "secs": round(time.time() - t0, 1)}
     if not args.timing_only:
@@ -815,6 +839,27 @@ def main() -> int:
             "lce_sorted": [round(float(lce[i]), 4) for i in order[:16]],
         })
         out.update(struct_scores(model, int(order[0]), nd_dig))
+        # --- why a low local_ce can still fail: state saturation ---------
+        # `local_ce` is measured on a HARD (one-hot) tape, so it scores the
+        # tables.  Free-running exactness additionally needs the model's OWN
+        # intermediate states to be near one-hot -- alu-depth's "saturated
+        # tables make softmax(log p) a fixed point".  Record a free-running
+        # forward and report the mean/min of max_d p(d) over every tapped
+        # state, plus the logit scale of the tables that produces it.
+        with torch.no_grad():
+            model.mode, model.tape = 'record', []
+            model(xin[:256], nd)
+            model.mode = None
+            mx = torch.stack([t.max(-1).values.reshape(P, -1).mean(1)
+                              for t in model.tape])          # (T,P)
+            model.tape = []
+        sharp = mx.mean(0).cpu()
+        out["state_sharp_best"] = round(float(sharp[int(order[0])]), 4)
+        out["state_sharp_mean"] = round(float(sharp.mean()), 4)
+        out["logit_rms_mul"] = round(
+            float(model.Tmul.detach().flatten(1).std(1).mean()), 3)
+        out["logit_rms_add"] = round(
+            float(model.Tadd.detach().flatten(1).std(1).mean()), 3)
         if args.avg_replicas:
             avg = PopALU(1, S, 2, 2, args.max_quot, 1.0, False, args.tie,
                          args.tie_sub).to(dev)

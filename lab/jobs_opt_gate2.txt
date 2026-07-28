@@ -1,0 +1,16 @@
+# DIAGNOSTIC gate, round 2.  SOAP config variants, and the confounds that could
+# explain AdEMAMix's round-1 failure: beta2 (the baseline AdamW is 0.95, not
+# 0.999), alpha, and beta3 vs the 1,200-step budget.
+O2_ade_a0_b295 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt ademamix --lr 3e-2 --ade-alpha 0 --ade-beta2 0.95 --ade-beta3 0.999
+O2_ade_a2_b295_b399 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt ademamix --lr 3e-2 --ade-alpha 2 --ade-beta2 0.95 --ade-beta3 0.99 --ade-warmup 300
+O2_ade_a8_b295_b399 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt ademamix --lr 3e-2 --ade-alpha 8 --ade-beta2 0.95 --ade-beta3 0.99 --ade-warmup 300
+O2_ade_a8_b295_b399_lo --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt ademamix --lr 1e-2 --ade-alpha 8 --ade-beta2 0.95 --ade-beta3 0.99 --ade-warmup 300
+O2_ade_a8_b295_b3999 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt ademamix --lr 3e-2 --ade-alpha 8 --ade-beta2 0.95 --ade-beta3 0.999 --ade-warmup 400
+O2_ade_a2_b295_b3999 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt ademamix --lr 3e-2 --ade-alpha 2 --ade-beta2 0.95 --ade-beta3 0.999 --ade-warmup 400
+O2_ade_a8_b295_b39_lo --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt ademamix --lr 1e-2 --ade-alpha 8 --ade-beta2 0.95 --ade-beta3 0.9 --ade-warmup 200
+O2_soap_5e2 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt soap --lr 5e-2
+O2_soap_3e2_f1 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt soap --lr 3e-2 --soap-freq 1
+O2_soap_3e2_nomerge --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt soap --lr 3e-2 --soap-merge 0
+O2_soap_3e2_orig --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt soap --lr 3e-2 --soap-mspace orig
+O2_soap_3e2_warm --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt soap --lr 3e-2 --soap-warmup 20
+O2_soap_3e2_full --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 400 --eval-n 1024 --eval-chunk 128 --opt soap --lr 3e-2 --soap-max-dim 4096

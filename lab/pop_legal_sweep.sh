@@ -8,7 +8,7 @@ mkdir -p "$ROOT/lab/logs"
 run_one() {
   local tag="$1"; shift
   "$V" "$ROOT/lab/probe_pop_legal.py" --tag "$tag" \
-      --jsonl "$ROOT/lab/pop_legal_runs.jsonl" "$@" \
+      --jsonl "$ROOT/lab/opt_legal_runs.jsonl" "$@" \
       > "$ROOT/lab/logs/$tag.log" 2>&1
   grep -h FINAL "$ROOT/lab/logs/$tag.log" | tail -1 | cut -c1-160
 }

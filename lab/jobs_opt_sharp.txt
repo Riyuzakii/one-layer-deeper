@@ -1,0 +1,6 @@
+# DIAGNOSTIC.  Same three configs, re-run to record state saturation and the
+# table logit scale -- the proposed mechanism for SOAP's soft/hard split.
+O3_sharp_adamw --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 1200 --eval-n 512 --eval-chunk 128 --opt adamw --lr 3e-2
+O3_sharp_soap3e2 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 1200 --eval-n 512 --eval-chunk 128 --opt soap --lr 3e-2
+O3_sharp_soap1e1 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 1200 --eval-n 512 --eval-chunk 128 --opt soap --lr 1e-1
+O3_sharp_ade_b39 --pop 32 --seed 0 --steps 1200 --sel 1 --sel-detach --log-every 1200 --eval-n 512 --eval-chunk 128 --opt ademamix --lr 1e-2 --ade-alpha 8 --ade-beta2 0.95 --ade-beta3 0.9 --ade-warmup 200
