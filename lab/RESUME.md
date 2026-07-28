@@ -300,6 +300,47 @@ ported to a replica dimension: **16 configurations, 544 replicas, 1,200 steps ea
    replicas solve in *different* gauges, and their average is uniform. Stated as a
    general result, not a sweep null.
 
+### Round 5 — the optimizer question closed, and the control that reframes it
+
+**`explore/alu-optimizer` (complete).** SOAP and AdEMAMix had never been tried anywhere
+in the project (the sweep covered AdamW / Muon / Schedule-Free / Grokfast / perp-Grad /
+StableMax, all on the dense transformer; only AdamW hyperparameters on the ALU). They
+target the one property the closure assumes but never measured: **conditioning**.
+
+**Both pass a diagnostic gate**, so the nulls are interpretable — teacher-forced,
+Stage-1, P=32: AdamW 1.000/1.000 with 11/32 replicas in basin; **AdEMAMix identical
+(11/32)**; SOAP reaches the ceiling at 2/32 (5x worse basin rate). Full-matrix
+preconditioning costs 3.2x wall clock at 6,820 params and buys nothing.
+
+**Legal objective: 29 runs, 928 replicas, 0 below `local_ce` 1.0**, best
+`train_exact_hard` 0.002. SOAP's apparent record (2.005 vs baseline 3.14) is **88%
+learning rate** — an lr-matched AdamW control at lr 1e-3, never previously run on the
+legal objective, recovers most of the shift. AdEMAMix is monotonically *worse* as beta3
+rises (median 13.7 at beta3=0.999).
+
+**THE CONTROL THAT REFRAMES EVERYTHING — `local_ce` at RANDOM INIT is 2.08-2.24**
+(160 replicas, `--lr 0`, 4 minutes). The plain legal objective *trains* `local_ce` to
+3.5-4.2, i.e. **training moves it AWAY from the cliff**, and the project's best-ever
+legal value (`--assoc`'s 2.304) is **worse than an untrained model**. Every leftward
+shift ever recorded on the legal objective, including SOAP's, is **partial regression
+toward initialisation**, not progress.
+
+So the obstruction is sharper than "cannot get close enough": **the legal objective's
+gradient points away from the discrete solution from the first step, identically for
+all three optimizer families.** Run `--lr 0` as a control before interpreting any
+future "improvement" on this objective.
+
+**Dense transformer:** 5 evaluator cells, all MAX_T=0/OOD_N 0; the AdamW control
+reproduces `grok-optimization` to three decimals.
+
+**Verdict: conditioning is NOT a gap. The closure now covers second-order and slow-EMA
+methods**, tested at conditions where both demonstrably work.
+
+**Also found: a real bug in the published SOAP reference code** — keeping the first
+moment outside the eigenbasis makes numerator and denominator independently-rounded
+projections that blow up in near-null directions. Moving both moments into the basin
+(paper Algorithm 1) turned divergence into a 374x win on an ill-conditioned quadratic.
+
 ### Corrections to earlier entries in this log
 
 - **`batch_size` 512→32 is 1.2× for the ALU model, not 5.8×.** The DataLoader lever
@@ -391,6 +432,8 @@ session has a measured configuration that fools it:
 | `train_exact_hard` alone | short chain | 0.183 | `held_exact_hard` 0.000 |
 | `mul_fn` (structure) | a constant map | 1.000 | `mul_gauge` 0.100 |
 | algebraic objective | basin hopping, 38x compute | 0.786 -> 0.211 | `add_shift` driven *below* chance, 0.285 -> 0.205 |
+| `local_ce` | SOAP on the legal objective | 14/32 replicas below the 0.006 cliff | only **1** actually in basin; one cell reads 5e-05 with `train_exact_hard` 0.120 |
+| any leftward `local_ce` shift | the legal objective itself | 3.5 -> 2.3 looks like progress | **random init is 2.08-2.24** — it is regression toward init |
 
 Note two rows especially. **Parameter-level progress and discrete correctness are close
 to independent** (target propagation). And in the last row **objective and structure are
