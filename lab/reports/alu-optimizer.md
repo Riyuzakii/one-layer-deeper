@@ -22,7 +22,7 @@ solve, then screen them on the legal objective.
 | | | status |
 |---|---|---|
 | **Both optimizers PASS the diagnostic gate** | SOAP `train_exact_hard` **1.000**/held 1.000; AdEMAMix **1.000**/1.000 at **11/32** replicas — *identical* to AdamW | DIAGNOSTIC |
-| **Neither moves the legal objective** | 33 legal runs, **0 of 1,056 replicas** below `local_ce` 1.0, against a cliff at 0.006 | **LEGAL, and null** |
+| **Neither moves the legal objective** | 29 trained legal runs, **0 of 928 replicas** below `local_ce` 1.0, against a cliff at 0.006 | **LEGAL, and null** |
 | **The apparent SOAP left-shift is a learning-rate effect** | AdamW at the *same* lr gets 88% of it; the ordering is set by lr, not by the optimizer | **LEGAL** |
 | **The control that reframes the whole closure: `local_ce` at RANDOM INIT is 2.08–2.24** | so the project's best-ever "legal" value (2.304, `--assoc`) is **worse than an untrained model**, and the baseline at 3.6 is **65% worse than init** | **LEGAL** |
 | **SOAP breaks the `local_ce` cliff law** — a new metric-fooling row | 14 replicas below the cliff, **1** in the basin; under AdamW the law is a step function | DIAGNOSTIC |
@@ -324,8 +324,9 @@ detector (fraction of distinct answers over 256 inputs) evaluated on the
 | `LO_ade_a8_b39999_3e2` | AdEMAMix β₃**0.9999** | 3e-2 | 0 | 9.368 | 10.425 | 13.033 | 16.655 | 0.574 | 0 | 0.001 | 0.059 | 0.191 |
 | `LO_ade_a8_b3999_1e1` | AdEMAMix β₃0.999 | 1e-1 | 0 | 10.256 | 10.964 | 13.665 | 17.708 | 0.553 | 0 | 0.001 | 0.016 | 0.004 |
 
-**33 runs. 1,056 replicas. Zero below `local_ce` 1.0, let alone the 0.006 cliff.
-Best `train_exact_hard` anywhere: 0.002.**
+**33 runs / 1,088 replicas in the table; 29 of them trained, 928 replicas.
+Zero below `local_ce` 1.0, let alone the 0.006 cliff. Best `train_exact_hard`
+anywhere: 0.002.**
 
 ### 4.2 Did either optimizer shift or fatten the tail? — the honest answer
 
