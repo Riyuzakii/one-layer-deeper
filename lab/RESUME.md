@@ -532,6 +532,59 @@ hosted Hard run's `metric.jsonl` shows step-1 loss **79.936**.
 **`submissions/baseline_adamw/submission.py` pays this toll**, and at Easy's 14-18 steps
 it would consume most of a run.
 
+### PLAN2 §3.1 — the conditioning question, answered and closed (`plan2/matrix-scan`)
+
+**A log-depth scan does NOT train where a serial one did not, and it cannot.** A parallel
+prefix and a serial prefix over one operator are **the same function, hence the same
+gradients** — measured: same seeds, `impl=scan` vs `impl=serial`, losses agree to
+**0.3-0.5%** after 1,000 steps at graph depths 41 vs 61. **My framing of this branch was
+wrong at the level of mathematics**: reassociating a product changes the graph, not the
+*learned-op* depth. The branch also ran the learning comparison `alu-depth` never did on
+its own `--scan-mode prefix`: it trains **worse** at S=3 (0.076 vs 0.448) and identically
+at S=5, because a prefix over a *learned* monoid adds the burden of identifying the
+composition operator (+651 params).
+
+**The criterion itself survives, and is now quantified.** Repair basin of the legal label
+by **learned-op depth**:
+
+| architecture | learned-op depth | repair |
+|---|---|---|
+| `DigitALU` | 39 | 0/5 at k=20 |
+| `MonoidALU` | 12 | 1/20, 14/400 |
+| O(1) algebraic laws | 1 | 50/400 |
+
+**Conditioning is real and scales correctly; the coefficient is far too small.**
+
+**Results:** `held_exact_hard` = **0.000 in all 30 cells** — `d in {4,8,16,32,64}` (16x
+range) x {colsoftmax, straight-through permutation, doubly-stochastic, orthogonal,
+dense}. PLAN2 §3.1's falsifier fires. Correctness gates pass: bit-exact vs serial on
+permutations at all `d x K`, <=1.8e-6 fp32 dense, `associative_scan` HOP agrees to 3e-7,
+constructed ceiling **1.000 soft and hard** at N = 323/2021/10403 and at sampled 11- and
+20-bit moduli under bf16 autocast.
+
+**`--lr 0` control, the sharpest yet:** on e5 the **untrained model scores higher on
+rung-1 (3/512) than the trained one (1/512)**.
+
+**TWO CORRECTIONS TO EARLIER WORK:**
+1. **The output-diversity reference used all last session is mis-calibrated.** Squaring
+   is **4-to-1** on the units, so the *exact solution's* diversity is `|image|/n =
+   **0.221**`, not 1.0. Every collapse judgement made against a 1.0 reference —
+   including `alu-relational`'s — used the wrong baseline.
+2. **The discreteness direction is family-specific, not a law.** PD-SSM measured hard STE
+   fitting 3x worse and generalising 6x better; on this family `sthard` fits *better* and
+   generalises the same (zero).
+
+**The closing argument, and it is the strongest in the project.** The k=5 cell: standing
+**five wrong cells out of 700** away from a solution that scores 1.000, the legal
+objective repairs approximately none and **breaks correct cells at the same rate**. With
+compute, capacity, expressivity, discreteness, parallelism and now conditioning all
+measured *not* to be the constraint, an objective that cannot close a five-cell gap will
+not close a 700-cell one.
+
+**Self-flagged scope:** the S=5 and sampled-modulus blocks are inside the pre-fitting
+region and are marked uncalibrated; the N=323 block is calibrated (20k curve, train_exact
+0.996, loss 3e-5, held-out 0.000 throughout).
+
 ### Corrections to earlier entries in this log
 
 - **`batch_size` 512→32 is 1.2× for the ALU model, not 5.8×.** The DataLoader lever
@@ -624,6 +677,8 @@ session has a measured configuration that fools it:
 | `mul_fn` (structure) | a constant map | 1.000 | `mul_gauge` 0.100 |
 | algebraic objective | basin hopping, 38x compute | 0.786 -> 0.211 | `add_shift` driven *below* chance, 0.285 -> 0.205 |
 | in-distribution accuracy | length extrapolation | 0.941 on mod-3 | **0.328 at 2x length** |
+| `train_exact` (soft) | `--family orth` | **0.996**, best fit in the project | `train_exact_hard` 0.004, held 0.000 |
+| output diversity vs a 1.0 reference | squaring is 4-to-1 | "collapse" at 0.22 | **0.221 IS the exact solution's value** |
 | `local_ce` | SOAP on the legal objective | 14/32 replicas below the 0.006 cliff | only **1** actually in basin; one cell reads 5e-05 with `train_exact_hard` 0.120 |
 | any leftward `local_ce` shift | the legal objective itself | 3.5 -> 2.3 looks like progress | **random init is 2.08-2.24** — it is regression toward init |
 
