@@ -585,6 +585,68 @@ not close a 700-cell one.
 region and are marked uncalibrated; the N=323 block is calibrated (20k curve, train_exact
 0.996, loss 3e-5, held-out 0.000 throughout).
 
+### PLAN2 Phase 0 — the harness is SOUND, and the failure is isolated exactly
+
+**THE POSITIVE CONTROL NOBODY HAD RUN.** Three independent checks, all clean:
+
+1. **A constructed oracle certifies `MAX_T = 64` AND `OOD_N_MAX_T = 64`** through the
+   real `benchmark.runner` — mean 1.0000, on e5, m1, hp1 (22-bit) and a 7-digit set, in
+   20 steps. (DIAGNOSTIC, never a submission.) **The pipeline can score.**
+2. **A LEGAL learned model reaches train 1.000 / held-out 1.000 on UNSEEN operands** at
+   3, 5 and 7 digits on `T=0` datasets (`pow(2,0,phi)=1`, so the answer is `x` itself),
+   sharing the entire pipeline — while the paired **`T=1` set at the same modulus reads
+   train 1.000 / held-out 0.000.**
+3. **Structural audit (counts only):** 0 `target_positions` violations over 17k
+   supervised rows; all 14 e5 depth cohorts **100% operand-disjoint** from train; e5
+   `test` is 79% unseen-operand.
+
+> **Copying seven decimal digits of an unseen operand generalises perfectly.
+> Squaring them once generalises at exactly zero.**
+
+**This closes the last escape hatch. Every null across both sessions is real**, and the
+failure is located precisely at the squaring — not in parsing, readout, evaluation,
+certification, cohort construction, or the generalisation machinery, all of which are
+now demonstrated to work end-to-end on a *legal learned* model.
+
+**Probe-4 is FLAT, with a calibrated instrument.** e5, 1,200 steps, 3 seeds, one
+template, **465,280 parameters each**, matched gate-bias init so only the reachable
+eigenvalue range differs:
+
+| | eigenvalues | train | rung-1 |
+|---|---|---|---|
+| `diag01` | `[0,1]` | 0.74-0.81 | 0.002-0.010 |
+| `diagpm1` | `[-1,1]` | 0.84-0.90 | 0.002-0.016 |
+| `delta01` | `[0,1]` | 0.87-0.90 | 0.002-0.008 |
+| `deltapm1` | `[-1,1]` | 0.87-0.91 | 0.006-0.010 |
+| **`mlp` (NO sequence mixing)** | none | 0.008-0.016 | 0.000-0.002 |
+
+**A model with no sequence mixing at all scores the same.** The instrument is not blind:
+the same code separates `delta01`/`deltapm1` on parity@32 (**0.018 vs 1.000**) and the
+LSTM on A5 (**0.980 vs 0.000**). PLAN2 §6's third kill criterion fires verbatim.
+
+**Length scaling: flat at zero, no cliff.** Five fixed-modulus datasets, 3-7 digits,
+`max_seq_len` 11-19, matched training-set size: **train = 1.000 in every cell** (so every
+cell is calibrated) and **held-out = 0.000 in every cell**. By PLAN2's own reading,
+flat-and-low means it is not state tracking.
+
+**Expressivity confirmed NOT to be the constraint:** bidirectional LSTM/GRU — the only
+models in the family that solve A5 (0.980 sequence-exact at 15k steps while every linear
+recurrence and attention sits at chance) — get exactly what every v1 model got, across an
+honest tuning pass, 6.7x the steps, an init fix, and both tiers.
+
+**VERDICT: PLAN2 §0's reframe is WRONG, not unresolved.** Do not build §3.1/§3.2/§3.3
+expecting expressivity to be the unlock.
+
+**Two corrections:**
+- **Init bug confirmed and quantified.** `EMB_INIT=0.02` takes `attn` fitting
+  0.049 -> **0.947 (19x)** and buys **0.000** generalisation. Free steps, no unlock.
+- **The diversity reference, MEASURED rather than assumed.** Running the exact solution
+  through the collapse detector on e5 rung-1 gives **0.7012** — not 1.0 (the old
+  reference) and not 0.221 (`matrix-scan`'s computed `|image|/n`, which is the right
+  quantity for the whole map but not for this cohort under this detector). **Use 0.7012
+  for e5 rung-1.** Recurrent models read 0.79-0.80 — *diverse and wrong*, not collapsed;
+  `mlp` reads 0.022 (a real collapse) and scores the same on the ranked metric.
+
 ### Corrections to earlier entries in this log
 
 - **`batch_size` 512→32 is 1.2× for the ALU model, not 5.8×.** The DataLoader lever
