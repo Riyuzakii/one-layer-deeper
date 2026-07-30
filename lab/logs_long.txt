@@ -1,0 +1,1 @@
+[e5-long40k] e5 d_h=8    seed=0 lr=0.001    params=2562     train=0.0108 held=0.0058 div=0.3083 top=0.0625 ce=2.197 35.3ms/step

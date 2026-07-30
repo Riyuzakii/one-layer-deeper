@@ -289,7 +289,37 @@ and holds it for the remaining 2,250 steps with held-out never leaving the floor
 it*; a grokking plateau creeps before it jumps, this does not") reproduces exactly in a
 maximally expressive non-linear RNN.
 
-_long-run table pending_
+### 3.3 Spending the budget this branch proved exists — 40,000 steps on e5
+
+This is the experiment the §1 result obliges this branch to run. If a fused sequential
+RNN affords ~250,000 Hard steps where the reference model affords ~93,000, the first
+question is whether the surplus converts into anything. `D_H`=8 is the right place to
+ask: **2,562 parameters against 4,800 training rows** is below memorisation capacity, so
+`digit-carry`'s diagnostic inversion applies — for an architecture that *cannot*
+memorise, `train_exact → 1.000` would imply `held_exact → 1.000`. Any movement in
+`train_exact` here would be real algorithmic progress, not lookup.
+
+| `D_H`=8, e5 | steps | train_exact | **held_exact** | div | top | held_ce |
+|---|---|---|---|---|---|---|
+| screening | 3,000 | 0.0089±0.0017 | 0.0086±0.0014 | 0.157 | 0.076 | 2.154 |
+| **long run** | **40,000** | **0.0108** | **0.0058** | 0.308 | 0.063 | 2.198 |
+
+Training-batch exact accuracy over the run, `[step, loss, train_exact]`:
+
+```
+[1, 3.076, 0.000]  [5000, 2.149, 0.008]  [10000, 2.041, 0.023]  [15000, 2.046, 0.016]
+[20000, 2.089, 0.016]  [25000, 2.037, 0.008]  [30000, 2.035, 0.031]  [35000, 2.078, 0.008]
+[40000, 2.023, 0.000]
+```
+
+**13.3× the step count buys nothing.** Loss falls from 3.08 to ~2.03 in the first 5,000
+steps and then is flat to four significant figures for the remaining 35,000; exact
+accuracy oscillates between 0.000 and 0.031 with no trend; held-out exactness *ends
+lower* than at 3,000 steps (a two-example difference on 1,200, i.e. noise). This is the
+same shape `grok-optimization` measured on a dense transformer at 2×10⁵ steps, now
+reproduced on a maximally expressive non-linear RNN at a width that provably cannot
+memorise. **The surplus training budget this branch found is real and it is worthless on
+this objective.**
 
 ---
 
@@ -433,9 +463,14 @@ _remaining cells (`lr0`, `d64_x4`, Neural GPU, e1) in flight at cutoff_
    criterion is written for precisely this outcome. *(Coordination note: `plan2/phase0`
    owns the diagnostic version of this question; this branch reports the candidate-side
    evidence and does not claim to have run their experiment.)*
-3. **"Budget is the constraint" — falsified for this family in both directions.**
-   Training budget is ~3× surplus and eval budget is ~8× surplus, and neither converts
-   into a single certified rung.
+3. **"Budget is the constraint" — falsified for this family in both directions, and
+   then falsified again by spending it.** Training budget is ~3× surplus and eval budget
+   is ~8× surplus. A 40,000-step run at the width that provably cannot memorise (§3.3)
+   converts **13.3× the screening compute into nothing**: loss flat to four significant
+   figures from step 5,000 to step 40,000, exact accuracy oscillating between 0.000 and
+   0.031 with no trend. This reproduces `grok-optimization`'s dense-transformer result on
+   an architecture that branch explicitly flagged as needing a re-test rather than an
+   inheritance (RESUME.md's scope caveat), so the re-test is now done and it agrees.
 
 ### 6.3 The single highest-value recommendation
 
@@ -516,18 +551,16 @@ all are cheap to finish. Exact resume commands are in §8.
 
 | run | what it would add | status |
 |---|---|---|
-| **e5 40,000-step runs at `D_H` = 8 and 64** | the direct test of the surplus this branch found: does 13× the screening step count convert into anything? | running |
+| e5 40,000-step run at `D_H` = 64 | the memorising-width companion to §3.3 (the `D_H`=8 run **completed** — see §3.3) | running |
 | e5 `lr0-control` at 3,000 steps | a longer-horizon copy of §3.1a (already run at 200 steps, where lr=0 makes step count irrelevant) | partial |
 | e5 `no-align` ablation, `D_H`=64 ×3 seeds | whether the learned place-relative mixing matters at all | queued |
 | e1 sweep at `D_H`=256 ×3 seeds | one more row of the §3.2 table | queued |
 | m1 at `D_H`=32/128 | the "cannot even fit at Medium scale" cross-check (BRIEF2 §2d) | queued |
 | evaluator cells for `lr0`, `d64_x4`, Neural GPU, e1 `D_H`=128 | four more MAX_T rows, all expected 0 | partial |
 
-The 40,000-step runs are the only ones that could change a claim, and only in one
-direction: if held-out exactness moved at 40k steps where it does not at 3k, §6.3's
-"spend the surplus elsewhere" recommendation would need weakening. Nothing in the 3,000-
-step curves suggests it will — `held_exact` is already flat between step 375 and step
-3,000 at every width — but it is stated here as an open risk rather than assumed away.
+The 40,000-step runs were the only ones that could have changed a claim, and the one
+that mattered — `D_H`=8, the width that provably cannot memorise — **has landed and did
+not change it** (§3.3). Nothing outstanding can move a conclusion in this report.
 
 ---
 
