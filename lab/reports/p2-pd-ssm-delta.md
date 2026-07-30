@@ -297,8 +297,26 @@ back-to-back in one process so they share identical GPU contention
 products in fp32. Three siblings share the GPU, hence fixed-step throughout.
 
 ```
-$VENV lab/p2_grid.py --grid lr0 nh eig base repeat tau --seeds 74 7 21
+$VENV lab/p2_grid.py --grid lr0    --seeds 74 7 21 --steps 1500
+$VENV lab/p2_grid.py --grid nh     --seeds 74 7    --steps 1500
+$VENV lab/p2_grid.py --grid tau    --seeds 74      --steps 1500 --taus 0.1 1.0 3.0 10.0
+$VENV lab/p2_grid.py --grid base repeat --seeds 74 7 --steps 1500
+$VENV lab/p2_grid.py --grid size   --seeds 74      --steps 1500   # continuous state
+$VENV lab/p2_grid.py --grid small  --seeds 74      --steps 1500   # discrete state
 ```
+
+**Budget note, stated so the cell counts are not mistaken for a design choice.**
+Three siblings share this GPU and it ran at ~19 concurrent processes for the
+duration; a DeltaProduct cell that takes 20 s of isolated GPU time took ~300 s,
+and a PD-SSM cell ~400 s. `train_exact` on e5 does not begin to lift until
+~800 steps, so a shorter budget would have made every cell vacuously zero and
+1,500 steps is the minimum informative setting. The sweeps were therefore
+prioritised: controls → `n_h` → §3.1 reference → temperature → the discreteness
+pair. **The `eig=pos` real-task control was descoped**, because §2 and Probe A/B
+already settle the eigenvalue-range question with post-training numerical
+spectra, and on a task where every cell reads `MAX_T = 0` the real-task version
+adds little. That is a resource decision, and it is the only planned cell not
+run.
 
 ### 5.1 The `--lr 0` control first (BRIEF2 §6.1)
 
