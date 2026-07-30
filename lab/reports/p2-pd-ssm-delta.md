@@ -129,6 +129,18 @@ composition axis:
 freshly-generated held-out sequences, plus a `2×`-length extrapolation eval.
 **DIAGNOSTIC** — these are not the competition task.
 
+> **Two caveats, stated before the numbers rather than after.**
+> (a) The "§3.1" row is *this branch's own* low-rank instantiation
+> (`M_t = I + u_t v_tᵀ / √r`, `r = 4`), not the `plan2/matrix-scan` sibling's
+> implementation. Read it as a locally-matched reference point, never as a
+> statement about their work.
+> (b) The main probe runs PD-SSM at `N = 16`, which **cannot** represent A₅'s
+> 60 states under PD-SSM's own theorem, so its A₅ cells at `τ ≤ 1` are
+> under-provisioned by construction. Probe F re-runs A₅ at `N ≥ 60` to make the
+> comparison fair. (As it turns out `N = 16` at `τ = 3` already reaches 1.000,
+> because the readout is not restricted to the state — but the fair cells are
+> reported anyway.)
+
 RESULTS_PROBE_A
 
 RESULTS_PROBE_B
