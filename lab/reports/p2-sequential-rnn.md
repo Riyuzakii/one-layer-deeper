@@ -319,27 +319,71 @@ ask: **2,562 parameters against 4,800 training rows** is below memorisation capa
 memorise, `train_exact → 1.000` would imply `held_exact → 1.000`. Any movement in
 `train_exact` here would be real algorithmic progress, not lookup.
 
-| `D_H`=8, e5 | steps | train_exact | **held_exact** | div | top | held_ce |
-|---|---|---|---|---|---|---|
-| screening | 3,000 | 0.0089±0.0017 | 0.0086±0.0014 | 0.157 | 0.076 | 2.154 |
-| **long run** | **40,000** | **0.0108** | **0.0058** | 0.308 | 0.063 | 2.198 |
+| e5 | `D_H` | steps | train_exact | **held_exact** | div | top | held_ce |
+|---|---|---|---|---|---|---|---|
+| screening | 8 | 3,000 | 0.0089±0.0017 | 0.0086±0.0014 | 0.157 | 0.076 | 2.154 |
+| **long run** | **8** | **40,000** | **0.0108** | **0.0058** | 0.308 | 0.063 | 2.198 |
+| screening | 64 | 3,000 | 0.4843±0.0410 | 0.0069±0.0034 | 0.607 | 0.008 | 4.275 |
+| **long run** | **64** | **40,000** | **0.9842** | **0.0058** | 0.643 | 0.006 | 11.286 |
 
-Training-batch exact accuracy over the run, `[step, loss, train_exact]`:
+Training-batch exact accuracy over each run, `[step, loss, train_exact]`:
 
 ```
-[1, 3.076, 0.000]  [5000, 2.149, 0.008]  [10000, 2.041, 0.023]  [15000, 2.046, 0.016]
-[20000, 2.089, 0.016]  [25000, 2.037, 0.008]  [30000, 2.035, 0.031]  [35000, 2.078, 0.008]
-[40000, 2.023, 0.000]
+D_H=8   [1, 3.076, 0.000]  [5000, 2.149, 0.008]  [10000, 2.041, 0.023]  [15000, 2.046, 0.016]
+        [20000, 2.089, 0.016]  [25000, 2.037, 0.008]  [30000, 2.035, 0.031]
+        [35000, 2.078, 0.008]  [40000, 2.023, 0.000]
+
+D_H=64  [1, 2.916, 0.000]  [5000, 0.055, 0.984]  [10000, 0.028, 0.992]  [15000, 0.016, 0.984]
+        [20000, 0.021, 0.992]  [25000, 0.014, 1.000]  [30000, 0.029, 0.977]
+        [35000, 0.025, 0.977]  [40000, 0.011, 1.000]
 ```
 
-**13.3× the step count buys nothing.** Loss falls from 3.08 to ~2.03 in the first 5,000
+**The `D_H`=64 curve is the cleanest single object in this report.** Training exact
+accuracy reaches **0.984 by step 5,000** and then holds 0.98–1.00 for the remaining
+**35,000 steps** while held-out exactness sits at 0.0058 — seven examples out of 1,200,
+*below* where it was at 3,000 steps. Loss falls to 0.011. This is
+`grok-optimization`'s mechanism note — *"train exact hits 1.00 and holds it; a grokking
+plateau creeps before it jumps, this does not"* — reproduced at 40,000 steps on a
+maximally expressive non-linear RNN. There is no creep.
+
+At `D_H`=8, **13.3× the step count buys nothing.** Loss falls from 3.08 to ~2.03 in the first 5,000
 steps and then is flat to four significant figures for the remaining 35,000; exact
 accuracy oscillates between 0.000 and 0.031 with no trend; held-out exactness *ends
 lower* than at 3,000 steps (a two-example difference on 1,200, i.e. noise). This is the
 same shape `grok-optimization` measured on a dense transformer at 2×10⁵ steps, now
 reproduced on a maximally expressive non-linear RNN at a width that provably cannot
-memorise. **The surplus training budget this branch found is real and it is worthless on
-this objective.**
+memorise. At `D_H`=64 the same 13.3× takes `train_exact` 0.484 → 0.984 and leaves
+held-out at 0.0069 → 0.0058. **The surplus training budget this branch found is real and
+it is worthless on this objective at both ends of the width range** — at the width that
+cannot memorise it fits nothing, and at the width that can it finishes memorising.
+
+### 3.4 m1 — the Medium-scale cross-check, and an honest confound
+
+BRIEF2 §2d says the expressivity framing is tier-dependent: at Easy the models fit train
+and fail to generalise, but "at m1 scale and above they cannot even fit". m1 (N = 10403
+fixed, 27,000 train rows, 3,000 held-out), 3,000 steps, 2 seeds:
+
+| `D_H` | params | train_exact | **held_exact** | div | top | held_ce |
+|---|---|---|---|---|---|---|
+| 32 | 31,314 | 0.0011±0.0001 | 0.0005±0.0005 | 0.326 | 0.016 | 2.277 |
+| 128 | 468,594 | 0.0098±0.0016 | 0.0007±0.0007 | 0.775 | 0.003 | 2.375 |
+
+**The pattern BRIEF2 §2d describes reproduces: at m1 the model does not fit either.**
+`train_exact` 0.0098 at `D_H`=128, against 0.9694 for the same width on e5.
+
+**But this branch's own data supplies a confound and it should be stated rather than
+buried.** §3.3 shows that at e5 scale `D_H`=64 needs **~5,000 steps** to reach
+`train_exact` 0.98. m1 has **5.6× more training rows** than e5, and these cells were run
+for **3,000 steps**. So "cannot fit at m1" is not separable here from "was not given
+enough steps to fit at m1", and the same caveat applies to the Easy-vs-Medium contrast
+BRIEF2 §2d draws — that contrast was also drawn at small step counts. The clean
+experiment is m1 at 40,000 steps, which this branch has now shown is affordable many
+times over; it is the single most useful thing left undone here and is listed in §7.
+
+Note this cuts *against* the convenient reading. If m1 turns out to fit given enough
+steps, then the "expressivity is binding at the ranked tier" defence in BRIEF2 §2d
+weakens and the memorisation diagnosis extends upward — which would strengthen §6.3's
+recommendation rather than weaken it. Either way the measurement has not been made.
 
 ---
 
@@ -474,7 +518,7 @@ is flat, not decaying** — consistent with `tied-recurrence`'s finding that err
 compounding in T is not the constraint, and confirming again that nothing about depth is
 what is failing here.
 
-_remaining cells (`lr0`, `d64_x4`, Neural GPU, e1) in flight at cutoff_
+All nine cells are archived in `lab/archive.jsonl`; none is outstanding.
 
 ---
 
@@ -509,14 +553,18 @@ _remaining cells (`lr0`, `d64_x4`, Neural GPU, e1) in flight at cutoff_
    curve has no such regime. `digit-carry`'s finding #2 is confirmed and strengthened:
    **the state alphabet must be small *and discrete*; making a continuous state small
    only removes capacity, it does not add structure.**
-2. **"Expressivity is the binding constraint" (PLAN2 §0) — not supported by the
-   maximally expressive member of PLAN2's own Axis A.** §3.6 is the top row of Axis A
-   ("maximal, but no scan"), it has no `TC⁰` caveat, and it was given ~3× the reference
-   model's step budget. It reproduces the project's canonical signature exactly
-   (train → 0.97 / held → 0.009) rather than escaping it. PLAN2 §6's first kill
-   criterion is written for precisely this outcome. *(Coordination note: `plan2/phase0`
-   owns the diagnostic version of this question; this branch reports the candidate-side
-   evidence and does not claim to have run their experiment.)*
+2. **"Expressivity is the binding constraint" (PLAN2 §0) — not supported at Easy scale
+   by the maximally expressive member of PLAN2's own Axis A.** §3.6 is the top row of
+   Axis A ("maximal, but no scan"), it has no `TC⁰` caveat, and it was given 13× the
+   screening budget. On e1 and e5 it reproduces the project's canonical signature exactly
+   (train → 0.98–1.00 / held → 0.006–0.029) rather than escaping it. PLAN2 §6's first
+   kill criterion is written for precisely this outcome.
+   **Scope, stated honestly: this is an Easy-scale result.** At m1 the model does not fit
+   either (§3.4) — but at 3,000 steps, and §3.3 shows e5 needed ~5,000 steps to fit at
+   5.6× less data, so the m1 cells are confounded and **the claim is not yet established
+   at the tier that is ranked.** *(Coordination note: `plan2/phase0` owns the diagnostic
+   version of this question; this branch reports the candidate-side evidence and does not
+   claim to have run their experiment.)*
 3. **"Budget is the constraint" — falsified for this family in both directions, and
    then falsified again by spending it.** Training budget is ~3× surplus and eval budget
    is ~8× surplus. A 40,000-step run at the width that provably cannot memorise (§3.3)
@@ -604,18 +652,29 @@ substitutes for it.**
 Every one of these is confirmatory — none of them can change a conclusion above, and
 all are cheap to finish. Exact resume commands are in §8.
 
-Everything the report depends on has landed. What is still running is listed for
-completeness; none of it can change a conclusion.
+**Everything queued on this branch has landed. Nothing is in flight.**
 
-| run | what it would add | status |
-|---|---|---|
-| e5 40,000-step run at `D_H` = 64 | the memorising-width companion to §3.3 (the `D_H`=8 run, the one that matters, **completed**) | running |
-| m1 at `D_H`=32/128 | the "cannot even fit at Medium scale" cross-check (BRIEF2 §2d) | queued |
-
-**Complete:** the e5 width sweep, its `lr=0` control and the `ALIGN` ablation (33 cells,
+Complete: the e5 width sweep, its `lr=0` control and the `ALIGN` ablation (33 cells,
 3 seeds each); the e1 sweep through `D_H`=256 plus its `lr=0` control (24 cells); the
-whole Neural GPU sweep including its `lr=0` control (9 cells); the 40,000-step run at
-`D_H`=8; and **all nine evaluator cells**.
+whole Neural GPU sweep including its `lr=0` control (9 cells); both 40,000-step runs
+(`D_H`=8 and 64); the m1 cross-check; and all nine evaluator cells.
+
+### The one experiment this branch identified and did not run
+
+**m1 at 40,000 steps.** §3.4 measures `train_exact` 0.0098 at m1 with `D_H`=128 and reads
+it as "cannot fit at Medium scale" per BRIEF2 §2d — but those cells ran for 3,000 steps,
+and §3.3 shows e5 needed ~5,000 steps to fit at 5.6× less data. The two readings are not
+separable from the data collected here. This branch has established that 40,000 steps is
+affordable several times over, so the experiment is cheap:
+
+```
+$V lab/probe_rnn.py --dataset m1 --steps 40000 --d-h 128 --seeds 0 1 --tag m1-long40k
+```
+
+It matters because it is load-bearing for a premise the whole fleet is screening against.
+If m1 *does* fit given enough steps, BRIEF2 §2d's "the expressivity framing is defensible
+at the tier that is ranked" weakens, and the memorisation diagnosis — which this branch
+established at Easy across four levers — extends upward to Medium.
 
 The 40,000-step run at `D_H`=8 — the width that provably cannot memorise, and therefore
 the only cell where a moving `train_exact` would have *implied* a moving `held_exact` —
