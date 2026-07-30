@@ -175,6 +175,13 @@ RESULTS_PROBE_D
    claimed to have, reproduced here with the same code, same budget, and the
    same sweep that is about to be applied to the competition task.** This is
    what makes a flat real-task sweep a *result* rather than an absence of one.
+
+   **And on A₅ the two axes are jointly necessary, which is the cleanest single
+   cell in this report**: `[0,1]` at `n_h = 4` reads **0.019** — chance — while
+   `[−1,1]` at `n_h = 4` reads **1.000 ± 0.000**. Same parameter count, same
+   budget, same code; the only difference is whether `β` may exceed 1. Four
+   Householders with non-negative eigenvalues cannot do what three or four with
+   negative eigenvalues can.
 3. **The PD-SSM temperature is not a nuisance parameter — on the hardest task it
    is the whole result, and it points the opposite way to the obvious
    intuition.** On parity and mod-3 every temperature gives 1.000, which is
