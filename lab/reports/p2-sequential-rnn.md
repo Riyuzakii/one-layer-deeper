@@ -605,11 +605,11 @@ All nine cells are archived in `lab/archive.jsonl`; none is outstanding.
 1. **"A small hidden state generalises where a large one memorises" — falsified, and in
    the least interesting way.** Held-out exact accuracy is **flat at the floor across
    six octaves of `D_H`** while train exact accuracy climbs monotonically from 0.007 to
-   0.98. Four independent levers — hidden width (134×), step count (13.3×), the learned
-   place alignment (2.7×), and tied depth — all move `train_exact` by large factors and
-   `held_exact` by nothing. Small hidden states do not generalise; they simply fail to fit. There is no
-   width at which the carry channel is "narrow enough to force the algorithm" — the
-   curve has no such regime. `digit-carry`'s finding #2 is confirmed and strengthened:
+   0.98. Four independent levers — hidden width (≈135×), step count (13.3×), the learned
+   place alignment (2.6×), and tied depth — all move `train_exact` by large factors and
+   `held_exact` by nothing. Small hidden states do not generalise; they simply fail to
+   fit. There is no width at which the carry channel is "narrow enough to force the
+   algorithm" — the curve has no such regime. `digit-carry`'s finding #2 is confirmed and strengthened:
    **the state alphabet must be small *and discrete*; making a continuous state small
    only removes capacity, it does not add structure.**
 2. **"Expressivity is the binding constraint" (PLAN2 §0) — not supported at Easy scale
@@ -677,7 +677,8 @@ consequence of that correction.
    anything built this way.
 3. **Spend the freed budget and the freed engineering time on the state alphabet.**
    This branch's width sweep is the argument: across six octaves of hidden width and
-   two datasets, `train_exact` moved ≈135× and `held_exact` moved not at all. Capacity, compute, expressivity and wall clock are all *surplus*. What
+   two datasets, `train_exact` moved ≈135× and `held_exact` moved not at all. Capacity,
+   compute, expressivity and wall clock are all *surplus*. What
    `digit-carry` #2 and this sweep jointly say is that a **continuous** state is a
    value-encoding channel at every width — small ones just encode less. The open
    question is a state that is discrete *by construction* rather than by relaxation
