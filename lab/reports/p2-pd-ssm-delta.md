@@ -273,19 +273,28 @@ transfer, absolute ones do not):
 | §3.1 dense matrix scan `N=16` | — | **2.87 ms** |
 
 **(b) Whole model, forward+backward**, 2 layers, embeddings and MLPs included —
-this is the number that decides steps-in-budget. All seven configurations timed
+this is the number that decides steps-in-budget. All configurations timed
 back-to-back in one process so they share identical GPU contention
-(`lab/p2_verify.py` check 8):
+(`lab/p2_verify.py` check 8). Reported as **step-rate ratios to DeltaProduct
+`n_h=1`**, at *both* shapes, because `plan2/sequential-rnn` measured that cost
+ratios taken at Easy's shape badly understate the gaps (Neural GPU vs fused
+LSTM: 1.7× at e5's shape, 22× at Hard's). Absolute ms are `sm_107` numbers and
+do not transfer; the ratios were the thing to report and this correction landed
+mid-branch.
 
-| configuration | params | ms/step | steps/s | relative |
-|---|---|---|---|---|
-| §3.3 DeltaProduct `n_h=1` | 532,112 | **13.40** | 74.6 | 1.00× |
-| §3.3 DeltaProduct `n_h=2` | 665,248 | **14.00** | 71.4 | 0.96× |
-| §3.3 DeltaProduct `n_h=3` | 798,384 | **17.10** | 58.5 | 0.78× |
-| §3.3 DeltaProduct `n_h=4` | 931,520 | **18.26** | 54.8 | 0.73× |
-| §3.1 dense matrix scan `N=16` | 595,584 | **16.30** | 61.4 | 0.82× |
-| §3.2 PD-SSM `N=16` | 993,408 | **54.94** | 18.2 | **0.24×** |
-| §3.2 PD-SSM `N=8` | 498,560 | **47.74** | 20.9 | **0.28×** |
+| configuration | params | e5 shape (B=128, L=13) | **Hard shape (B=512, L=21)** |
+|---|---|---|---|
+| §3.3 DeltaProduct `n_h=1` | 533k | 1.00× (13.40 ms) | **1.00×** (20.03 ms) |
+| §3.3 DeltaProduct `n_h=2` | 666k | 0.96× (14.00 ms) | **0.74×** (27.09 ms) |
+| §3.3 DeltaProduct `n_h=3` | 799k | 0.78× (17.10 ms) | **0.56×** (35.96 ms) |
+| §3.3 DeltaProduct `n_h=4` | 933k | 0.73× (18.26 ms) | **0.45×** (44.78 ms) |
+| §3.1 dense matrix scan `N=16` | 597k | 0.82× (16.30 ms) | **0.38×** (53.11 ms) |
+| §3.2 PD-SSM `N=16` | 994k | 0.24× (54.94 ms) | **0.10×** (210.85 ms) |
+| §3.2 PD-SSM `N=8` | 500k | 0.28× (47.74 ms) | **0.12×** (162.66 ms) |
+
+**The correction matters and it changes one of this branch's own claims.** Every
+gap widens at Hard's shape: PD-SSM goes 0.24× → **0.10×**, the §3.1 scan
+0.82× → **0.38×**, and `n_h=4` 0.73× → **0.45×**.
 
 **Two results.**
 
@@ -297,9 +306,9 @@ back-to-back in one process so they share identical GPU contention
    expressivity axis PLAN2 wanted swept is, at this sequence length, a free
    parameter.
 2. **PD-SSM's cost advantage does not materialise, and its falsifier fires on
-   wall clock alone.** At whole-model level PD-SSM runs at **0.24×** the step
-   rate of DeltaProduct `n_h=1` and **0.30×** that of the §3.1 dense matrix
-   scan, at matched `D`, matched heads, matched state size. Its log-depth scan
+   wall clock alone.** At Hard's shape PD-SSM runs at **0.10×** the step rate of
+   DeltaProduct `n_h=1` and **0.26×** that of the §3.1 dense matrix scan, at
+   matched `D`, matched heads, matched state size. Its log-depth scan
    is not even faster than its own sequential loop (`11.34` vs `10.94 ms`), and
    halving `N` from 16 to 8 recovers only 13 % — so the cost is *not* the
    `O(N³)` scan. The reason is structural, not an implementation defect:
@@ -313,15 +322,21 @@ back-to-back in one process so they share identical GPU contention
 
    **PLAN2 §3.2's falsifier — "underperforms §3.1 at matched wall clock" — is
    therefore met on cost before accuracy is even consulted.** At equal wall
-   clock PD-SSM affords 0.30× the optimizer steps of the §3.1 baseline. Given
-   RESUME's step-famine result (P3: 14–18 steps at a tier-faithful Easy
-   budget), a 3.4× step-rate penalty is disqualifying on its own.
+   clock PD-SSM affords **0.26×** the optimizer steps of the §3.1 baseline at
+   Hard's shape (0.10× / 0.38×), i.e. a **3.8× step-rate penalty**, worse than
+   the 3.4× that the e5-shape measurement suggested. And §5 runs the accuracy
+   comparison at *matched steps*, which is generous to PD-SSM by that same 3.8×
+   — and it still does not win a rung.
 
-3. **`n_h` is nearly free.** 1.00× → 0.73× step rate for 4× the Householders,
-   because the chunkwise form makes the per-token cost an `S×S` triangular
-   solve with `S = L·n_h ≤ 52` rather than `n_h` sequential rank-1 updates.
-   Whatever else is true, *expressivity along the Householder axis is not what
-   a wall-clock budget is being spent on*.
+3. **`n_h` is cheap at e5's shape and NOT free at Hard's — this branch's earlier
+   claim was wrong and is retracted here.** At e5's shape 4× the Householders
+   costs 27 % of step rate (0.73×), which reads as "free". At Hard's shape it
+   costs **55 %** (0.45×), because the chunkwise cost is an `S×S` triangular
+   solve with `S = L·n_h`, and `S` goes from 52 to **84** when `L` goes 13 → 21.
+   The scaling is in `L·n_h`, so the penalty grows with sequence length exactly
+   as it should. The honest version of the claim: **the chunkwise form removes
+   the `n_h` penalty relative to a sequential delta loop (4–9×), but `n_h` is
+   still a real 2.2× cost at the tier that is ranked.** Cheap, not free.
 
 **No tier-faithful `--mode wallclock` run was made, deliberately.** The GPU ran
 at ~19 concurrent processes for this branch's entire window, so a wallclock

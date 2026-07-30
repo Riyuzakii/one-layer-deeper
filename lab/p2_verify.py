@@ -279,22 +279,24 @@ def test_wall_clock() -> None:
     set_impl("fast")
 
 
-def test_full_model_throughput() -> None:
+def test_full_model_throughput(batch: int = 128, length: int = 13) -> None:
     """Matched wall clock at the level that decides steps-in-budget.
 
     All configurations are timed back-to-back in ONE process so they share
     whatever GPU contention exists; relative numbers are the meaningful ones.
     """
-    hr("8. full-model fwd+bwd, B=128 L=13 vocab=17, 2 layers (matched wall clock)")
+    hr(f"8. full-model fwd+bwd, B={batch} L={length} vocab=17, 2 layers "
+       f"(matched wall clock)")
     import importlib.util
     import os
     import time
 
     from benchmark import ModelSpec
 
-    spec = ModelSpec(vocab_size=17, max_seq_len=13, maximum_model_state_elements=5 * 10**8)
-    ids = torch.randint(0, 17, (128, 13), device=DEV)
-    mask = torch.ones(128, 13, dtype=torch.bool, device=DEV)
+    spec = ModelSpec(vocab_size=17, max_seq_len=length,
+                     maximum_model_state_elements=5 * 10**8)
+    ids = torch.randint(0, 17, (batch, length), device=DEV)
+    mask = torch.ones(batch, length, dtype=torch.bool, device=DEV)
     cfgs = [
         ("§3.3 DeltaProduct n_h=1", dict(P2_ARCH="delta", P2_NH=1)),
         ("§3.3 DeltaProduct n_h=2", dict(P2_ARCH="delta", P2_NH=2)),
