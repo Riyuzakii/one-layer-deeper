@@ -376,6 +376,16 @@ solution*, so a leftward metric shift is usually regression toward init.
 this branch is inside or barely outside that band, so no `mean_acc` figure below
 should be read as progress. It is reported only to demonstrate that it is not.
 
+**The collapse detector, and what it actually says.** `out_diversity` is the
+fraction of the 17-token vocabulary the model ever emits; a constant map reads
+`1/17 = 0.059`. **No cell collapses.** But the reading is more specific than
+that: every *trained* cell — all three architectures, every setting — reads
+**exactly 0.588 = 10/17**, while every `lr = 0` control reads 0.941–1.000. That
+is not noise, it is the models learning that answers are digits and dropping the
+seven marker/special tokens. So the collapse detector's verdict here is "all
+architectures learn the output alphabet and then stop", which is a sharper
+statement of the failure than the accuracy numbers give on their own.
+
 ### 5.2 The grid
 
 RESULTS_GRID
