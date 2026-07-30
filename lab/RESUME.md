@@ -3,8 +3,9 @@
 Written at the end of a GPU session with work still in flight. Read this plus
 `lab/BRIEF.md` and you can restart everything without reconstructing context.
 
-Nothing was merged to `main`. Nothing was submitted to the hosted service. No
-dataset file under `data/generated/` was ever read.
+Nothing was merged to `main`. No dataset file under `data/generated/` was ever read.
+**One hosted Hard submission has been made** (see "Round 6" below) — it returned h1's
+split structure and the first real H100 timing calibration.
 
 ---
 
