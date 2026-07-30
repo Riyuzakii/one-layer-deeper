@@ -447,7 +447,36 @@ controls that differ in *only* the discretisation:
   hidden-size sweep, against **a discrete state-size sweep** in PD-SSM
   (`N ∈ {8, 11, 16}`; `N=11` is the carry alphabet for base-10 add-with-carry).
 
-RESULTS_DISCRETE
+**(a) The continuous state-size sweep replicates the sibling's result inside
+this family.** DeltaProduct `n_h = 2`, everything else identical, `head_dim`
+varied:
+
+| `head_dim` | 8 | 16 | 32 | 64 |
+|---|---|---|---|---|
+| `train_exact` | 0.242 | 0.391 | **0.531** | **0.664** |
+| rung-1 held-out | 0.004 | 0.010 | 0.004 | **0.000** |
+
+`train_exact` climbs **2.7× monotonically** while held-out rung-1 does not move
+and finishes at **zero** at the largest state. Same conclusion as
+`plan2/sequential-rnn`, reached on a completely different recurrence: **a larger
+continuous state buys fitting and nothing else.**
+
+**(b) The discrete-state cells sit higher on held-out at far lower
+`train_exact`.** Every PD-SSM cell reads rung-1 held 0.006–0.016 (3–8 of 512)
+while its `train_exact` is 0.055–0.141 — except `τ = 0.1`, which reaches
+`train_exact` 0.680. The continuous cells reach `train_exact` 0.24–0.66 and read
+0.000–0.010 held. Ranked by held-out rung-1, the top four cells in the entire
+grid are **all PD-SSM** (`τ=0.1` 0.016, `τ=3` 0.016, `τ=1` 0.012, `N=11` 0.010).
+
+**Caveat, and it is a large one.** These are 3–8 correct examples out of 512, at
+one seed per cell, against `lr = 0` controls that read 0–3. The ordering is
+consistent across six PD-SSM cells and six continuous cells, which is why it is
+reported — but it is **not** a certified difference, it moves no rung, and it
+must not be read as "discreteness works". The honest statement is: *the
+discreteness hypothesis survives this branch's test rather than being confirmed
+by it, and it is the only hypothesis in this report that does.*
+
+DISCRETE_HARDSOFT
 
 RESULTS_NARRATIVE
 
