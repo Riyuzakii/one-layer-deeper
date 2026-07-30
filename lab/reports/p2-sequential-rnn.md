@@ -241,11 +241,18 @@ The only cells where the collapse detector *does* fire are the smallest: `D_H`=4
 the "too small to do anything" regime, not a generalising one.
 
 **Ablating the place-alignment does the same thing.** Removing the learned `L×L`
-end-anchored mixing (`ALIGN=0`, `D_H`=64, e5, 3,000 steps) drops `train_exact` from
-0.484 to **0.178** — a 2.7× hit, so the mixing is doing real work — while `held_exact`
-goes 0.0069 → **0.0075**, i.e. unchanged. This is the third independent lever in this
-report (width, steps, alignment) that moves fitting by a large factor and held-out
-exactness by nothing.
+end-anchored mixing (`ALIGN=0`, `D_H`=64, e5, 3,000 steps, 3 seeds):
+
+| variant | params | train_exact | **held_exact** | div | top |
+|---|---|---|---|---|---|
+| `ALIGN=1` | 119,546 | 0.4843±0.0410 | 0.0069±0.0034 | 0.607 | 0.008 |
+| `ALIGN=0` | 119,377 | 0.1876±0.0074 | 0.0078±0.0024 | 0.573 | 0.011 |
+
+169 parameters — one `L×L` matrix — are worth a **2.6× swing in `train_exact`** and
+**zero** in held-out exactness (0.0069 vs 0.0078 is one example out of 1,200, and the
+ablated model is nominally *higher*). The mixing is doing real work; the work is
+fitting. This is the third independent lever in this report (width, steps, alignment)
+that moves fitting by a large factor and held-out exactness by nothing.
 
 ### 3.1a The mandatory `--lr 0` control (BRIEF2 §6.1)
 
@@ -573,9 +580,11 @@ completeness; none of it can change a conclusion.
 | run | what it would add | status |
 |---|---|---|
 | e5 40,000-step run at `D_H` = 64 | the memorising-width companion to §3.3 (the `D_H`=8 run, the one that matters, **completed**) | running |
-| e5 `no-align` ×3 seeds | seed bars on the ablation in §3.1 (n=1 so far) | running |
 | m1 at `D_H`=32/128 | the "cannot even fit at Medium scale" cross-check (BRIEF2 §2d) | queued |
 | evaluator cells for the Neural GPU and e1 `D_H`=128 | two more MAX_T rows, both expected 0 | running |
+
+The e5 width sweep, its `lr=0` control and the `ALIGN` ablation are all **complete at 3
+seeds** (33 cells); the e1 sweep is complete at 3 seeds through `D_H`=256 (21 cells).
 
 The 40,000-step run at `D_H`=8 — the width that provably cannot memorise, and therefore
 the only cell where a moving `train_exact` would have *implied* a moving `held_exact` —
