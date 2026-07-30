@@ -217,10 +217,10 @@ answer). A constant map reads `div ≈ 1/n`, `top ≈ 1.0`. `held_ce` is recorde
 | 32 | 31,194 | 0.0341±0.0020 | 0.0072±0.0010 | 0.529 | 0.011 | 2.357 |
 | 64 | 119,546 | 0.4843±0.0410 | 0.0069±0.0034 | 0.607 | 0.008 | 4.275 |
 | 128 | 468,282 | 0.9694±0.0042 | 0.0086±0.0011 | 0.605 | 0.007 | 8.315 |
-| 256 | 1,853,882 | _pending_ | | | | |
+| 256 | 1,853,882 | 0.9804±0.0011 | 0.0078±0.0021 | 0.618 | 0.005 | 7.956 |
 
-**Reading.** `train_exact` climbs **140×** across the sweep, from 0.007 at `D_H`=4 to
-0.97 at `D_H`=128. `held_exact` **does not move at all** — every cell sits in
+**Reading.** `train_exact` climbs **134×** across the sweep, from 0.0073 at `D_H`=4 to
+0.98 at `D_H`=256. `held_exact` **does not move at all** — every cell sits in
 0.0069–0.0086, and the *lowest* held-out accuracy in the table belongs to the *most
 capable* model. There is no width at which the carry channel is narrow enough to force
 the algorithm; there is only a width at which it is wide enough to memorise, and below
@@ -237,7 +237,56 @@ The only cells where the collapse detector *does* fire are the smallest: `D_H`=4
 `div` 0.056 with `top` 0.178, i.e. one answer covers 18% of held-out prompts. That is
 the "too small to do anything" regime, not a generalising one.
 
-_e1 replication and long-run tables pending_
+### 3.1a The mandatory `--lr 0` control (BRIEF2 §6.1)
+
+Same models, same data, optimizer learning rate forced to 0, so every number is the
+value at **random initialisation**. e5, 3 seeds per width.
+
+| `D_H` | train_exact @ init | held_exact @ init | div @ init | top @ init |
+|---|---|---|---|---|
+| 8 | 0.0011±0.0015 | 0.0003±0.0004 | 0.024 | 0.545 |
+| 64 | 0.0014±0.0010 | 0.0008±0.0007 | 0.150 | 0.137 |
+| 256 | 0.0026±0.0010 | 0.0028±0.0011 | 0.119 | 0.194 |
+
+**This control matters and it does not say what the ALU's did.** RESUME.md's Round 5
+found that on the `DigitALU` objective, training moved the control variable *away* from
+the discrete solution, so every apparent improvement was regression toward init. That is
+**not** what happens here: an untrained LSTM is close to a constant map (`top` up to
+0.76 on individual seeds, `div` as low as 0.003) and scores held-out ≈ 0.001, while the
+trained models score 0.007–0.010 with `div` ≈ 0.6. Training genuinely moves both
+correctness and output diversity in the right direction.
+
+It just stops almost immediately. The entire measured benefit of the legal objective on
+held-out data, at every width from 4 to 256 and at 3,000 steps, is about **+0.007
+exact-example accuracy — eight examples out of 1,200** — against a rung requirement of
+512 out of 512. So the honest statement is not "training goes backwards" but **"training
+goes forwards by eight examples and then the curve is flat in every direction we can
+push it: width, depth, steps, and architecture class."**
+
+### 3.2 e1 — 600 train rows, N = 323 fixed, 3,000 steps, 3 seeds
+
+The replication on the dataset where this project's memorisation is fastest. e1 has
+150 held-out examples, so its variance floor is one example ≈ 0.0067.
+
+| `D_H` | params | train_exact | **held_exact** | div | top | held_ce |
+|---|---|---|---|---|---|---|
+| 4 | 926 | 0.0208±0.0033 | 0.0222±0.0113 | 0.207 | 0.169 | 1.938 |
+| 8 | 2,562 | 0.0534±0.0094 | 0.0244±0.0083 | 0.500 | 0.085 | 2.098 |
+| 16 | 8,522 | 0.3757±0.1267 | 0.0222±0.0113 | 0.640 | 0.038 | 3.617 |
+| 32 | 31,194 | 0.9980±0.0020 | 0.0267±0.0000 | 0.687 | 0.030 | 11.755 |
+| 64 | 119,546 | _pending_ | | | | |
+| 128 | 468,282 | 1.0000 (n=1, saturated by step 750) | 0.0333 | 0.647 | 0.033 | 13.871 |
+| 256 | 1,853,882 | _pending_ | | | | |
+
+**Same shape, sharper.** `train_exact` goes 0.02 → 1.00 across the sweep; `held_exact`
+stays within 0.022–0.033, i.e. within **two examples out of 150** — indistinguishable
+from the variance floor at every width. `D_H`=128 reaches train 1.000 by **step 750**
+and holds it for the remaining 2,250 steps with held-out never leaving the floor: the
+`grok-optimization` mechanism note ("train exact hits 1.00 by ~2,000 steps and *holds
+it*; a grokking plateau creeps before it jumps, this does not") reproduces exactly in a
+maximally expressive non-linear RNN.
+
+_long-run table pending_
 
 ---
 
@@ -305,7 +354,14 @@ Every run is archived in `lab/archive.jsonl` through `lab/run_experiment.py`.
 All manifests are `--mode fixed_step` except the one labelled `wallclock`, which is a
 deliberate tier-faithful timing check (BRIEF.md §5).
 
-_table pending_
+| tag | submission | manifest | steps | MAX_T | OOD_N MAX_T | mean acc | `test` |
+|---|---|---|---|---|---|---|---|
+| `rnn-base` | `D_H=64` | e5 fs2000 | 2000 | **0** | 0 | 0.0050 | 0.007 |
+| `ref-calib` | `exp_axis` d128 ×8 (control) | e5 fs2000 | 400 | **0** | 0 | 0.0058 | 0.007 |
+| `rnn-wallclock` | `D_H=64` | e5 **wallclock 60 s** | 314 | **0** | 0 | 0.0071 | 0.008 |
+| `rnn-width` | `D_H=8` | e5 fs2000 | 2000 | **0** | 0 | 0.0075 | _pending_ |
+
+_remaining cells pending_
 
 ---
 

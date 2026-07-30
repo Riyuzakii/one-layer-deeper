@@ -8,3 +8,5 @@
 [e1-width-sweep] e1 d_h=16   seed=1 lr=0.001    params=8522     train=0.5547 held=0.0067 div=0.6400 top=0.0333 ce=4.499 35.9ms/step
 [e1-width-sweep] e1 d_h=16   seed=2 lr=0.001    params=8522     train=0.2930 held=0.0333 div=0.6600 top=0.0400 ce=3.292 35.7ms/step
 [e1-width-sweep] e1 d_h=32   seed=0 lr=0.001    params=31194    train=1.0000 held=0.0267 div=0.7333 top=0.0267 ce=12.143 33.8ms/step
+[e1-width-sweep] e1 d_h=32   seed=1 lr=0.001    params=31194    train=0.9961 held=0.0267 div=0.6400 top=0.0333 ce=11.367 37.4ms/step
+[e1-width-sweep] e1 d_h=32   seed=2 lr=0.001    params=31194    train=0.9961 held=0.0067 div=0.7000 top=0.0267 ce=12.198 38.4ms/step
