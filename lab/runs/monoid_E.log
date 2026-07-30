@@ -1,0 +1,30 @@
+### E-samp11-d16-s0 :: --modulus 0 --bits 11 --n-mod-train 8 --n-mod-held 4 --train-x 400 --held-x 256 --slots 4 --d 16 --family colsoftmax --seed 0 --steps 2000
+[E-samp11-d16-s0] mod=sampled11 S=4 L=8 d=16 family=colsoftmax impl=scan T=1 train=3200 held=1024 params=126,916 op_depth=14 graph_depth=49
+[E-samp11-d16-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.549 tbl=0.040 (10s)
+[E-samp11-d16-s0] step=   500 loss=1.84183 train_exact=0.001 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.001 held_div=0.016 tbl=0.029 (15s)
+[E-samp11-d16-s0] step=  1000 loss=1.80249 train_exact=0.000 held_exact=0.001 train_exact_hard=0.002 held_exact_hard=0.000 held_div=0.023 tbl=0.024 (19s)
+[E-samp11-d16-s0] step=  1500 loss=1.78952 train_exact=0.003 held_exact=0.002 train_exact_hard=0.001 held_exact_hard=0.003 held_div=0.021 tbl=0.026 (25s)
+[E-samp11-d16-s0] step=  2000 loss=1.71789 train_exact=0.005 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.001 held_div=0.039 tbl=0.027 (30s)
+### E-samp11-d16-s1 :: --modulus 0 --bits 11 --n-mod-train 8 --n-mod-held 4 --train-x 400 --held-x 256 --slots 4 --d 16 --family colsoftmax --seed 1 --steps 2000
+[E-samp11-d16-s1] mod=sampled11 S=4 L=8 d=16 family=colsoftmax impl=scan T=1 train=3200 held=1024 params=126,916 op_depth=14 graph_depth=49
+Traceback (most recent call last):
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-matrix-scan/lab/probe_monoid.py", line 291, in <module>
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-matrix-scan/lab/probe_monoid.py", line 266, in main
+    rows.append(row(0, float("nan")))
+                ~~~^^^^^^^^^^^^^^^^^
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-matrix-scan/lab/probe_monoid.py", line 229, in row
+    tr, tr_ce, tr_div = evaluate(model, xin, nin, tgt, S, T)
+                        ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.venv/lib/python3.13/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-matrix-scan/lab/probe_monoid.py", line 149, in evaluate
+    y = model(y, nin[i:i + chunk], hard=hard)
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-matrix-scan/lab/monoid.py", line 421, in forward
+    p = self.multiply(x, hard=hard, ste=self.ste)
+TypeError: MonoidALU.multiply() got an unexpected keyword argument 'ste'
+### E-samp11-d16-s2 :: --modulus 0 --bits 11 --n-mod-train 8 --n-mod-held 4 --train-x 400 --held-x 256 --slots 4 --d 16 --family colsoftmax --seed 2 --steps 2000

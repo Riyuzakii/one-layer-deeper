@@ -1,0 +1,126 @@
+### D-corrupt5-s0 :: --modulus 323 --d 16 --family colsoftmax --corrupt 5 --seed 0 --steps 2000 --lr 1e-2
+[D-corrupt5-s0] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt5-s0] step=     0 loss=nan train_exact=0.716 held_exact=0.868 train_exact_hard=0.828 held_exact_hard=0.947 held_div=0.789 tbl=0.994 repaired=1/5 (6s)
+[D-corrupt5-s0] step=   500 loss=2.63952 train_exact=0.772 held_exact=0.868 train_exact_hard=0.828 held_exact_hard=0.947 held_div=0.789 tbl=0.994 repaired=1/5 (12s)
+[D-corrupt5-s0] step=  1000 loss=2.26572 train_exact=0.752 held_exact=0.711 train_exact_hard=0.688 held_exact_hard=0.737 held_div=0.921 tbl=0.994 repaired=1/5 (18s)
+[D-corrupt5-s0] step=  1500 loss=1.56772 train_exact=0.752 held_exact=0.711 train_exact_hard=0.740 held_exact_hard=0.842 held_div=0.868 tbl=0.994 repaired=1/5 (24s)
+[D-corrupt5-s0] step=  2000 loss=1.68104 train_exact=0.784 held_exact=0.711 train_exact_hard=0.708 held_exact_hard=0.763 held_div=0.921 tbl=0.994 repaired=1/5 (30s)
+### D-corrupt5-s1 :: --modulus 323 --d 16 --family colsoftmax --corrupt 5 --seed 1 --steps 2000 --lr 1e-2
+[D-corrupt5-s1] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt5-s1] step=     0 loss=nan train_exact=0.808 held_exact=0.816 train_exact_hard=0.804 held_exact_hard=0.816 held_div=0.868 tbl=0.993 repaired=0/5 (6s)
+[D-corrupt5-s1] step=   500 loss=2.67718 train_exact=0.536 held_exact=0.658 train_exact_hard=0.572 held_exact_hard=0.632 held_div=0.895 tbl=0.993 repaired=0/5 (11s)
+[D-corrupt5-s1] step=  1000 loss=1.46425 train_exact=0.612 held_exact=0.632 train_exact_hard=0.532 held_exact_hard=0.684 held_div=0.895 tbl=0.993 repaired=0/5 (15s)
+[D-corrupt5-s1] step=  1500 loss=1.50365 train_exact=0.668 held_exact=0.605 train_exact_hard=0.620 held_exact_hard=0.737 held_div=0.868 tbl=0.993 repaired=0/5 (18s)
+[D-corrupt5-s1] step=  2000 loss=1.26013 train_exact=0.608 held_exact=0.553 train_exact_hard=0.616 held_exact_hard=0.737 held_div=0.868 tbl=0.991 repaired=0/5 (22s)
+### D-corrupt5-s2 :: --modulus 323 --d 16 --family colsoftmax --corrupt 5 --seed 2 --steps 2000 --lr 1e-2
+[D-corrupt5-s2] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt5-s2] step=     0 loss=nan train_exact=0.612 held_exact=0.632 train_exact_hard=0.632 held_exact_hard=0.632 held_div=0.921 tbl=0.993 repaired=0/5 (9s)
+[D-corrupt5-s2] step=   500 loss=1.19507 train_exact=0.640 held_exact=0.632 train_exact_hard=0.708 held_exact_hard=0.684 held_div=0.947 tbl=0.993 repaired=0/5 (14s)
+[D-corrupt5-s2] step=  1000 loss=0.99132 train_exact=0.664 held_exact=0.658 train_exact_hard=0.672 held_exact_hard=0.684 held_div=0.921 tbl=0.993 repaired=0/5 (18s)
+[D-corrupt5-s2] step=  1500 loss=1.08451 train_exact=0.668 held_exact=0.658 train_exact_hard=0.708 held_exact_hard=0.763 held_div=0.868 tbl=0.993 repaired=0/5 (22s)
+[D-corrupt5-s2] step=  2000 loss=0.86121 train_exact=0.708 held_exact=0.684 train_exact_hard=0.692 held_exact_hard=0.763 held_div=0.895 tbl=0.993 repaired=0/5 (26s)
+### D-corrupt20-s0 :: --modulus 323 --d 16 --family colsoftmax --corrupt 20 --seed 0 --steps 2000 --lr 1e-2
+[D-corrupt20-s0] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt20-s0] step=     0 loss=nan train_exact=0.180 held_exact=0.289 train_exact_hard=0.180 held_exact_hard=0.263 held_div=1.000 tbl=0.973 repaired=1/20 (2s)
+[D-corrupt20-s0] step=   500 loss=8.25974 train_exact=0.272 held_exact=0.263 train_exact_hard=0.188 held_exact_hard=0.368 held_div=0.947 tbl=0.973 repaired=1/20 (7s)
+[D-corrupt20-s0] step=  1000 loss=3.28126 train_exact=0.268 held_exact=0.263 train_exact_hard=0.268 held_exact_hard=0.316 held_div=0.974 tbl=0.971 repaired=0/20 (11s)
+[D-corrupt20-s0] step=  1500 loss=2.56199 train_exact=0.292 held_exact=0.263 train_exact_hard=0.064 held_exact_hard=0.132 held_div=0.921 tbl=0.971 repaired=0/20 (15s)
+[D-corrupt20-s0] step=  2000 loss=2.02532 train_exact=0.324 held_exact=0.237 train_exact_hard=0.072 held_exact_hard=0.132 held_div=0.895 tbl=0.971 repaired=0/20 (19s)
+### D-corrupt20-s1 :: --modulus 323 --d 16 --family colsoftmax --corrupt 20 --seed 1 --steps 2000 --lr 1e-2
+[D-corrupt20-s1] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt20-s1] step=     0 loss=nan train_exact=0.024 held_exact=0.026 train_exact_hard=0.020 held_exact_hard=0.026 held_div=0.974 tbl=0.973 repaired=1/20 (5s)
+[D-corrupt20-s1] step=   500 loss=3.96451 train_exact=0.016 held_exact=0.000 train_exact_hard=0.012 held_exact_hard=0.000 held_div=0.921 tbl=0.973 repaired=1/20 (10s)
+[D-corrupt20-s1] step=  1000 loss=2.75782 train_exact=0.028 held_exact=0.000 train_exact_hard=0.020 held_exact_hard=0.026 held_div=0.921 tbl=0.973 repaired=1/20 (14s)
+[D-corrupt20-s1] step=  1500 loss=2.37409 train_exact=0.036 held_exact=0.026 train_exact_hard=0.020 held_exact_hard=0.026 held_div=0.921 tbl=0.973 repaired=1/20 (18s)
+[D-corrupt20-s1] step=  2000 loss=1.99275 train_exact=0.060 held_exact=0.026 train_exact_hard=0.020 held_exact_hard=0.026 held_div=0.921 tbl=0.973 repaired=1/20 (22s)
+### D-corrupt20-s2 :: --modulus 323 --d 16 --family colsoftmax --corrupt 20 --seed 2 --steps 2000 --lr 1e-2
+[D-corrupt20-s2] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt20-s2] step=     0 loss=nan train_exact=0.104 held_exact=0.079 train_exact_hard=0.104 held_exact_hard=0.105 held_div=0.974 tbl=0.971 repaired=0/20 (3s)
+[D-corrupt20-s2] step=   500 loss=3.64821 train_exact=0.100 held_exact=0.105 train_exact_hard=0.100 held_exact_hard=0.079 held_div=1.000 tbl=0.973 repaired=1/20 (8s)
+[D-corrupt20-s2] step=  1000 loss=3.01408 train_exact=0.116 held_exact=0.079 train_exact_hard=0.084 held_exact_hard=0.053 held_div=1.000 tbl=0.971 repaired=0/20 (11s)
+[D-corrupt20-s2] step=  1500 loss=2.23665 train_exact=0.144 held_exact=0.026 train_exact_hard=0.092 held_exact_hard=0.079 held_div=0.947 tbl=0.973 repaired=1/20 (15s)
+[D-corrupt20-s2] step=  2000 loss=2.05715 train_exact=0.176 held_exact=0.079 train_exact_hard=0.092 held_exact_hard=0.079 held_div=0.974 tbl=0.973 repaired=1/20 (19s)
+### D-corrupt50-s0 :: --modulus 323 --d 16 --family colsoftmax --corrupt 50 --seed 0 --steps 2000 --lr 1e-2
+[D-corrupt50-s0] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt50-s0] step=     0 loss=nan train_exact=0.028 held_exact=0.053 train_exact_hard=0.032 held_exact_hard=0.053 held_div=0.895 tbl=0.929 repaired=0/50 (18s)
+[D-corrupt50-s0] step=   500 loss=4.83017 train_exact=0.036 held_exact=0.053 train_exact_hard=0.024 held_exact_hard=0.079 held_div=0.974 tbl=0.929 repaired=0/50 (22s)
+[D-corrupt50-s0] step=  1000 loss=2.92186 train_exact=0.044 held_exact=0.053 train_exact_hard=0.016 held_exact_hard=0.079 held_div=0.947 tbl=0.930 repaired=1/50 (26s)
+[D-corrupt50-s0] step=  1500 loss=2.07613 train_exact=0.068 held_exact=0.053 train_exact_hard=0.024 held_exact_hard=0.079 held_div=1.000 tbl=0.930 repaired=1/50 (30s)
+[D-corrupt50-s0] step=  2000 loss=1.83421 train_exact=0.068 held_exact=0.079 train_exact_hard=0.016 held_exact_hard=0.053 held_div=1.000 tbl=0.929 repaired=0/50 (34s)
+### D-corrupt50-s1 :: --modulus 323 --d 16 --family colsoftmax --corrupt 50 --seed 1 --steps 2000 --lr 1e-2
+[D-corrupt50-s1] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt50-s1] step=     0 loss=nan train_exact=0.024 held_exact=0.026 train_exact_hard=0.020 held_exact_hard=0.026 held_div=0.974 tbl=0.934 repaired=4/50 (3s)
+[D-corrupt50-s1] step=   500 loss=4.36373 train_exact=0.020 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.026 held_div=0.921 tbl=0.931 repaired=2/50 (8s)
+[D-corrupt50-s1] step=  1000 loss=2.66835 train_exact=0.024 held_exact=0.026 train_exact_hard=0.008 held_exact_hard=0.026 held_div=0.947 tbl=0.931 repaired=2/50 (12s)
+[D-corrupt50-s1] step=  1500 loss=2.41617 train_exact=0.036 held_exact=0.053 train_exact_hard=0.008 held_exact_hard=0.026 held_div=0.974 tbl=0.931 repaired=2/50 (16s)
+[D-corrupt50-s1] step=  2000 loss=2.02776 train_exact=0.044 held_exact=0.026 train_exact_hard=0.008 held_exact_hard=0.026 held_div=0.974 tbl=0.931 repaired=2/50 (20s)
+### D-corrupt50-s2 :: --modulus 323 --d 16 --family colsoftmax --corrupt 50 --seed 2 --steps 2000 --lr 1e-2
+[D-corrupt50-s2] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt50-s2] step=     0 loss=nan train_exact=0.012 held_exact=0.026 train_exact_hard=0.012 held_exact_hard=0.000 held_div=0.947 tbl=0.929 repaired=0/50 (3s)
+[D-corrupt50-s2] step=   500 loss=8.12744 train_exact=0.016 held_exact=0.026 train_exact_hard=0.016 held_exact_hard=0.000 held_div=1.000 tbl=0.929 repaired=0/50 (6s)
+[D-corrupt50-s2] step=  1000 loss=4.91061 train_exact=0.028 held_exact=0.026 train_exact_hard=0.012 held_exact_hard=0.000 held_div=0.974 tbl=0.929 repaired=0/50 (10s)
+[D-corrupt50-s2] step=  1500 loss=3.64986 train_exact=0.036 held_exact=0.026 train_exact_hard=0.016 held_exact_hard=0.000 held_div=0.947 tbl=0.929 repaired=0/50 (13s)
+[D-corrupt50-s2] step=  2000 loss=1.98698 train_exact=0.112 held_exact=0.026 train_exact_hard=0.012 held_exact_hard=0.000 held_div=0.974 tbl=0.929 repaired=0/50 (17s)
+### D-corrupt100-s0 :: --modulus 323 --d 16 --family colsoftmax --corrupt 100 --seed 0 --steps 2000 --lr 1e-2
+[D-corrupt100-s0] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt100-s0] step=     0 loss=nan train_exact=0.012 held_exact=0.026 train_exact_hard=0.008 held_exact_hard=0.026 held_div=0.895 tbl=0.859 repaired=1/100 (2s)
+[D-corrupt100-s0] step=   500 loss=3.39101 train_exact=0.048 held_exact=0.026 train_exact_hard=0.004 held_exact_hard=0.026 held_div=0.947 tbl=0.860 repaired=2/100 (6s)
+[D-corrupt100-s0] step=  1000 loss=2.41772 train_exact=0.040 held_exact=0.026 train_exact_hard=0.012 held_exact_hard=0.026 held_div=0.947 tbl=0.859 repaired=1/100 (10s)
+[D-corrupt100-s0] step=  1500 loss=1.70643 train_exact=0.100 held_exact=0.026 train_exact_hard=0.016 held_exact_hard=0.026 held_div=0.974 tbl=0.861 repaired=3/100 (13s)
+[D-corrupt100-s0] step=  2000 loss=1.56152 train_exact=0.088 held_exact=0.026 train_exact_hard=0.008 held_exact_hard=0.026 held_div=0.868 tbl=0.860 repaired=2/100 (17s)
+### D-corrupt100-s1 :: --modulus 323 --d 16 --family colsoftmax --corrupt 100 --seed 1 --steps 2000 --lr 1e-2
+[D-corrupt100-s1] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt100-s1] step=     0 loss=nan train_exact=0.008 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.974 tbl=0.867 repaired=7/100 (4s)
+[D-corrupt100-s1] step=   500 loss=2.82105 train_exact=0.024 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.974 tbl=0.870 repaired=9/100 (8s)
+[D-corrupt100-s1] step=  1000 loss=2.18853 train_exact=0.024 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=1.000 tbl=0.871 repaired=10/100 (11s)
+[D-corrupt100-s1] step=  1500 loss=1.88513 train_exact=0.024 held_exact=0.026 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.895 tbl=0.871 repaired=10/100 (15s)
+[D-corrupt100-s1] step=  2000 loss=1.69842 train_exact=0.032 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.947 tbl=0.873 repaired=11/100 (18s)
+### D-corrupt100-s2 :: --modulus 323 --d 16 --family colsoftmax --corrupt 100 --seed 2 --steps 2000 --lr 1e-2
+[D-corrupt100-s2] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt100-s2] step=     0 loss=nan train_exact=0.008 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.974 tbl=0.859 repaired=1/100 (3s)
+[D-corrupt100-s2] step=   500 loss=4.32785 train_exact=0.008 held_exact=0.026 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.895 tbl=0.859 repaired=1/100 (8s)
+[D-corrupt100-s2] step=  1000 loss=2.97485 train_exact=0.040 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.974 tbl=0.859 repaired=1/100 (12s)
+[D-corrupt100-s2] step=  1500 loss=2.27222 train_exact=0.084 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=1.000 tbl=0.859 repaired=1/100 (16s)
+[D-corrupt100-s2] step=  2000 loss=1.86593 train_exact=0.124 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=1.000 tbl=0.859 repaired=1/100 (20s)
+### D-corrupt400-s0 :: --modulus 323 --d 16 --family colsoftmax --corrupt 400 --seed 0 --steps 2000 --lr 1e-2
+[D-corrupt400-s0] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt400-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.711 tbl=0.443 repaired=10/400 (2s)
+[D-corrupt400-s0] step=   500 loss=1.24682 train_exact=0.108 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=1.000 tbl=0.450 repaired=15/400 (7s)
+[D-corrupt400-s0] step=  1000 loss=0.94184 train_exact=0.232 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.868 tbl=0.449 repaired=14/400 (11s)
+[D-corrupt400-s0] step=  1500 loss=0.77618 train_exact=0.364 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.921 tbl=0.449 repaired=14/400 (14s)
+[D-corrupt400-s0] step=  2000 loss=0.72985 train_exact=0.476 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.947 tbl=0.449 repaired=14/400 (18s)
+### D-corrupt400-s1 :: --modulus 323 --d 16 --family colsoftmax --corrupt 400 --seed 1 --steps 2000 --lr 1e-2
+[D-corrupt400-s1] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt400-s1] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.737 tbl=0.441 repaired=9/400 (2s)
+[D-corrupt400-s1] step=   500 loss=1.33390 train_exact=0.100 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.947 tbl=0.450 repaired=15/400 (6s)
+[D-corrupt400-s1] step=  1000 loss=1.08482 train_exact=0.176 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.868 tbl=0.450 repaired=15/400 (10s)
+[D-corrupt400-s1] step=  1500 loss=0.85951 train_exact=0.276 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.868 tbl=0.451 repaired=16/400 (13s)
+[D-corrupt400-s1] step=  2000 loss=0.76119 train_exact=0.348 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.868 tbl=0.454 repaired=19/400 (17s)
+### D-corrupt400-s2 :: --modulus 323 --d 16 --family colsoftmax --corrupt 400 --seed 2 --steps 2000 --lr 1e-2
+[D-corrupt400-s2] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt400-s2] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.842 tbl=0.440 repaired=8/400 (2s)
+[D-corrupt400-s2] step=   500 loss=1.51389 train_exact=0.068 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.816 tbl=0.437 repaired=6/400 (6s)
+[D-corrupt400-s2] step=  1000 loss=1.24697 train_exact=0.144 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.921 tbl=0.436 repaired=5/400 (10s)
+[D-corrupt400-s2] step=  1500 loss=0.98443 train_exact=0.216 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.868 tbl=0.440 repaired=8/400 (14s)
+[D-corrupt400-s2] step=  2000 loss=0.93870 train_exact=0.268 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.921 tbl=0.441 repaired=9/400 (17s)
+### D-corrupt700-s0 :: --modulus 323 --d 16 --family colsoftmax --corrupt 700 --seed 0 --steps 2000 --lr 1e-2
+[D-corrupt700-s0] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt700-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.026 held_div=0.553 tbl=0.023 repaired=16/700 (2s)
+[D-corrupt700-s0] step=   500 loss=1.92444 train_exact=0.016 held_exact=0.000 train_exact_hard=0.016 held_exact_hard=0.000 held_div=0.079 tbl=0.020 repaired=14/700 (6s)
+[D-corrupt700-s0] step=  1000 loss=1.66861 train_exact=0.020 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.342 tbl=0.027 repaired=19/700 (9s)
+[D-corrupt700-s0] step=  1500 loss=1.49953 train_exact=0.032 held_exact=0.000 train_exact_hard=0.016 held_exact_hard=0.000 held_div=0.211 tbl=0.019 repaired=13/700 (13s)
+[D-corrupt700-s0] step=  2000 loss=1.36353 train_exact=0.060 held_exact=0.000 train_exact_hard=0.016 held_exact_hard=0.000 held_div=0.211 tbl=0.021 repaired=15/700 (16s)
+### D-corrupt700-s1 :: --modulus 323 --d 16 --family colsoftmax --corrupt 700 --seed 1 --steps 2000 --lr 1e-2
+[D-corrupt700-s1] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt700-s1] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.474 tbl=0.031 repaired=22/700 (2s)
+[D-corrupt700-s1] step=   500 loss=1.91572 train_exact=0.016 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.105 tbl=0.030 repaired=21/700 (6s)
+[D-corrupt700-s1] step=  1000 loss=1.76258 train_exact=0.024 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.026 held_div=0.105 tbl=0.036 repaired=25/700 (9s)
+[D-corrupt700-s1] step=  1500 loss=1.51967 train_exact=0.036 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.184 tbl=0.031 repaired=22/700 (13s)
+[D-corrupt700-s1] step=  2000 loss=1.43675 train_exact=0.060 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.184 tbl=0.030 repaired=21/700 (16s)
+### D-corrupt700-s2 :: --modulus 323 --d 16 --family colsoftmax --corrupt 700 --seed 2 --steps 2000 --lr 1e-2
+[D-corrupt700-s2] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[D-corrupt700-s2] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.658 tbl=0.021 repaired=15/700 (2s)
+[D-corrupt700-s2] step=   500 loss=1.94169 train_exact=0.016 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.395 tbl=0.029 repaired=20/700 (5s)
+[D-corrupt700-s2] step=  1000 loss=1.59319 train_exact=0.048 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.263 tbl=0.024 repaired=17/700 (9s)
+[D-corrupt700-s2] step=  1500 loss=1.35764 train_exact=0.056 held_exact=0.000 train_exact_hard=0.024 held_exact_hard=0.000 held_div=0.237 tbl=0.024 repaired=17/700 (12s)
+[D-corrupt700-s2] step=  2000 loss=1.23728 train_exact=0.068 held_exact=0.000 train_exact_hard=0.012 held_exact_hard=0.026 held_div=0.316 tbl=0.029 repaired=20/700 (15s)

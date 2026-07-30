@@ -19,3 +19,26 @@
 [C-lr0-323-d16] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.040 (10s)
 [C-lr0-323-d16] step=   500 loss=2.30601 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.040 (28s)
 ### C-lr0-323-d32 :: --modulus 323 --d 32 --family colsoftmax --lr 0 --steps 500
+[C-lr0-323-d32] mod=323 S=3 L=6 d=32 family=colsoftmax impl=scan T=1 train=250 held=38 params=405,332 op_depth=12 graph_depth=41
+[C-lr0-323-d32] step=     0 loss=nan train_exact=0.016 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.474 tbl=0.040 (2s)
+[C-lr0-323-d32] step=   500 loss=2.30014 train_exact=0.016 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.474 tbl=0.040 (40s)
+### C-impl-scan-s0 :: --modulus 323 --d 16 --family colsoftmax --impl scan --seed 0 --steps 1000
+[C-impl-scan-s0] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[C-impl-scan-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.040 (3s)
+[C-impl-scan-s0] step=   500 loss=1.47359 train_exact=0.024 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.395 tbl=0.040 (24s)
+[C-impl-scan-s0] step=  1000 loss=1.19565 train_exact=0.068 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.474 tbl=0.044 (44s)
+### C-impl-scan-s1 :: --modulus 323 --d 16 --family colsoftmax --impl scan --seed 1 --steps 1000
+[C-impl-scan-s1] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[C-impl-scan-s1] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.974 tbl=0.030 (3s)
+[C-impl-scan-s1] step=   500 loss=1.57473 train_exact=0.016 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.237 tbl=0.031 (23s)
+[C-impl-scan-s1] step=  1000 loss=1.26574 train_exact=0.068 held_exact=0.000 train_exact_hard=0.016 held_exact_hard=0.026 held_div=0.316 tbl=0.027 (43s)
+### C-impl-serial-s0 :: --modulus 323 --d 16 --family colsoftmax --impl serial --seed 0 --steps 1000
+[C-impl-serial-s0] mod=323 S=3 L=6 d=16 family=colsoftmax impl=serial T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=61
+[C-impl-serial-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.040 (11s)
+[C-impl-serial-s0] step=   500 loss=1.46580 train_exact=0.024 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.447 tbl=0.037 (31s)
+[C-impl-serial-s0] step=  1000 loss=1.19588 train_exact=0.056 held_exact=0.000 train_exact_hard=0.024 held_exact_hard=0.000 held_div=0.447 tbl=0.044 (43s)
+### C-impl-serial-s1 :: --modulus 323 --d 16 --family colsoftmax --impl serial --seed 1 --steps 1000
+[C-impl-serial-s1] mod=323 S=3 L=6 d=16 family=colsoftmax impl=serial T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=61
+[C-impl-serial-s1] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.974 tbl=0.030 (10s)
+[C-impl-serial-s1] step=   500 loss=1.57040 train_exact=0.016 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.289 tbl=0.033 (26s)
+[C-impl-serial-s1] step=  1000 loss=1.26124 train_exact=0.060 held_exact=0.000 train_exact_hard=0.016 held_exact_hard=0.000 held_div=0.289 tbl=0.031 (40s)

@@ -136,10 +136,22 @@ def constrain(logits: Tensor, family: str) -> Tensor:
     raise ValueError(f"unknown family {family!r}")
 
 
-def snap_matrix(M: Tensor) -> Tensor:
-    """Argmax-snap a transition matrix to a column one-hot (hard-state metric)."""
-    hard = torch.zeros_like(M)
-    return hard.scatter_(-2, M.argmax(dim=-2, keepdim=True), 1.0)
+def snap(x: Tensor, dim: int = -1, ste: bool = False) -> Tensor:
+    """Argmax-snap along `dim`.
+
+    `ste=False` is the *metric* mode used by `train_exact_hard` — the graph is
+    detached on purpose, so it must never be used inside a training forward.
+    `ste=True` is the straight-through *training* mode: hard forward, soft
+    gradient.  `--hard-train` without STE detaches the loss from every parameter
+    and `backward()` raises; that is how this was caught.
+    """
+    hard = torch.zeros_like(x).scatter_(dim, x.argmax(dim=dim, keepdim=True), 1.0)
+    return hard + (x - x.detach()) if ste else hard
+
+
+def snap_matrix(M: Tensor, ste: bool = False) -> Tensor:
+    """Argmax-snap a transition matrix to a column one-hot."""
+    return snap(M, dim=-2, ste=ste)
 
 
 # --------------------------------------------------------------------------- #
@@ -222,6 +234,7 @@ class PairMonoid(nn.Module):
         hard: bool = False,
         reverse: bool = False,
         return_state: bool = False,
+        ste: bool = False,
     ):
         shape = a.shape[:-2]
         L = a.shape[-2]
@@ -232,7 +245,7 @@ class PairMonoid(nn.Module):
         logits = (feat @ self.trans).view(B, L, self.d, self.d).float()
         M = constrain(logits, self.family)
         if hard:
-            M = snap_matrix(M)
+            M = snap_matrix(M, ste=ste)
         P = PREFIX_IMPLS[impl](M)
         # exclusive prefix: state entering position k
         e0 = torch.zeros(B, self.d, 1, device=M.device, dtype=M.dtype)
@@ -240,11 +253,11 @@ class PairMonoid(nn.Module):
         states = torch.cat([e0.unsqueeze(1).expand(B, 1, self.d, 1), P[:, :-1] @ e0.unsqueeze(1)], dim=1)
         c = states.squeeze(-1)  # (B, L, d)
         if hard:
-            c = torch.zeros_like(c).scatter_(-1, c.argmax(-1, keepdim=True), 1.0)
+            c = snap(c, -1, ste=ste)
         if return_state:
             final = (P[:, -1] @ e0).squeeze(-1)
             if hard:
-                final = torch.zeros_like(final).scatter_(-1, final.argmax(-1, keepdim=True), 1.0)
+                final = snap(final, -1, ste=ste)
             return c, final
         el = (feat @ self.emit).view(B, L, self.d, 10).float()
         out_logits = torch.einsum("bki,bkic->bkc", c, el)
@@ -252,7 +265,7 @@ class PairMonoid(nn.Module):
         if reverse:
             out = out.flip(-2)
         if hard:
-            out = torch.zeros_like(out).scatter_(-1, out.argmax(-1, keepdim=True), 1.0)
+            out = snap(out, -1, ste=ste)
         return out.reshape(*shape, L, 10)
 
 
@@ -264,13 +277,12 @@ class MulTable(nn.Module):
         self.lo = nn.Parameter(torch.randn(100, 10) * init_scale)
         self.hi = nn.Parameter(torch.randn(100, 10) * init_scale)
 
-    def forward(self, a: Tensor, b: Tensor, *, hard: bool = False):
+    def forward(self, a: Tensor, b: Tensor, *, hard: bool = False, ste: bool = False):
         feat = (a.unsqueeze(-1) * b.unsqueeze(-2)).flatten(-2)
         lo = (feat @ self.lo).softmax(-1)
         hi = (feat @ self.hi).softmax(-1)
         if hard:
-            lo = torch.zeros_like(lo).scatter_(-1, lo.argmax(-1, keepdim=True), 1.0)
-            hi = torch.zeros_like(hi).scatter_(-1, hi.argmax(-1, keepdim=True), 1.0)
+            lo, hi = snap(lo, -1, ste=ste), snap(hi, -1, ste=ste)
         return lo, hi
 
 
@@ -320,6 +332,9 @@ class MonoidALU(nn.Module):
         self.cmp = PairMonoid(d, family, init_scale)
         self.cmp_head = nn.Parameter(torch.randn(d) * init_scale)
         self.sel = nn.Parameter(torch.randn(10, 10) * init_scale)
+        # when True, `hard=` uses a straight-through estimator (training mode);
+        # when False it detaches (metric mode, train_exact_hard)
+        self.ste = False
 
     # -- structural bookkeeping -------------------------------------------- #
     @property
@@ -343,7 +358,7 @@ class MonoidALU(nn.Module):
         return 1 + n_tree * (1 + per_scan) + (1 + per_scan) + self.S * (2 + 2 * per_scan)
 
     # -- pieces ------------------------------------------------------------- #
-    def _tree_add(self, rows: list[Digits], *, hard: bool) -> Digits:
+    def _tree_add(self, rows: list[Digits], *, hard: bool, ste: bool = False) -> Digits:
         while len(rows) > 1:
             nxt = []
             pairs = [(rows[i], rows[i + 1]) for i in range(0, len(rows) - 1, 2)]
@@ -353,42 +368,43 @@ class MonoidALU(nn.Module):
                 leftover = None
             a = torch.stack([p[0] for p in pairs], dim=1)  # (B, P, L, 10)
             b = torch.stack([p[1] for p in pairs], dim=1)
-            s = self.add(a, b, impl=self.impl, hard=hard)
+            s = self.add(a, b, impl=self.impl, hard=hard, ste=self.ste)
             nxt = [s[:, i] for i in range(s.shape[1])]
             if leftover is not None:
                 nxt.append(leftover)
             rows = nxt
         return rows[0]
 
-    def multiply(self, x: Digits, *, hard: bool = False) -> Digits:
+    def multiply(self, x: Digits, *, hard: bool = False, ste: bool = False) -> Digits:
         B, L = x.shape[0], self.L
         xs = x[:, : self.S]  # (B, S, 10) multiplier digits
-        lo, hi = self.mul(xs.unsqueeze(2), x.unsqueeze(1), hard=hard)  # (B,S,L,10)
+        lo, hi = self.mul(xs.unsqueeze(2), x.unsqueeze(1), hard=hard, ste=self.ste)  # (B,S,L,10)
         rows = []
         for i in range(self.S):
             rows.append(shift_up(lo[:, i], i, L))
             rows.append(shift_up(hi[:, i], i + 1, L))
-        return self._tree_add(rows, hard=hard)
+        return self._tree_add(rows, hard=hard, ste=self.ste)
 
-    def multiples(self, n: Digits, *, hard: bool = False) -> Digits:
+    def multiples(self, n: Digits, *, hard: bool = False, ste: bool = False) -> Digits:
         """All ten multiples q*N, q = 0..9, as (B, 10, L, 10)."""
         B, L = n.shape[0], self.L
         q = torch.eye(10, device=n.device, dtype=n.dtype).expand(B, 10, 10)
-        lo, hi = self.mul_n(q.unsqueeze(2), n.unsqueeze(1), hard=hard)  # (B,10,L,10)
+        lo, hi = self.mul_n(q.unsqueeze(2), n.unsqueeze(1), hard=hard, ste=self.ste)  # (B,10,L,10)
         hi_shift = torch.cat(
             [zero_digits(B * 10, 1, n.device, n.dtype).view(B, 10, 1, 10), hi[:, :, :-1]], dim=2
         )
-        return self.add(lo, hi_shift, impl=self.impl, hard=hard)
+        return self.add(lo, hi_shift, impl=self.impl, hard=hard, ste=self.ste)
 
     def compare_ge(self, a: Digits, b: Digits, *, hard: bool = False) -> Tensor:
         """P(a >= b) via the comparison monoid, scanned MSB-first."""
         shape = a.shape[:-2]
-        _, final = self.cmp(a, b, impl=self.impl, hard=hard, reverse=True, return_state=True)
+        _, final = self.cmp(a, b, impl=self.impl, hard=hard, reverse=True,
+                            return_state=True, ste=self.ste)
         return torch.sigmoid(final @ self.cmp_head).reshape(*shape)
 
-    def reduce_mod(self, p: Digits, n: Digits, *, hard: bool = False) -> Digits:
+    def reduce_mod(self, p: Digits, n: Digits, *, hard: bool = False, ste: bool = False) -> Digits:
         B, L = p.shape[0], self.L
-        mult = self.multiples(n, hard=hard)  # (B, 10, L, 10)
+        mult = self.multiples(n, hard=hard, ste=self.ste)  # (B, 10, L, 10)
         r = p
         for k in range(self.S - 1, -1, -1):
             cand = shift_up(mult.reshape(B * 10, L, 10), k, L).view(B, 10, L, 10)
@@ -396,14 +412,14 @@ class MonoidALU(nn.Module):
             qlogits = fits @ self.sel.t()
             qsel = qlogits.softmax(-1)
             if hard:
-                qsel = torch.zeros_like(qsel).scatter_(-1, qsel.argmax(-1, keepdim=True), 1.0)
+                qsel = snap(qsel, -1, ste=self.ste)
             row = torch.einsum("bq,bqlc->blc", qsel, cand)
-            r = self.sub(r, row, impl=self.impl, hard=hard)
+            r = self.sub(r, row, impl=self.impl, hard=hard, ste=self.ste)
         return r
 
     def forward(self, x: Digits, n: Digits, *, hard: bool = False) -> Digits:
-        p = self.multiply(x, hard=hard)
-        return self.reduce_mod(p, n, hard=hard)
+        p = self.multiply(x, hard=hard, ste=self.ste)
+        return self.reduce_mod(p, n, hard=hard, ste=self.ste)
 
     # -- DIAGNOSTIC ORACLE (never legal in a submission) -------------------- #
     @torch.no_grad()

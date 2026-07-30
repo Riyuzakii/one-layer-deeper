@@ -1,0 +1,125 @@
+### B-323-d16-colsoftmax-s0 :: --modulus 323 --d 16 --family colsoftmax --seed 0 --steps 2000
+[B-323-d16-colsoftmax-s0] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[B-323-d16-colsoftmax-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.040 (10s)
+[B-323-d16-colsoftmax-s0] step=   500 loss=1.47359 train_exact=0.024 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.395 tbl=0.040 (33s)
+[B-323-d16-colsoftmax-s0] step=  1000 loss=1.19565 train_exact=0.068 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.474 tbl=0.044 (50s)
+[B-323-d16-colsoftmax-s0] step=  1500 loss=1.11245 train_exact=0.100 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.368 tbl=0.044 (72s)
+[B-323-d16-colsoftmax-s0] step=  2000 loss=1.08746 train_exact=0.092 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.526 tbl=0.046 (93s)
+### B-323-d16-colsoftmax-s1 :: --modulus 323 --d 16 --family colsoftmax --seed 1 --steps 2000
+[B-323-d16-colsoftmax-s1] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[B-323-d16-colsoftmax-s1] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.974 tbl=0.030 (5s)
+[B-323-d16-colsoftmax-s1] step=   500 loss=1.57473 train_exact=0.016 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.237 tbl=0.031 (27s)
+[B-323-d16-colsoftmax-s1] step=  1000 loss=1.26574 train_exact=0.068 held_exact=0.000 train_exact_hard=0.016 held_exact_hard=0.026 held_div=0.316 tbl=0.027 (49s)
+[B-323-d16-colsoftmax-s1] step=  1500 loss=1.18104 train_exact=0.056 held_exact=0.000 train_exact_hard=0.012 held_exact_hard=0.000 held_div=0.395 tbl=0.026 (71s)
+[B-323-d16-colsoftmax-s1] step=  2000 loss=1.16144 train_exact=0.052 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.316 tbl=0.027 (92s)
+### B-323-d16-colsoftmax-s2 :: --modulus 323 --d 16 --family colsoftmax --seed 2 --steps 2000
+[B-323-d16-colsoftmax-s2] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[B-323-d16-colsoftmax-s2] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.632 tbl=0.027 (9s)
+[B-323-d16-colsoftmax-s2] step=   500 loss=1.57418 train_exact=0.032 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.158 tbl=0.049 (31s)
+[B-323-d16-colsoftmax-s2] step=  1000 loss=1.17119 train_exact=0.080 held_exact=0.026 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.211 tbl=0.040 (52s)
+[B-323-d16-colsoftmax-s2] step=  1500 loss=1.09291 train_exact=0.048 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.342 tbl=0.039 (72s)
+[B-323-d16-colsoftmax-s2] step=  2000 loss=1.05884 train_exact=0.064 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.395 tbl=0.033 (91s)
+### B-323-d16-sthard-s0 :: --modulus 323 --d 16 --family sthard --seed 0 --steps 2000
+[B-323-d16-sthard-s0] mod=323 S=3 L=6 d=16 family=sthard impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[B-323-d16-sthard-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.040 (12s)
+[B-323-d16-sthard-s0] step=   500 loss=1.42453 train_exact=0.040 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.211 tbl=0.033 (34s)
+[B-323-d16-sthard-s0] step=  1000 loss=1.14408 train_exact=0.136 held_exact=0.026 train_exact_hard=0.000 held_exact_hard=0.053 held_div=0.447 tbl=0.036 (53s)
+[B-323-d16-sthard-s0] step=  1500 loss=1.15344 train_exact=0.176 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.316 tbl=0.033 (73s)
+[B-323-d16-sthard-s0] step=  2000 loss=1.10300 train_exact=0.176 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.368 tbl=0.029 (89s)
+### B-323-d16-sthard-s1 :: --modulus 323 --d 16 --family sthard --seed 1 --steps 2000
+[B-323-d16-sthard-s1] mod=323 S=3 L=6 d=16 family=sthard impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[B-323-d16-sthard-s1] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.974 tbl=0.030 (3s)
+[B-323-d16-sthard-s1] step=   500 loss=1.61257 train_exact=0.024 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.184 tbl=0.023 (21s)
+[B-323-d16-sthard-s1] step=  1000 loss=1.16685 train_exact=0.116 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.368 tbl=0.027 (39s)
+[B-323-d16-sthard-s1] step=  1500 loss=1.01993 train_exact=0.196 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.342 tbl=0.033 (57s)
+[B-323-d16-sthard-s1] step=  2000 loss=0.89359 train_exact=0.252 held_exact=0.026 train_exact_hard=0.020 held_exact_hard=0.000 held_div=0.289 tbl=0.027 (75s)
+### B-323-d16-sthard-s2 :: --modulus 323 --d 16 --family sthard --seed 2 --steps 2000
+[B-323-d16-sthard-s2] mod=323 S=3 L=6 d=16 family=sthard impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[B-323-d16-sthard-s2] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.632 tbl=0.027 (4s)
+[B-323-d16-sthard-s2] step=   500 loss=1.57652 train_exact=0.012 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.211 tbl=0.021 (23s)
+[B-323-d16-sthard-s2] step=  1000 loss=1.18840 train_exact=0.120 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.263 tbl=0.019 (41s)
+[B-323-d16-sthard-s2] step=  1500 loss=1.14172 train_exact=0.200 held_exact=0.026 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.263 tbl=0.020 (59s)
+[B-323-d16-sthard-s2] step=  2000 loss=1.13615 train_exact=0.208 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.316 tbl=0.019 (75s)
+### B-323-d16-dsink-s0 :: --modulus 323 --d 16 --family dsink --seed 0 --steps 2000
+[B-323-d16-dsink-s0] mod=323 S=3 L=6 d=16 family=dsink impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[B-323-d16-dsink-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.868 tbl=0.040 (12s)
+[B-323-d16-dsink-s0] step=   500 loss=1.52048 train_exact=0.044 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.237 tbl=0.033 (68s)
+[B-323-d16-dsink-s0] step=  1000 loss=1.24128 train_exact=0.068 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.316 tbl=0.037 (121s)
+[B-323-d16-dsink-s0] step=  1500 loss=1.16643 train_exact=0.080 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.342 tbl=0.033 (172s)
+[B-323-d16-dsink-s0] step=  2000 loss=1.17766 train_exact=0.068 held_exact=0.000 train_exact_hard=0.016 held_exact_hard=0.026 held_div=0.395 tbl=0.036 (224s)
+### B-323-d16-dsink-s1 :: --modulus 323 --d 16 --family dsink --seed 1 --steps 2000
+[B-323-d16-dsink-s1] mod=323 S=3 L=6 d=16 family=dsink impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[B-323-d16-dsink-s1] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.816 tbl=0.030 (13s)
+[B-323-d16-dsink-s1] step=   500 loss=1.45198 train_exact=0.036 held_exact=0.026 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.289 tbl=0.039 (78s)
+[B-323-d16-dsink-s1] step=  1000 loss=1.20221 train_exact=0.052 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.395 tbl=0.041 (135s)
+[B-323-d16-dsink-s1] step=  1500 loss=1.08423 train_exact=0.088 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.263 tbl=0.043 (193s)
+[B-323-d16-dsink-s1] step=  2000 loss=1.04569 train_exact=0.072 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.395 tbl=0.043 (252s)
+### B-323-d16-dsink-s2 :: --modulus 323 --d 16 --family dsink --seed 2 --steps 2000
+[B-323-d16-dsink-s2] mod=323 S=3 L=6 d=16 family=dsink impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[B-323-d16-dsink-s2] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.763 tbl=0.027 (3s)
+[B-323-d16-dsink-s2] step=   500 loss=1.54339 train_exact=0.040 held_exact=0.000 train_exact_hard=0.016 held_exact_hard=0.000 held_div=0.211 tbl=0.024 (59s)
+[B-323-d16-dsink-s2] step=  1000 loss=1.17077 train_exact=0.080 held_exact=0.000 train_exact_hard=0.012 held_exact_hard=0.000 held_div=0.289 tbl=0.033 (109s)
+[B-323-d16-dsink-s2] step=  1500 loss=1.10054 train_exact=0.064 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.289 tbl=0.029 (159s)
+[B-323-d16-dsink-s2] step=  2000 loss=1.06120 train_exact=0.080 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.342 tbl=0.026 (204s)
+### B-323-d16-orth-s0 :: --modulus 323 --d 16 --family orth --seed 0 --steps 2000
+[B-323-d16-orth-s0] mod=323 S=3 L=6 d=16 family=orth impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[B-323-d16-orth-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.605 tbl=0.040 (6s)
+[B-323-d16-orth-s0] step=   500 loss=1.59972 train_exact=0.016 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.237 tbl=0.031 (50s)
+[B-323-d16-orth-s0] step=  1000 loss=0.96728 train_exact=0.212 held_exact=0.026 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.289 tbl=0.034 (113s)
+[B-323-d16-orth-s0] step=  1500 loss=0.61509 train_exact=0.412 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.632 tbl=0.029 (168s)
+[B-323-d16-orth-s0] step=  2000 loss=0.33955 train_exact=0.724 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.632 tbl=0.027 (217s)
+### B-323-d16-orth-s1 :: --modulus 323 --d 16 --family orth --seed 1 --steps 2000
+[B-323-d16-orth-s1] mod=323 S=3 L=6 d=16 family=orth impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[B-323-d16-orth-s1] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.895 tbl=0.030 (4s)
+[B-323-d16-orth-s1] step=   500 loss=1.52187 train_exact=0.036 held_exact=0.026 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.342 tbl=0.030 (43s)
+[B-323-d16-orth-s1] step=  1000 loss=0.66937 train_exact=0.260 held_exact=0.026 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.474 tbl=0.034 (81s)
+[B-323-d16-orth-s1] step=  1500 loss=0.30744 train_exact=0.728 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.395 tbl=0.034 (123s)
+[B-323-d16-orth-s1] step=  2000 loss=0.06694 train_exact=0.972 held_exact=0.000 train_exact_hard=0.012 held_exact_hard=0.000 held_div=0.711 tbl=0.031 (163s)
+### B-323-d16-orth-s2 :: --modulus 323 --d 16 --family orth --seed 2 --steps 2000
+[B-323-d16-orth-s2] mod=323 S=3 L=6 d=16 family=orth impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[B-323-d16-orth-s2] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.553 tbl=0.027 (8s)
+[B-323-d16-orth-s2] step=   500 loss=1.64191 train_exact=0.016 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.026 held_div=0.289 tbl=0.034 (49s)
+[B-323-d16-orth-s2] step=  1000 loss=0.58950 train_exact=0.420 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.237 tbl=0.030 (85s)
+[B-323-d16-orth-s2] step=  1500 loss=0.20051 train_exact=0.860 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.579 tbl=0.039 (134s)
+[B-323-d16-orth-s2] step=  2000 loss=0.06221 train_exact=0.968 held_exact=0.026 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.526 tbl=0.034 (178s)
+### B-323-d16-dense-s0 :: --modulus 323 --d 16 --family dense --seed 0 --steps 2000
+[B-323-d16-dense-s0] mod=323 S=3 L=6 d=16 family=dense impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[B-323-d16-dense-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.040 (2s)
+[B-323-d16-dense-s0] step=   500 loss=1.49152 train_exact=0.028 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.605 tbl=0.030 (15s)
+[B-323-d16-dense-s0] step=  1000 loss=1.51599 train_exact=0.028 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.605 tbl=0.031 (26s)
+[B-323-d16-dense-s0] step=  1500 loss=1.50904 train_exact=0.028 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.632 tbl=0.036 (37s)
+[B-323-d16-dense-s0] step=  2000 loss=1.15890 train_exact=0.100 held_exact=0.026 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.342 tbl=0.036 (47s)
+### B-323-d16-dense-s1 :: --modulus 323 --d 16 --family dense --seed 1 --steps 2000
+[B-323-d16-dense-s1] mod=323 S=3 L=6 d=16 family=dense impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[B-323-d16-dense-s1] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.974 tbl=0.030 (2s)
+[B-323-d16-dense-s1] step=   500 loss=1.60486 train_exact=0.020 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.289 tbl=0.034 (14s)
+[B-323-d16-dense-s1] step=  1000 loss=1.56274 train_exact=0.036 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.237 tbl=0.036 (25s)
+[B-323-d16-dense-s1] step=  1500 loss=1.64584 train_exact=0.048 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.026 held_div=0.658 tbl=0.033 (36s)
+[B-323-d16-dense-s1] step=  2000 loss=1.52334 train_exact=0.040 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.553 tbl=0.029 (47s)
+### B-323-d16-dense-s2 :: --modulus 323 --d 16 --family dense --seed 2 --steps 2000
+[B-323-d16-dense-s2] mod=323 S=3 L=6 d=16 family=dense impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[B-323-d16-dense-s2] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.632 tbl=0.027 (2s)
+[B-323-d16-dense-s2] step=   500 loss=1.57720 train_exact=0.016 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.263 tbl=0.037 (13s)
+[B-323-d16-dense-s2] step=  1000 loss=1.30627 train_exact=0.060 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.105 tbl=0.037 (25s)
+[B-323-d16-dense-s2] step=  1500 loss=1.29489 train_exact=0.100 held_exact=0.026 train_exact_hard=0.012 held_exact_hard=0.000 held_div=0.211 tbl=0.027 (36s)
+[B-323-d16-dense-s2] step=  2000 loss=1.07946 train_exact=0.184 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.184 tbl=0.031 (48s)
+### B-323-d8-colsoftmax-s0 :: --modulus 323 --d 8 --family colsoftmax --seed 0 --steps 2000
+[B-323-d8-colsoftmax-s0] mod=323 S=3 L=6 d=8 family=colsoftmax impl=scan T=1 train=250 held=38 params=45,308 op_depth=12 graph_depth=41
+[B-323-d8-colsoftmax-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.579 tbl=0.040 (3s)
+[B-323-d8-colsoftmax-s0] step=   500 loss=1.54254 train_exact=0.028 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.026 held_div=0.211 tbl=0.041 (16s)
+[B-323-d8-colsoftmax-s0] step=  1000 loss=1.14355 train_exact=0.092 held_exact=0.000 train_exact_hard=0.012 held_exact_hard=0.053 held_div=0.263 tbl=0.039 (22s)
+[B-323-d8-colsoftmax-s0] step=  1500 loss=1.08216 train_exact=0.076 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.421 tbl=0.039 (28s)
+[B-323-d8-colsoftmax-s0] step=  2000 loss=1.06615 train_exact=0.108 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.500 tbl=0.039 (32s)
+### B-323-d8-colsoftmax-s1 :: --modulus 323 --d 8 --family colsoftmax --seed 1 --steps 2000
+[B-323-d8-colsoftmax-s1] mod=323 S=3 L=6 d=8 family=colsoftmax impl=scan T=1 train=250 held=38 params=45,308 op_depth=12 graph_depth=41
+[B-323-d8-colsoftmax-s1] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.030 (10s)
+[B-323-d8-colsoftmax-s1] step=   500 loss=1.44727 train_exact=0.044 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.395 tbl=0.026 (17s)
+[B-323-d8-colsoftmax-s1] step=  1000 loss=1.17498 train_exact=0.088 held_exact=0.000 train_exact_hard=0.012 held_exact_hard=0.000 held_div=0.342 tbl=0.030 (22s)
+[B-323-d8-colsoftmax-s1] step=  1500 loss=1.07537 train_exact=0.092 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.447 tbl=0.030 (29s)
+[B-323-d8-colsoftmax-s1] step=  2000 loss=1.04205 train_exact=0.084 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.500 tbl=0.031 (35s)
+### B-323-d8-colsoftmax-s2 :: --modulus 323 --d 8 --family colsoftmax --seed 2 --steps 2000
+[B-323-d8-colsoftmax-s2] mod=323 S=3 L=6 d=8 family=colsoftmax impl=scan T=1 train=250 held=38 params=45,308 op_depth=12 graph_depth=41
+[B-323-d8-colsoftmax-s2] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.605 tbl=0.027 (4s)
+[B-323-d8-colsoftmax-s2] step=   500 loss=1.57406 train_exact=0.024 held_exact=0.026 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.263 tbl=0.037 (14s)
+[B-323-d8-colsoftmax-s2] step=  1000 loss=1.18803 train_exact=0.068 held_exact=0.000 train_exact_hard=0.024 held_exact_hard=0.000 held_div=0.342 tbl=0.033 (23s)
+[B-323-d8-colsoftmax-s2] step=  1500 loss=1.12514 train_exact=0.064 held_exact=0.000 train_exact_hard=0.028 held_exact_hard=0.000 held_div=0.368 tbl=0.040 (32s)

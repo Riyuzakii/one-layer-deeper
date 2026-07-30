@@ -269,8 +269,10 @@ def main() -> int:
     for step in range(1, args.steps + 1):
         idx = torch.randint(0, n, (min(args.batch, n),), generator=gen).to(device)
         y = xin[idx]
+        model.ste = args.hard_train  # straight-through inside the training forward
         for _ in range(T):
             y = model(y, nin[idx], hard=args.hard_train)
+        model.ste = False
         lg = y[:, :S].clamp_min(1e-9).log()
         loss = F.cross_entropy(lg.reshape(-1, 10), tgt[idx].reshape(-1))
         opt.zero_grad(set_to_none=True)
