@@ -784,6 +784,23 @@ bash lab/eval_cells.sh
 
 ---
 
+## 8a. Statements in the shared docs that this branch bears on
+
+Collected in one place so the corrections are mechanical. Each row is what *this branch
+measured*; none of it is inferred from another branch's work.
+
+| shared doc | statement | this branch's evidence | verdict |
+|---|---|---|---|
+| BRIEF2 §5 | "`triton` 3.7.1 importable → custom chunkwise/fused kernels are on the table" | `lab/triton_probe.py`: the smallest possible kernel fails with `ptxas-blackwell fatal: Value 'sm_107a' is not defined`. Kills `torch.compile` too. | **wrong locally.** True on the H100, unverifiable here. Suggest: "importable, but cannot compile on the lab box." |
+| BRIEF2 §4 | "~38.6 ms/step … ~93,000 steps in a full Hard run" | Reproduced as the calibration anchor. A fused `nn.LSTM` candidate runs at 0.27–0.40× that. | **correct, but not a ceiling.** Suggest adding: the figure is architecture-specific; an RNN-shaped candidate gets 230k–350k. |
+| PLAN2 §3.6 | "viable only if `max_seq_len` is small … worst wall clock" (Axis B) | §1: fused 0.33× the reference, unfused 3.8×; the "highly parallel" §3.5 entry is 7.2×. | **backwards.** §3.6 is the cheapest entry in the plan, not the most expensive. |
+| PLAN2 §3.5 | budget for it "failing to optimise rather than to express" | §4: 7.2× the reference at `K`=12 → ~12,900 Hard steps, and curriculum learning is not expressible under the evaluator's loop. | **it fails on budget first**, before trainability is reached. |
+| RESUME §5 #4 | "Every candidate must halt early" | §1: eval is 2.2–5.2 s of 30 s across nine cells, because an RNN has no depth ladder at eval time. | **not binding for this family.** |
+| `digit-carry` #2 | "a continuous carry channel restores memorisation; the state alphabet must be small" | §3: held-out flat across `D_H` 4→256 while train goes 0.007→0.98. | **confirmed and strengthened** — small *and discrete*; shrinking a continuous state only removes capacity. |
+| BRIEF2 §2d | "at m1 scale and above they cannot even fit" | §3.5. **Scope: claim (i) only**; §2d's `local_ce` 3.5–4.2 figure is a `DigitALU` measurement and is untouched here. | see §3.5 |
+
+---
+
 ## 9. Compliance statement
 
 * No file under `data/generated/` was read, printed, sampled or summarised. The probe
