@@ -144,16 +144,25 @@ RESULTS_PROBE_D
    extrapolates to `2×` length at 1.000. Had this branch run `β ∈ [0,1]` it
    would have reported "DeltaNet cannot do parity" — the exact wasted week
    PLAN2 §3.3 predicts.
-2. **The `n_h` axis resolves on mod-3**: `n_h=1` is 0.512 against chance 0.333;
-   `n_h=2,3,4` are 1.000 ± 0.000, including at `2×` length. One Householder
-   cannot build the order-3 rotation; two can. **This is the resolving power
-   the real-task sweep needs in order for a flat result to mean anything.**
+2. **The `n_h` axis resolves, twice, at the two places theory says it should.**
+   On mod-3 (`Z₃`, needs a non-triangular transition): `n_h=1` is 0.512 against
+   chance 0.333; `n_h=2,3,4` are 1.000 ± 0.000, including at `2×` length. One
+   Householder cannot build the order-3 rotation; two can. On **A₅** — the
+   non-solvable, `NC¹`-complete case — `n_h=1` reads **0.012** and `n_h=2`
+   reads **0.021** against chance **0.017**, and `n_h=3` reads **1.000**, with
+   sequence-level accuracy 1.000 and `2×`-length extrapolation 1.000.
+   **A chance-to-exact transition between `n_h=2` and `n_h=3` on a non-solvable
+   group word problem is exactly the behaviour DeltaProduct is claimed to have,
+   reproduced here with the same code, same budget, and same sweep that is
+   about to be applied to the competition task.** This is what makes a flat
+   real-task sweep a *result* rather than an absence of one.
 3. **In-distribution accuracy is fooled; length extrapolation is not.**
    `[0,1]` at `n_h=2` reaches 0.941 in-distribution on mod-3 while its `2×`
    extrapolation is 0.328 — chance. It memorised length-20 sequences without
    learning the recurrence. Any report of these architectures that quotes only
    in-distribution accuracy is quoting a number with a known fooling
-   configuration.
+   configuration. **This project's screening table (`lab/RESUME.md`) has no
+   length-extrapolation row; on this evidence it should.**
 
 ---
 

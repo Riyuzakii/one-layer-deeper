@@ -11,5 +11,6 @@ $V -u lab/p2_grid.py --grid base            --seeds 74 7 21   # §3.1 reference
 $V -u lab/p2_grid.py --grid tau             --seeds 74 7      # PD-SSM temperature
 $V -u lab/p2_grid.py --grid eig             --seeds 74 7      # eigenvalue control
 $V -u lab/p2_grid.py --grid repeat          --seeds 74        # unrolled depth
+$V -u lab/p2_grid.py --grid small           --seeds 74 7      # PD-SSM at carry granularity
 $V -u lab/p2_grid.py --grid tau             --seeds 21        # 3rd seed if time
 echo "GRID COMPLETE"

@@ -32,6 +32,8 @@ def cell_name(cfg: dict) -> str:
         parts += [f"nh{cfg['P2_NH']}", cfg["P2_EIG"]]
     elif a == "pdssm":
         parts += [f"tau{cfg['P2_TAU']}", cfg["P2_STE"]]
+        if str(cfg.get("P2_STATE", 16)) != "16":
+            parts.append(f"N{cfg['P2_STATE']}")
     if str(cfg.get("P2_REPEAT", 1)) != "1":
         parts.append(f"rep{cfg['P2_REPEAT']}")
     if str(cfg.get("P2_LR", "0.001")) == "0":
@@ -91,54 +93,60 @@ def run(cfg: dict, manifest: str, tag: str, note: str) -> dict:
     return rec
 
 
-SEEDS = {74: "p2_e5_fs1500_s74", 7: "p2_e5_fs1500_s7", 21: "p2_e5_fs1500_s21"}
+def manifests(seeds, steps):
+    return [f"p2_e5_fs{steps}_s{s}" for s in seeds]
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--grid", nargs="+", default=["all"])
     ap.add_argument("--seeds", type=int, nargs="+", default=[74, 7, 21])
+    ap.add_argument("--steps", type=int, default=1500)
+    ap.add_argument("--taus", type=float, nargs="+",
+                    default=[0.1, 0.3, 1.0, 3.0, 10.0])
+    ap.add_argument("--nh", type=int, nargs="+", default=[1, 2, 3, 4])
+    ap.add_argument("--no-soft", action="store_true")
     args = ap.parse_args()
     g = set(args.grid)
     all_ = "all" in g
-    mans = [SEEDS[s] for s in args.seeds]
+    mans = manifests(args.seeds, args.steps)
 
     jobs: list[tuple[dict, str, str, str]] = []
 
     if all_ or "nh" in g:
-        for n_h in (1, 2, 3, 4):
+        for n_h in args.nh:
             for m in mans:
                 jobs.append((
                     {"P2_ARCH": "delta", "P2_NH": n_h, "P2_EIG": "neg"},
                     m, "S1-nh",
-                    f"LEGAL §3.3 DeltaProduct n_h={n_h} eig=[-1,1] e5 fs1500",
+                    f"LEGAL §3.3 DeltaProduct n_h={n_h} eig=[-1,1] {m}",
                 ))
     if all_ or "eig" in g:
-        for n_h in (1, 2, 4):
+        for n_h in args.nh:
             for m in mans:
                 jobs.append((
                     {"P2_ARCH": "delta", "P2_NH": n_h, "P2_EIG": "pos"},
                     m, "S2-eig",
-                    f"LEGAL §3.3 control: n_h={n_h} eig=[0,1] (the flagged trap)",
+                    f"LEGAL §3.3 control: n_h={n_h} eig=[0,1] the flagged trap {m}",
                 ))
     if all_ or "tau" in g:
-        for tau in (0.1, 0.3, 1.0, 3.0, 10.0):
+        for tau in args.taus:
             for m in mans:
                 jobs.append((
                     {"P2_ARCH": "pdssm", "P2_TAU": tau, "P2_STE": "hard"},
                     m, "S3-tau",
-                    f"LEGAL §3.2 PD-SSM straight-through tau={tau} e5 fs1500",
+                    f"LEGAL §3.2 PD-SSM straight-through tau={tau} {m}",
                 ))
-        for m in mans:
+        for m in ([] if args.no_soft else mans):
             jobs.append((
                 {"P2_ARCH": "pdssm", "P2_TAU": 1.0, "P2_STE": "none"},
-                m, "S3-tau", "LEGAL §3.2 PD-SSM soft control (no discretisation)",
+                m, "S3-tau", f"LEGAL §3.2 PD-SSM soft control no discretisation {m}",
             ))
     if all_ or "base" in g:
         for m in mans:
             jobs.append((
                 {"P2_ARCH": "matscan"}, m, "S4-base",
-                "LEGAL §3.1 dense matrix-scan reference (local instantiation)",
+                f"LEGAL §3.1 dense matrix-scan reference {m}",
             ))
     if all_ or "lr0" in g:
         for cfg in (
@@ -149,7 +157,21 @@ def main() -> int:
             c = dict(cfg)
             c["P2_LR"] = 0
             jobs.append((c, mans[0], "S5-lr0",
-                         "CONTROL --lr 0 (BRIEF2 §6.1): random init, no training"))
+                         f"CONTROL --lr 0 BRIEF2 6.1 random init no training {mans[0]}"))
+    if "small" in g:
+        # §3.2 at the granularity where the task plausibly HAS a small FSA:
+        # digit-carry's sharpest finding is "the state alphabet must be small"
+        # (a 32-dim carry just re-encodes the value).  N=11 is the carry
+        # alphabet size for base-10 add-with-carry.
+        for n in (11, 8):
+            for m in mans:
+                jobs.append((
+                    {"P2_ARCH": "pdssm", "P2_STATE": n, "P2_TAU": 1.0,
+                     "P2_STE": "hard"},
+                    m, "S7-small",
+                    f"LEGAL §3.2 PD-SSM with a small state alphabet N={n} "
+                    f"(learned FSA at carry granularity)",
+                ))
     if all_ or "repeat" in g:
         for rep in (2, 4):
             jobs.append((
