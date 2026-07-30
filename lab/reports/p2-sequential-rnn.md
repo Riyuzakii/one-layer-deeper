@@ -5,7 +5,12 @@ likely to be under-explored by other competitors" — as a *candidate*, not as a
 diagnostic. Own budget, fusion, hidden-state size and generalisation. Secondary,
 timeboxed: PLAN2 §3.5, the Neural GPU / tied conv-GRU.
 
-**Status:** _in progress — numbers below are filled in as runs land._
+**One-line verdict.** The falsifier PLAN2 attached to this entry — "step time makes the
+achievable update count non-competitive" — is **decisively refuted**: fused, this is the
+*cheapest* architecture the project has built, worth ~230k–350k Hard steps against the
+reference model's ~93,000, with an 8.4× eval-budget margin. And with maximal
+expressivity, no theoretical caveats and 3× the compute, it reproduces the project's
+canonical failure exactly. **MAX_T = 0 everywhere.**
 
 ---
 
@@ -202,7 +207,19 @@ examples) and `top` (share of held-out examples receiving the single most common
 answer). A constant map reads `div ≈ 1/n`, `top ≈ 1.0`. `held_ce` is recorded but is
 **not** ranked on (RESUME.md: label smoothing moves it with zero algebraic content).
 
-_tables pending_
+### 3.1 e5 — 4,800 train rows, sampled 10/11-bit moduli, 3,000 steps, 3 seeds
+
+| `D_H` | params | train_exact | **held_exact** | div | top | held_ce |
+|---|---|---|---|---|---|---|
+| 4 | 926 | 0.0073±0.0010 | 0.0075±0.0018 | 0.056 | 0.178 | 2.155 |
+| 8 | 2,562 | 0.0089±0.0017 | 0.0086±0.0014 | 0.157 | 0.076 | 2.154 |
+| 16 | 8,522 | 0.0116±0.0018 | 0.0083±0.0035 | 0.349 | 0.029 | 2.181 |
+| 32 | 31,194 | 0.0341±0.0020 | 0.0072±0.0010 | 0.529 | 0.011 | 2.357 |
+| 64 | 119,546 | 0.4843±0.0410 | 0.0069±0.0034 | 0.607 | 0.008 | 4.275 |
+| 128 | 468,282 | 0.9694±0.0042 | 0.0086±0.0011 | 0.605 | 0.007 | 8.315 |
+| 256 | _pending_ | | | | | |
+
+_analysis pending_
 
 ---
 
@@ -286,11 +303,66 @@ _table pending_
 
 ### 6.2 Falsified
 
-_pending_
+1. **"A small hidden state generalises where a large one memorises" — falsified, and in
+   the least interesting way.** Held-out exact accuracy is **flat at the floor across
+   six octaves of `D_H`** while train exact accuracy climbs monotonically from 0.007 to
+   0.97. Small hidden states do not generalise; they simply fail to fit. There is no
+   width at which the carry channel is "narrow enough to force the algorithm" — the
+   curve has no such regime. `digit-carry`'s finding #2 is confirmed and strengthened:
+   **the state alphabet must be small *and discrete*; making a continuous state small
+   only removes capacity, it does not add structure.**
+2. **"Expressivity is the binding constraint" (PLAN2 §0) — not supported by the
+   maximally expressive member of PLAN2's own Axis A.** §3.6 is the top row of Axis A
+   ("maximal, but no scan"), it has no `TC⁰` caveat, and it was given ~3× the reference
+   model's step budget. It reproduces the project's canonical signature exactly
+   (train → 0.97 / held → 0.009) rather than escaping it. PLAN2 §6's first kill
+   criterion is written for precisely this outcome. *(Coordination note: `plan2/phase0`
+   owns the diagnostic version of this question; this branch reports the candidate-side
+   evidence and does not claim to have run their experiment.)*
+3. **"Budget is the constraint" — falsified for this family in both directions.**
+   Training budget is ~3× surplus and eval budget is ~8× surplus, and neither converts
+   into a single certified rung.
 
 ### 6.3 The single highest-value recommendation
 
 _pending_
+
+---
+
+## 8. Reproduction
+
+```bash
+V=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
+cd .worktrees/p2-sequential-rnn
+
+# 1. the budget falsifier (no dataset touched)
+$V lab/rnn_bench.py --seq-len 21 --batch 512 --out lab/bench_L21.json
+$V lab/rnn_bench.py --seq-len 13 --batch 512 --out lab/bench_L13.json
+$V lab/time_submission.py --submission submissions/p2-sequential-rnn/submission.py \
+    --seq-len 21 --batch 512 --d-h 8 16 32 64 128
+$V lab/triton_probe.py            # expect: PTXASError, sm_107a unknown
+
+# 2. the width sweep (the memorisation dial), with its mandatory lr=0 control
+$V lab/probe_rnn.py --dataset e5 --steps 3000 --d-h 4 8 16 32 64 128 256 --seeds 0 1 2 \
+    --tag width-sweep
+$V lab/probe_rnn.py --dataset e5 --steps 3000 --d-h 8 64 256 --seeds 0 1 2 --lr 0 \
+    --tag lr0-control
+$V lab/probe_rnn.py --dataset e1 --steps 3000 --d-h 4 8 16 32 64 128 256 --seeds 0 1 2 \
+    --tag e1-width-sweep
+$V lab/summarize_rnn.py --files lab/probe_rnn.jsonl --group dataset tag params
+
+# 3. spending the budget this branch proved exists
+$V lab/probe_rnn.py --dataset e5 --steps 40000 --d-h 8  --seeds 0 --tag e5-long40k
+$V lab/probe_rnn.py --dataset e5 --steps 40000 --d-h 64 --seeds 0 --tag e5-long40k
+
+# 4. the Neural GPU secondary
+$V lab/probe_rnn.py --dataset e5 --submission \
+    submissions/p2-sequential-rnn-neuralgpu/submission.py --steps 2000 --d-h 48 \
+    --seeds 0 1 --tag ngpu_c48_k12_noise --out lab/probe_ngpu.jsonl
+
+# 5. evaluator cells (MAX_T), all archived to lab/archive.jsonl
+bash lab/eval_cells.sh
+```
 
 ---
 
