@@ -499,6 +499,30 @@ Two caveats stated so the correction to BRIEF2 does not over-reach:
    the answer is "fits", this is now the interesting gap; `probe_rnn.py --eval-every`
    was added to close it and the follow-up command is in §8.
 
+#### 3.5a A screening warning that falls out of these curves, and it affects other branches
+
+Read the fitting onsets off the table above:
+
+| dataset | `D_H` | `train_exact` at 1.2k–3k | at 5k | at 10k | at 40k |
+|---|---|---|---|---|---|
+| e5 | 64 | 0.484 (at 3k) | 0.984 | 0.992 | 1.000 |
+| m1 | 128 | 0.010 (at 3k) | 0.039 | 0.219 | 0.625 |
+| m1 | 256 | — | 0.320 | 0.742 | 0.844 |
+
+**A 1,200–1,500 step screen at m1 scale sits in the pre-fitting region.** At 5,000 steps
+m1/`D_H`=128 is still at 0.039. A null measured at 1,200 steps there does not distinguish
+*"this architecture cannot do it"* from *"this run had not started yet"* — and the
+manifests currently in use across the PLAN2 worktrees are dominated by `fs1200` and
+`fs1500`, including `p2_m1_fs1200_s74.json`.
+
+Stated carefully, because it is calibrated on one architecture: the onsets above are for
+this LSTM at these widths, and a different architecture may fit far sooner or never. The
+claim is **not** "everyone's nulls are wrong". It is that **the pre-fitting region is
+real, it is wide at Medium scale, and it is cheap to rule out** — this branch's §1 result
+means 40,000 steps costs a fraction of one Hard budget. Any Medium-scale null worth
+acting on should be accompanied by evidence that its `train_exact` had begun to move,
+which is one extra curve, not one extra experiment.
+
 ---
 
 ## 4. Neural GPU (PLAN2 §3.5) — secondary, and it dies on the budget, not on training
@@ -654,6 +678,10 @@ All nine cells are archived in `lab/archive.jsonl`; none is outstanding.
 4. **The eval budget, which killed the ALU candidate (`alu-compose` P2), is a non-issue
    for this family**: 3.57 s of 30 s on tier-faithful Easy, an 8.4× margin against the
    ALU's 1.1×, because an RNN has no depth ladder to run at eval time.
+5. **The pre-fitting region at Medium scale is wide, and short screens land inside it**
+   (§3.5a). m1/`D_H`=128 reads `train_exact` 0.010 at 3,000 steps and 0.625 at 40,000.
+   Any Medium-scale null should carry evidence that `train_exact` had begun to move
+   before it is read as an architecture result.
 
 ### 6.2 Falsified
 
