@@ -278,11 +278,11 @@ The replication on the dataset where this project's memorisation is fastest. e1 
 | 16 | 8,522 | 0.3757±0.1267 | 0.0222±0.0113 | 0.640 | 0.038 | 3.617 |
 | 32 | 31,194 | 0.9974±0.0018 | 0.0200±0.0094 | 0.691 | 0.029 | 11.90 |
 | 64 | 119,546 | 0.9974±0.0024 | 0.0245±0.0032 | 0.711 | 0.036 | 12.62 |
-| 128 | 468,282 | 1.0000 (n=1, saturated by **step 750**) | 0.0333 | 0.647 | 0.033 | 13.87 |
-| 256 | 1,853,882 | _in flight at cutoff_ | | | | |
+| 128 | 468,282 | 0.9967±0.0046 (saturated by **step 750**) | 0.0289±0.0063 | 0.689 | 0.029 | 15.65 |
+| 256 | 1,853,882 | 0.9941 (n=1) | 0.0400 | 0.693 | 0.040 | 18.83 |
 
-**Same shape, sharper.** `train_exact` goes 0.02 → 1.00 across the sweep; `held_exact`
-stays within 0.022–0.033, i.e. within **two examples out of 150** — indistinguishable
+**Same shape, sharper.** `train_exact` goes 0.021 → 0.994 across the sweep; `held_exact`
+stays within 0.020–0.040, i.e. within **three examples out of 150** — indistinguishable
 from the variance floor at every width. `D_H`=128 reaches train 1.000 by **step 750**
 and holds it for the remaining 2,250 steps with held-out never leaving the floor: the
 `grok-optimization` mechanism note ("train exact hits 1.00 by ~2,000 steps and *holds

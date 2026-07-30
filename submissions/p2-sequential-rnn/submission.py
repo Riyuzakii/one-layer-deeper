@@ -19,6 +19,12 @@ Python-loop LSTM costs 16.9 ms/step, the same math through `nn.LSTM` costs 2.10 
 Padding is handled by an end-anchored index permutation rather than
 `pack_padded_sequence`, so nothing leaves the GPU and no CPU sync is introduced.
 
+RESULT, STATED UP FRONT.  This scores **MAX_T = 0** on every evaluator cell run against
+it, and so does the identical file with `LR = 0.0`.  It is kept as the branch artifact
+and as the fastest known legal forward pass in this repo (0.27-0.40x the cost of the
+D=128 recurrent transformer that the hosted Hard run was calibrated on), not because it
+beats anything on the metric.  It does not.
+
 COMPLIANCE.  Every tensor is learned from random init.  No arithmetic, solver, lookup
 table or data-dependent Python control flow in the forward pass; the only thing read
 out of the batch besides `input_ids` is the evaluator-supplied `attention_mask`.
