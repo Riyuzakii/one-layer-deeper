@@ -295,6 +295,19 @@ back-to-back in one process so they share identical GPU contention
    Whatever else is true, *expressivity along the Householder axis is not what
    a wall-clock budget is being spent on*.
 
+**No tier-faithful `--mode wallclock` run was made, deliberately.** The GPU ran
+at ~19 concurrent processes for this branch's entire window, so a wallclock
+manifest would have measured contention, not the model — exactly the corruption
+BRIEF §5 warns about. All comparisons above are either fixed-step or
+back-to-back-in-one-process. Absolute step rates do not transfer from this box
+(`sm_107`) to the scored H100 in any case; the *ratios* are what this branch
+claims, and RESUME's own H100 calibration (~38.6 ms/step at batch 512 for a
+D=128 recurrent stack, ~93,000 steps in a Hard run) plus
+`plan2/sequential-rnn`'s "budget is surplus" measurement together say the
+binding constraint is not compute. Consistent with that: nothing in §5 is
+step-limited — `train_exact` is still climbing at 1,500 steps while held-out sits
+at the floor, which is a generalisation failure, not a budget failure.
+
 ---
 
 ## 5. LEGAL — the real task
