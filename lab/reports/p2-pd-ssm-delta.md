@@ -543,9 +543,24 @@ framing of `n_h` as a *trade-off* dial is wrong in the cheap direction.
 
 ## 9. The single highest-value recommendation
 
-> **Retire PLAN2 §0's expressivity reframe. The transition-operator axis is
-> verified-live and measured-inert, and the remaining §3 candidates are further
-> points on the same axis.**
+> **Retire PLAN2's *expressivity* axis and keep only its *discreteness*
+> corollary. The transition-operator axis is verified-live and measured-inert;
+> the one thing in this branch that behaved differently from a capacity knob is
+> the discreteness of PD-SSM's state, and that is where the remaining budget
+> should go — as a population over `τ`, not as a schedule.**
+
+Three measurements make that concrete, and they separate cleanly:
+
+| knob | what it does on A₅ (DIAGNOSTIC) | what it does on the real task (LEGAL) |
+|---|---|---|
+| eigenvalue range `[0,1]` → `[−1,1]` | chance → **exact** | nothing |
+| `n_h` 1 → 4 | chance → **exact** | behaves as a **capacity knob**: `train_exact` up, held-out flat |
+| continuous state size 8 → 64 | (not the axis) | `train_exact` **2.7×**, held-out → **0.000** |
+| **discreteness of the state** (hard vs soft `P`) | soft memorises (`2×`-length 0.02–0.04), hard **extrapolates** (1.000) | the only cells above the continuous ones on held-out |
+
+The first three are the expressivity/capacity story and they are closed. The
+fourth is not, and it is the only one whose *signature* — generalising rather
+than fitting — is the signature the task actually needs.
 
 The reasoning is not "we tried and it didn't work". It is that this branch built
 an instrument with *calibrated sensitivity* and then got a null from it:
@@ -577,14 +592,27 @@ nothing here. **Predict: `plan2/phase0`'s LSTM probe also gets nothing, and
 recommendation is wrong and should be discarded — but the prediction is cheap to
 check and it is the fastest way to close or reopen the whole reframe.
 
-**What to do with the freed budget.** RESUME already names the alternative and
-measured it: the legal objective's gradient points *away* from the discrete
-solution from the first step (`local_ce` 2.08–2.24 at random init → 3.5–4.2
-after training), and a constraint's conditioning is set by how many learned ops
-separate it from the parameters. That is a statement about the **objective**,
-and no amount of operator expressivity addresses it. This branch adds one
-independent confirmation from the opposite direction: with the operator made
-provably sufficient and nearly free, the gap is unchanged.
+**What to do with the freed budget — the one concrete experiment this branch
+would run next.** Not another point on Axis A. The A₅ temperature result says
+`τ` selects a *basin*, not a quality: `τ = 3` solves it in seed 0 and reads
+0.055 in seed 1; `τ = 0.3` solves it in seed 1 and reads 0.044 in seed 0. **No
+single `τ` works for both seeds, and each working `τ` gives an exact solution,
+not a better one.** That is precisely the signature `explore/alu-population`
+characterised — per-replica success rate 0.26, `1-(1-p)^P` reaching 0.9999 at
+P=32, differentiable selection legal and working, cost free to P=8. So the
+experiment is: **a replica dimension over `τ` (and seed) on PD-SSM, with the
+population machinery `alu-population` already built and validated**, screened on
+2×-length extrapolation rather than in-distribution accuracy. It is the only
+configuration in this branch where a population is the right instrument, because
+it is the only place the obstruction reads *stochastic* rather than systematic.
+
+That said, RESUME's harder result still stands over all of this: the legal
+objective's gradient points *away* from the discrete solution from the first
+step (`local_ce` 2.08–2.24 at random init → 3.5–4.2 after training). That is a
+statement about the **objective**, and no amount of operator expressivity
+addresses it. This branch adds one independent confirmation from the opposite
+direction: with the operator made provably sufficient and nearly free, the gap
+is unchanged.
 
 **Two things from this branch are worth carrying forward regardless.**
 

@@ -65,3 +65,6 @@ Terminated
   [ 283.1s] pdssm_tau10.0_hard_s74       [OK] p2_e5_fs1500_s74 sha=a943d59a MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0088 steps=[1500] train_s=[275.37751743895933]
           diag: out_diversity=0.588 top_token_share=0.266 p_max_prob=0.103 p_perm_frac=0.644 d_abs_mean=0.789
 [4/4] S3-tau {'P2_ARCH': 'pdssm', 'P2_TAU': 1.0, 'P2_STE': 'none'} p2_e5_fs1500_s74
+  [ 172.5s] delta_nh2_neg_s7             [OK] p2_e5_fs1500_s7 sha=a943d59a MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0050 steps=[1500] train_s=[165.17355818371288]
+          diag: out_diversity=0.588 top_token_share=0.366 eig_min=-0.981 eig_max=0.993 eig_frac_neg=0.589
+[5/8] S1-nh {'P2_ARCH': 'delta', 'P2_NH': 3, 'P2_EIG': 'neg'} p2_e5_fs1500_s74
