@@ -434,11 +434,32 @@ deliberate tier-faithful timing check (BRIEF.md §5).
 | `rnn-width` | `D_H=128` | e5 fs2000 | 2000 | **0** | 0 | 0.0071 | 0.002 |
 | `rnn-control` | `lr = 0` (**control**) | e5 fs2000 | 2000 | **0** | 0 | 0.0058 | 0.010 |
 | `rnn-depth` | `D_H=64`, **4 tied passes** | e5 fs2000 | 2000 | **0** | 0 | 0.0042 | 0.005 |
+| `ngpu` | Neural GPU `C=48 K=12` | e5 fs2000 | 2000 | **0** | 0 | 0.0046 | 0.004 |
+| `rnn-width` | `D_H=128` | **e1** fs2000 | 2000 | **0** | 0 | 0.0483 | 0.047 |
 
-The `rnn-depth` cell is worth one sentence: it is "one layer deeper" taken literally —
-four tied applications of the whole encode/carry-scan stack, 2.5× the wall clock — and it
-scores **below** the single-pass model on the diagnostic metric and identically (0) on
-the ranking metric.
+**Nine cells, `MAX_T = 0` and `OOD_N MAX_T = 0` in every one.** Three of them deserve a
+sentence.
+
+1. **`rnn-depth` is "one layer deeper" taken literally** — four tied applications of the
+   whole encode/carry-scan stack, 2.5× the wall clock — and it scores *below* the
+   single-pass model on the diagnostic metric (0.0042 vs 0.0071) and identically (0) on
+   the ranking metric.
+2. **The e1 cell carries the highest `mean_exact_accuracy` in the branch, 0.0483 — 10×
+   the e5 cells — and still scores `MAX_T = 0`**, because rung 1 is 0/38. Its rung
+   profile is `{1: 0.000, 2: 0.000, 4: 0.026, 8: 0.026, 16: 0.000, 32: 0.000,
+   64: 0.000}`; the two non-zero entries are *one example out of 38*, i.e. the variance
+   floor. This is BRIEF2 §1's "`mean_exact_accuracy` is a diagnostic with no ranking
+   value" as a concrete instance rather than a warning.
+3. **The Neural GPU cost 591 s for the same 2,000 steps the LSTM ran in 330–380 s**, a
+   1.6–1.8× gap — far smaller than the 22× measured in §4 at L=21 / batch 512. The reason
+   is the same one that drives the whole report: at e5's L=13 and batch 128 both models
+   are launch-bound and the DataLoader is a large share of the step. **The 22× is the
+   figure that applies at Hard's shape; 1.7× is what a small-tier screen sees** — worth
+   stating explicitly, because screening on Easy would badly understate the Neural GPU's
+   real cost.
+
+**Eval seconds across all nine cells: 2.2–5.2 s** against a 30 s Easy allowance. The 8.4×
+margin in §1 is not a one-off; it holds for the Neural GPU and the 4-pass model too.
 
 **The `lr = 0` control scores MAX_T = 0 and mean 0.0058 through the evaluator, against
 the trained model's MAX_T = 0 and mean 0.0071.** On the ranking metric an untrained
@@ -561,8 +582,9 @@ consequence of that correction.
 
 This is a clean, well-controlled negative, and BRIEF2 §8 says to say so plainly. The
 architecture was built as a candidate, it trains, it is fast, it fits the training set,
-and it certifies nothing: **MAX_T = 0 and OOD-N MAX_T = 0 in every evaluator cell**, with
-the best rung-1 anywhere 2/512 on e5 — at the floor and below the field best of 3/38.
+and it certifies nothing: **MAX_T = 0 and OOD-N MAX_T = 0 in all nine evaluator cells**,
+with the best rung-1 anywhere 2/512 on e5 and 0/38 on e1 — at the floor and below the
+field best of 3/38.
 
 Its value is that it removes two variables from the search rather than adding one.
 Before this branch, "the sequential RNN is maximally expressive but too slow" and
@@ -589,12 +611,11 @@ completeness; none of it can change a conclusion.
 |---|---|---|
 | e5 40,000-step run at `D_H` = 64 | the memorising-width companion to §3.3 (the `D_H`=8 run, the one that matters, **completed**) | running |
 | m1 at `D_H`=32/128 | the "cannot even fit at Medium scale" cross-check (BRIEF2 §2d) | queued |
-| evaluator cells for the Neural GPU and e1 `D_H`=128 | two more MAX_T rows, both expected 0 | running |
 
 **Complete:** the e5 width sweep, its `lr=0` control and the `ALIGN` ablation (33 cells,
 3 seeds each); the e1 sweep through `D_H`=256 plus its `lr=0` control (24 cells); the
 whole Neural GPU sweep including its `lr=0` control (9 cells); the 40,000-step run at
-`D_H`=8; seven evaluator cells.
+`D_H`=8; and **all nine evaluator cells**.
 
 The 40,000-step run at `D_H`=8 — the width that provably cannot memorise, and therefore
 the only cell where a moving `train_exact` would have *implied* a moving `held_exact` —
