@@ -442,6 +442,24 @@ gradient noise **hurts** (`eta=0.01` holds train at 0.012 where `eta=0` reaches 
 Curriculum learning, its usual rescue, is legally unavailable under the evaluator's
 fixed loop.
 
+**Screening-methodology correction — cost ratios do not transfer across tier shapes.**
+The Neural GPU is **22x** the fused LSTM at L=21 / batch 512 (Hard's shape) but only
+**1.7x** at e5's L=13 / batch 128. At small shapes both are kernel-launch bound and the
+DataLoader is a large fraction of the step, so cost gaps collapse toward 1. **Screen
+accuracy on e5, but take every wall-clock comparison at Hard's shape**, reported as a
+ratio to a fixed reference model (absolutes do not transfer off sm_107; ratios were
+validated across two contention levels).
+
+**Eval budget does not constrain PLAN2 at all.** All nine evaluator cells ran 2.2-5.2 s
+against a 30 s Easy allowance — an ~8x margin that holds for the LSTM, the Neural GPU
+and the 4-tied-pass model alike, unlike the ALU family's 1.1x.
+
+**A concrete instance of "mean accuracy has no ranking value":** the branch's *highest*
+`mean_exact_accuracy` cell (e1, `D_H`=128, **0.0483** — 10x its e5 cells) still scored
+`MAX_T = 0`, because rung 1 was 0/38. Its profile was
+`{1: 0.000, 2: 0.000, 4: 0.026, 8: 0.026, 16: 0, 32: 0, 64: 0}` — the two non-zero
+entries are one example out of 38, the variance floor.
+
 **PLAN2 §6's kill criterion has effectively fired:** a maximally expressive non-linear
 RNN also gets nothing, which by PLAN2's own text means the expressivity diagnosis is
 wrong and the harness, loss and label alignment should be audited before more
