@@ -187,20 +187,18 @@ RESULTS_PROBE_D
    mod-3 *every* temperature gives 1.000, which is exactly the kind of flat
    sweep that would justify quoting one setting. On **A₅** the same sweep reads
 
-   | `τ` | 0.1 | 0.3 | 1.0 | **3.0** | 10.0 | soft (no STE) |
-   |---|---|---|---|---|---|---|
-   | A₅ last-token acc (chance 0.017) | 0.018 | 0.044 | 0.050 | **1.000** | 0.043 | 0.494 |
+   PROBE_C_A5_PERSEED
 
-   — chance everywhere except a single cell, which is *exact* (sequence-level
-   1.000, `2×`-length 1.000). `τ` divides the logits, so larger `τ` is a
-   **softer backward pass**, while the forward pass is exactly one-hot at every
-   `τ` (verified in §1). So the shape is a genuine interior optimum, not a
-   monotone preference: too sharp (`τ ≤ 1`) and too soft (`τ = 10`) both fail,
-   and **the standard "anneal the relaxation toward hard" recipe walks directly
-   away from the only setting that works.** Had this branch reported a single
-   temperature, it would have reported a chance-level one with probability 4/5.
-   This is the single strongest argument in this report for the mandate's
-   instruction to report the sweep rather than a setting.
+   `τ` divides the logits, so larger `τ` is a **softer backward pass**, while
+   the forward pass is exactly one-hot at every `τ` (verified in §1). Two things
+   matter here. First, the sweep spans **chance to exact**: some temperature
+   reaches near-perfect A₅ in every seed, and most temperatures are at chance.
+   Second, **which** temperature works is seed-dependent, so there is no single
+   value to quote — and the standard "anneal the relaxation toward hard" recipe
+   is not reliably the right direction either. Had this branch reported one
+   temperature, it would have reported a chance-level cell in most draws. This
+   is the strongest argument in this report for the mandate's instruction to
+   report the sweep rather than a setting.
 4. **Straight-through discretisation is what makes PD-SSM *generalise*, not what
    stops it training.** The `ste=none` soft control on A₅ reads **0.494**
    in-distribution (sequence-level 0.277) — clearly learning something — and

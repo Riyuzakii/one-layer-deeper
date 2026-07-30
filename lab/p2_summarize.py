@@ -91,6 +91,22 @@ def probe_tables() -> None:
               f"{agg([r['last_acc'] for r in sel])} | "
               f"{agg([r['out_diversity'] for r in sel])} |")
 
+    a5c = [r for r in rows if r["task"] == "a5" and r["label"] in ("C_tau", "C_soft")]
+    if a5c:
+        print("\n### PROBE C' -- A5 temperature sweep, PER SEED (the location moves)")
+        seeds = sorted({r["seed"] for r in a5c})
+        print("| seed | tau=0.1 | tau=0.3 | tau=1 | tau=3 | tau=10 | soft (no STE) |")
+        print("|---|---|---|---|---|---|---|")
+        for sd in seeds:
+            cells = []
+            for tau in (0.1, 0.3, 1.0, 3.0, 10.0):
+                v = [r["last_acc"] for r in a5c
+                     if r["label"] == "C_tau" and r["tau"] == tau and r["seed"] == sd]
+                cells.append(f"{v[0]:.3f}" if v else "--")
+            v = [r["last_acc"] for r in a5c if r["label"] == "C_soft" and r["seed"] == sd]
+            cells.append(f"{v[0]:.3f}" if v else "--")
+            print(f"| {sd} | " + " | ".join(cells) + " |")
+
     fair = [r for r in rows if str(r.get("label", "")).startswith("F_")]
     if fair:
         print("\n### PROBE F -- A5 with PD-SSM given a state size >= |A5| = 60")
