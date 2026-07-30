@@ -41,12 +41,21 @@ multi-digit arithmetic *is* an associative prefix computation (the classic
 propagate/generate carry monoid). That is the open bottleneck, it lives on the
 digit-position axis (length ~5-10), and it has never been tried in log-depth form.
 
-**(d) PLAN2's own Phase-0 item 3 partly contradicts its diagnosis — and the answer is
-tier-dependent.** On Easy, models reach ~100% *train* exact accuracy by step 300 with
-held-out at chance: a generalisation failure, not an expressivity failure. At m1 scale
-and above they cannot even fit (`local_ce` 3.5-4.2 against a cliff at 0.006). So the
-expressivity framing is defensible **at the tier that is ranked**, and null at Easy.
-Screen accordingly.
+**(d) PLAN2's own Phase-0 item 3 partly contradicts its diagnosis.** On Easy, models
+reach ~100% *train* exact accuracy with held-out at chance: a generalisation failure,
+not an expressivity failure. This is established and robust — it now includes a 40,000-
+step run on a maximally expressive non-linear RNN that hits train 0.984 by step 5,000
+and holds 0.98-1.00 for the remaining 35,000 while held-out sits at 7/1200.
+
+**The Medium claim is NOT established — treat it as open.** An earlier version of this
+brief said "at m1 scale and above they cannot even fit". That is confounded with step
+count: e5 needed ~5,000 steps to fit at `D_H`=64, and m1 has **5.6x more rows** but was
+only run for 3,000. `plan2/sequential-rnn` flagged this against its own conclusion and
+is running the clean experiment (`--dataset m1 --steps 40000`, with a capacity arm to
+separate "cannot fit" from "too few steps" from "too little capacity"). Until it lands,
+do not design around an Easy/Medium split in the diagnosis. Note the direction cuts
+against convenience: if m1 *does* fit given enough steps, the memorisation diagnosis
+extends to Medium and the expressivity framing weakens at every tier.
 
 ## 3. What the last session established — do not re-derive
 
