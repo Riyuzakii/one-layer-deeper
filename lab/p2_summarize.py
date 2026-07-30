@@ -91,6 +91,20 @@ def probe_tables() -> None:
               f"{agg([r['last_acc'] for r in sel])} | "
               f"{agg([r['out_diversity'] for r in sel])} |")
 
+    fair = [r for r in rows if str(r.get("label", "")).startswith("F_")]
+    if fair:
+        print("\n### PROBE F -- A5 with PD-SSM given a state size >= |A5| = 60")
+        print("| arch | N | last-acc | seq-acc | chance | out div | 2x-length |")
+        print("|---|---|---|---|---|---|---|")
+        for lab in sorted({r["label"] for r in fair}):
+            sel = [r for r in fair if r["label"] == lab]
+            arch = sel[0]["arch"]
+            n = sel[0]["state_size"]
+            print(f"| {arch} | {n} | {agg([r['last_acc'] for r in sel])} | "
+                  f"{agg([r['seq_acc'] for r in sel])} | {sel[0]['chance']:.3f} | "
+                  f"{agg([r['out_diversity'] for r in sel])} | "
+                  f"{agg([r['ext2x_last_acc'] for r in sel])} |")
+
     print("\n### PROBE E -- realised eigenvalue range AFTER training (delta cells)")
     print("| eig setting | n_h | eig_min | eig_max | frac negative |")
     print("|---|---|---|---|---|")

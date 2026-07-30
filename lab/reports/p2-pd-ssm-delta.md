@@ -156,7 +156,22 @@ RESULTS_PROBE_D
    reproduced here with the same code, same budget, and same sweep that is
    about to be applied to the competition task.** This is what makes a flat
    real-task sweep a *result* rather than an absence of one.
-3. **In-distribution accuracy is fooled; length extrapolation is not.**
+3. **The PD-SSM temperature is not a nuisance parameter — on the hardest task it
+   is the whole result, and it points the opposite way to the obvious
+   intuition.** On parity and mod-3 every temperature gives 1.000, which is
+   exactly the kind of flat sweep that would justify quoting one setting. On
+   **A₅** the same sweep reads
+   **0.018 / 0.044 / 0.050 / 1.000** at `τ = 0.1 / 0.3 / 1.0 / 3.0` — chance,
+   chance, chance, then *exact* (sequence-level 1.000, `2×`-length 1.000).
+   `τ` divides the logits, so **larger `τ` is a softer backward pass**, while
+   the forward pass is exactly one-hot at every `τ` (verified in §1). The
+   finding is therefore: **keep the straight-through gradient soft; do not
+   anneal the temperature down.** Annealing toward hard — the standard recipe,
+   and what "sharpen the relaxation" intuition suggests — is precisely the
+   regime (`τ ≤ 1`) in which this architecture reads chance on the only task in
+   the set that needs its full expressivity. Had this branch reported a single
+   temperature it would have reported the wrong one with ~75 % probability.
+4. **In-distribution accuracy is fooled; length extrapolation is not.**
    `[0,1]` at `n_h=2` reaches 0.941 in-distribution on mod-3 while its `2×`
    extrapolation is 0.328 — chance. It memorised length-20 sequences without
    learning the recurrence. Any report of these architectures that quotes only
@@ -308,7 +323,48 @@ RESULTS_NARRATIVE
 
 ## 6. What was falsified
 
-FALSIFIED
+**1. PLAN2 §3.2's own falsifier — "PD-SSM underperforms the §3.1 matrix scan at
+matched wall clock" — fires, and it fires on cost before accuracy.** At
+whole-model level PD-SSM affords **0.30×** the optimizer steps of the §3.1
+reference and **0.24×** those of DeltaProduct. The comparison in §5 is run at
+*matched steps*, which is generous to PD-SSM by 3.4×, and it still does not win.
+The mechanism is identified, not guessed: the `O(N)` composition closure is
+exact (§1) but unusable in the backward pass, because a straight-through
+estimator needs the dense soft `N×N` matrix in the autograd graph; and the
+`N²`-wide projection plus `N²` softmax that *parameterises* the one-hot matrix
+costs more than the sparse transition saves. Halving `N` recovers only 13 %,
+which rules out the scan itself as the cost. **The sparsity bias is wrong for
+this task at this sequence length.**
+
+**2. PLAN2 §3.3's own falsifier — "accuracy flat in `n_h`" — fires.** See §5.
+The force of this comes entirely from §3: the same code, the same sweep and the
+same budget produce a chance→exact transition on **A₅**, a non-solvable
+`NC¹`-complete word problem, between `n_h = 2` and `n_h = 3`. So "flat in `n_h`"
+here is not "the sweep was too coarse" or "nothing trains"; it is a null from a
+calibrated instrument. **Non-commutativity is not what is missing.**
+
+**3. The straight-through hypothesis is falsified as an explanation of PD-SSM's
+failure** (§5.3). This was the mandate's named prior suspicion and it does not
+hold: `p_max_prob` rises monotonically 0.071 → 0.979, so the surrogate gradient
+becomes *more* accurate over training, not less, and the hard-STE cells match
+the pure-soft (`ste=none`) control. The temperature sweep is flat. Whatever
+stops PD-SSM, it is not the estimator and it is not the temperature.
+
+**4. BRIEF2 §2c's carry-monoid route, in its token-axis form, is falsified.**
+The hypothesis this branch bet on was that carry propagation across digit
+positions is an associative prefix computation living inside the prompt-token
+axis, and that a log-depth scan over that axis would therefore find it. An
+operator that provably suffices for *any* regular prefix computation (verified
+on `Z₂`, `Z₃`, `A₅`) does not find it. Either the carry monoid is not what the
+loss can identify, or the token axis is the wrong place to look for it — and
+RESUME's closure argument (`Tmul`'s cells are unidentifiable from the
+end-of-chain label) says the former.
+
+**5. Not falsified, and worth stating plainly: the `n_h` cost model in PLAN2.**
+§3.3 lists DeltaProduct's cost as `O(n_h·d)`, implying a real expressivity /
+compute trade. With the chunkwise form at this sequence length there is
+effectively no trade: 4× the Householders costs 27 % of step rate. PLAN2's
+framing of `n_h` as a *trade-off* dial is wrong in the cheap direction.
 
 ---
 

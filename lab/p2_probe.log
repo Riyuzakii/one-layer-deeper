@@ -75,3 +75,5 @@
 [74/96] C_tau       a5     pdssm    n_h=1 eig=neg tau=0.1   ste=hard s=0 | last=0.018 seq=0.000 chance=0.017 div=0.917 ext2x=0.021 (42.62s)
 [75/96] C_tau       a5     pdssm    n_h=1 eig=neg tau=0.3   ste=hard s=0 | last=0.044 seq=0.002 chance=0.017 div=1.000 ext2x=0.008 (50.7s)
 [76/96] C_tau       a5     pdssm    n_h=1 eig=neg tau=1.0   ste=hard s=0 | last=0.050 seq=0.000 chance=0.017 div=1.000 ext2x=0.016 (49.68s)
+[77/96] C_tau       a5     pdssm    n_h=1 eig=neg tau=3.0   ste=hard s=0 | last=1.000 seq=1.000 chance=0.017 div=1.000 ext2x=1.000 (47.3s)
+[78/96] C_tau       a5     pdssm    n_h=1 eig=neg tau=10.0  ste=hard s=0 | last=0.043 seq=0.001 chance=0.017 div=0.967 ext2x=0.018 (48.51s)
