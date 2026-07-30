@@ -247,9 +247,60 @@ products in fp32. Three siblings share the GPU, hence fixed-step throughout.
 $VENV lab/p2_grid.py --grid lr0 nh eig base repeat tau --seeds 74 7 21
 ```
 
+### 5.1 The `--lr 0` control first (BRIEF2 §6.1)
+
+Run before anything else is interpreted, because RESUME's decisive result is
+that on this task's legal objective, *training moves away from the discrete
+solution*, so a leftward metric shift is usually regression toward init.
+
+| cell | `MAX_T` | mean_acc | out diversity | top-token share |
+|---|---|---|---|---|
+| §3.3 DeltaProduct `n_h=2`, `lr=0` | **0** | **0.0042** | 0.941 | 0.191 |
+| §3.2 PD-SSM `τ=1`, `lr=0` | **0** | **0.0013** | 1.000 | 0.191 |
+| §3.1 matrix scan, `lr=0` | LR0_MATSCAN | | | |
+
+**`mean_exact_accuracy` at random init is 0.001–0.004.** Every trained cell in
+this branch is inside or barely outside that band, so no `mean_acc` figure below
+should be read as progress. It is reported only to demonstrate that it is not.
+
+### 5.2 The grid
+
 RESULTS_GRID
 
-RESULTS_LR0
+### 5.3 The straight-through failure mode — instrumented, and it did *not* fire
+
+PLAN2 §5 and the mandate both flag straight-through as the most likely source of
+"correct architecture that won't train", and RESUME records it as actively
+destructive elsewhere (`local_ce` 13.83, the worst value in that report) and as
+producing a discrete attractor that reached a fixed point within 4 steps. So the
+`P` softmax was instrumented every 100 steps. Trained PD-SSM at `τ = 0.1`:
+
+| step | `p_max_prob` | `p_perm_frac` | `|D|` mean | out diversity | top-token share |
+|---|---|---|---|---|---|
+| 100 | 0.851 | 0.699 | 0.872 | 0.647 | 0.446 |
+| 300 | 0.947 | 0.701 | 0.869 | 0.588 | 0.311 |
+| 600 | 0.968 | 0.693 | 0.865 | 0.588 | 0.287 |
+| 1000 | **0.979** | 0.695 | 0.857 | 0.588 | 0.278 |
+| (`lr = 0` control) | 0.071 | 0.632 | 0.881 | 1.000 | 0.191 |
+
+Three things fall out.
+
+1. **The discrete attractor is real and it is benign here.** `p_max_prob` climbs
+   monotonically 0.071 → 0.979: the softmax converges onto its own argmax, so
+   the straight-through gap closes and the surrogate gradient becomes an
+   increasingly accurate one. That is the attractor RESUME describes — and in
+   this architecture it *helps* the estimator rather than destroying training.
+   **PD-SSM's failure here is not an estimator failure**, which is the specific
+   thing the mandate asked to rule in or out.
+2. **`p_perm_frac` never moves** (0.63 → 0.70 across the whole run). The learned
+   `P` sharpens into a *function* on states but not into a *permutation*; ~30 %
+   of state-columns collapse onto shared targets. Information is being
+   discarded every token, which for an FSA emulation claim is the wrong shape.
+3. **Training reduces output diversity** (1.000 at `lr=0` → 0.588 trained) and
+   raises the top-token share (0.191 → 0.28). This is partial collapse — not the
+   constant map a collapse detector is built to catch (that would read
+   `1/17 = 0.059`), but movement in that direction, which is why the row is
+   reported next to the accuracy rather than instead of it.
 
 RESULTS_NARRATIVE
 
