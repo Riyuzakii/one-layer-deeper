@@ -1,0 +1,2 @@
+{"call": 100, "arch": "matscan", "n_h": 2, "eig": "neg", "tau": 1.0, "ste": "hard", "repeat": 1, "layers": 2, "lr": 0.0, "out_diversity": 1.0, "top_token_share": 0.248046875, "pred_entropy": 2.8111178874969482, "max_prob": 0.08394040912389755}
+{"call": 200, "arch": "matscan", "n_h": 2, "eig": "neg", "tau": 1.0, "ste": "hard", "repeat": 1, "layers": 2, "lr": 0.0, "out_diversity": 1.0, "top_token_share": 0.2447916716337204, "pred_entropy": 2.811173915863037, "max_prob": 0.08414413779973984}

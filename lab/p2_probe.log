@@ -69,3 +69,7 @@
 [68/96] B_nh        a5     delta    n_h=2 eig=neg tau=1.0   ste=hard s=0 | last=0.021 seq=0.002 chance=0.017 div=0.867 ext2x=0.021 (62.67s)
 [69/96] B_nh        a5     delta    n_h=3 eig=neg tau=1.0   ste=hard s=0 | last=1.000 seq=1.000 chance=0.017 div=1.000 ext2x=1.000 (77.86s)
 [70/96] B_nh        a5     delta    n_h=4 eig=neg tau=1.0   ste=hard s=0 | last=1.000 seq=1.000 chance=0.017 div=1.000 ext2x=1.000 (76.41s)
+[71/96] Bp_nh_pos   a5     delta    n_h=1 eig=pos tau=1.0   ste=hard s=0 | last=0.009 seq=0.000 chance=0.017 div=0.833 ext2x=0.016 (36.79s)
+[72/96] Bp_nh_pos   a5     delta    n_h=2 eig=pos tau=1.0   ste=hard s=0 | last=0.012 seq=0.000 chance=0.017 div=0.617 ext2x=0.016 (48.2s)
+[73/96] Bp_nh_pos   a5     delta    n_h=4 eig=pos tau=1.0   ste=hard s=0 | last=0.019 seq=0.000 chance=0.017 div=0.533 ext2x=0.018 (74.59s)
+[74/96] C_tau       a5     pdssm    n_h=1 eig=neg tau=0.1   ste=hard s=0 | last=0.018 seq=0.000 chance=0.017 div=0.917 ext2x=0.021 (42.62s)

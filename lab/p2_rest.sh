@@ -15,7 +15,7 @@ S=1500
 $V -u lab/p2_grid.py --grid nh     --seeds 74 7 --steps $S                    # headline
 $V -u lab/p2_grid.py --grid base   --seeds 74 7 --steps $S                    # 3.1 ref
 $V -u lab/p2_grid.py --grid eig    --seeds 74 7 --steps $S --nh 1 2 4         # kill crit 6.3
-$V -u lab/p2_grid.py --grid tau    --seeds 74   --steps $S --taus 0.1 1.0 10.0
+# the seed-74 tau group (0.1 / 1.0 / 10.0 + soft control) runs separately
 $V -u lab/p2_grid.py --grid repeat --seeds 74   --steps $S                    # unrolled depth
 $V -u lab/p2_grid.py --grid small  --seeds 74   --steps $S                    # carry granularity
 $V -u lab/p2_grid.py --grid nh     --seeds 21   --steps $S                    # 3rd seed if time

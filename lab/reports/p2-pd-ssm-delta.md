@@ -261,6 +261,70 @@ FALSIFIED
 
 ---
 
+## 9. The single highest-value recommendation
+
+> **Retire PLAN2 §0's expressivity reframe. The transition-operator axis is
+> verified-live and measured-inert, and the remaining §3 candidates are further
+> points on the same axis.**
+
+The reasoning is not "we tried and it didn't work". It is that this branch built
+an instrument with *calibrated sensitivity* and then got a null from it:
+
+* The instrument is sensitive. The identical layer code, the identical sweep,
+  the identical 1,500-step budget, moves from **chance to exact (1.000, and
+  1.000 at 2× length)** on **A₅** — a non-solvable, `NC¹`-complete group word
+  problem — when `n_h` goes from 2 to 3. It moves from chance to exact on
+  `Z₃` when `n_h` goes from 1 to 2, and from chance to exact on `Z₂` when the
+  eigenvalue range goes from `[0,1]` to `[−1,1]`. Those are three separate
+  calibration points, each landing exactly where the theory in PLAN2 §1 says
+  it should.
+* The same instrument reads flat on the scored task, on every axis it resolves.
+
+PLAN2 §1 orders Axis A by expressivity and §3 walks up it. This branch has now
+measured its **top two entries** — PD-SSM ("any N-state FSA, 1 layer, dim N",
+the strongest guarantee in the table) and DeltaProduct ("tunable, approaches
+dense as `n_h → d`") — against the §3.1 dense scan, at matched wall clock, with
+the eigenvalue trap avoided and instrumented rather than stepped in. Nothing on
+the axis moved the metric. PLAN2's own kill criterion §6.3 is the relevant one
+and this is the measurement it asked for.
+
+**A falsifiable prediction this makes, which a sibling is in a position to check
+today:** PLAN2 §2 item 1 and §3.6 propose a non-linear LSTM as the
+maximum-expressivity control. DeltaProduct at `n_h=3` already demonstrates
+exact `NC¹`-complete state tracking *in this codebase, at this budget*, and gets
+nothing here. **Predict: `plan2/phase0`'s LSTM probe also gets nothing, and
+`plan2/sequential-rnn` will not beat the §3.1 scan.** If either does, this
+recommendation is wrong and should be discarded — but the prediction is cheap to
+check and it is the fastest way to close or reopen the whole reframe.
+
+**What to do with the freed budget.** RESUME already names the alternative and
+measured it: the legal objective's gradient points *away* from the discrete
+solution from the first step (`local_ce` 2.08–2.24 at random init → 3.5–4.2
+after training), and a constraint's conditioning is set by how many learned ops
+separate it from the parameters. That is a statement about the **objective**,
+and no amount of operator expressivity addresses it. This branch adds one
+independent confirmation from the opposite direction: with the operator made
+provably sufficient and nearly free, the gap is unchanged.
+
+**Two things from this branch are worth carrying forward regardless.**
+
+1. **Use the chunkwise (WY) DeltaProduct form, not a sequential delta loop.**
+   It is exact (rel. err 4e-7 against the serial reference) and removes the
+   `n_h` cost slope: 1.00× → 0.73× whole-model step rate for **4×** the
+   Householders. If any future architecture wants non-commutative state
+   tracking, it is available at essentially no wall-clock cost. It just is not
+   sufficient.
+2. **Add a length/depth-extrapolation row to the screening table in
+   `lab/RESUME.md`.** §3 contains a measured fooling configuration that the
+   current table does not cover: DeltaProduct with the *wrong* eigenvalue range
+   reads **0.941** in-distribution on mod-3 — "nearly solved" — while its
+   2×-length accuracy is **0.328**, i.e. chance. A model that has learned
+   nothing about the recurrence can look nearly correct on any
+   fixed-length metric. The extrapolation eval costs ~1 s and needs no
+   evaluator.
+
+---
+
 ## 7. Compliance
 
 * Nothing under `data/generated/` was read, printed, sampled, or summarised.
