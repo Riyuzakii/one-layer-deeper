@@ -377,6 +377,13 @@ deliberate tier-faithful timing check (BRIEF.md §5).
 | `rnn-wallclock` | `D_H=64` | e5 **wallclock 60 s** | 314 | **0** | 0 | 0.0071 | 0.008 |
 | `rnn-width` | `D_H=8` | e5 fs2000 | 2000 | **0** | 0 | 0.0075 | 0.007 |
 | `rnn-width` | `D_H=128` | e5 fs2000 | 2000 | **0** | 0 | 0.0071 | 0.002 |
+| `rnn-control` | `lr = 0` (**control**) | e5 fs2000 | 2000 | **0** | 0 | 0.0058 | 0.010 |
+
+**The `lr = 0` control scores MAX_T = 0 and mean 0.0058 through the evaluator, against
+the trained model's MAX_T = 0 and mean 0.0071.** On the ranking metric an untrained
+network and a fully trained one are indistinguishable, and on the diagnostic metric they
+differ by 0.0013. That is the cleanest one-line statement of where this architecture
+family stands.
 
 Per-rung, `D_H=128` (the configuration that reaches train 0.97): seen-N
 `{1: 0.002, 2: 0.008, 4: 0.002, 8: 0.006, 16: 0.006, 32: 0.004, 64: 0.004}`, OOD-N
@@ -509,11 +516,18 @@ all are cheap to finish. Exact resume commands are in §8.
 
 | run | what it would add | status |
 |---|---|---|
-| e5 `lr0-control` at 3,000 steps | a longer-horizon copy of §3.1a (which was already run at 200 steps, where lr=0 makes step count irrelevant) | partial |
+| **e5 40,000-step runs at `D_H` = 8 and 64** | the direct test of the surplus this branch found: does 13× the screening step count convert into anything? | running |
+| e5 `lr0-control` at 3,000 steps | a longer-horizon copy of §3.1a (already run at 200 steps, where lr=0 makes step count irrelevant) | partial |
 | e5 `no-align` ablation, `D_H`=64 ×3 seeds | whether the learned place-relative mixing matters at all | queued |
-| e1 sweep at `D_H`=128/256 ×3 seeds | seed error bars on two rows of the §3.2 table | partial |
+| e1 sweep at `D_H`=256 ×3 seeds | one more row of the §3.2 table | queued |
 | m1 at `D_H`=32/128 | the "cannot even fit at Medium scale" cross-check (BRIEF2 §2d) | queued |
-| remaining evaluator cells | MAX_T rows for `D_H`=128, `lr0`, `d64_x4`, Neural GPU, and e1 | partial |
+| evaluator cells for `lr0`, `d64_x4`, Neural GPU, e1 `D_H`=128 | four more MAX_T rows, all expected 0 | partial |
+
+The 40,000-step runs are the only ones that could change a claim, and only in one
+direction: if held-out exactness moved at 40k steps where it does not at 3k, §6.3's
+"spend the surplus elsewhere" recommendation would need weakening. Nothing in the 3,000-
+step curves suggests it will — `held_exact` is already flat between step 375 and step
+3,000 at every width — but it is stated here as an open risk rather than assumed away.
 
 ---
 
