@@ -104,11 +104,14 @@ as a **ratio against a calibration model whose H100 cost is known**: the
    ~196,000 steps, i.e. **2.1× the reference model's own budget**. The standard
    objection to non-linear RNNs — `O(T)` serial depth — is worth nothing here because
    `T` is the prompt, and the prompt is 13–21 tokens.
-2. **Cost is flat in `D_H` from 16 to 128** (2.08 → 2.29 ms, +10% for 8× the width and
-   64× the FLOPs). This is a direct confirmation of the previous session's finding that
-   this model class is **kernel-launch bound, not FLOP bound**. Hidden-state width is
-   therefore free on the wall clock, which means the width question below is purely a
-   *generalisation* question, with no budget trade-off attached to it.
+2. **Cost is nearly flat in `D_H`.** For the pure LSTM stack, 16 → 128 costs
+   2.08 → 2.29 ms: **+10% for 8× the width and 64× the FLOPs**. For the full submission,
+   which adds an `L×L` place-mixing einsum and a `D_H`-wide head, 8 → 128 costs
+   2.81 → 4.21 ms (+50% for 16× the width). Either way this is a direct confirmation of
+   the previous session's finding that this model class is **kernel-launch bound, not
+   FLOP bound**. Hidden-state width is close to free on the wall clock, which means the
+   width question in §3 is purely a *generalisation* question with no budget trade-off
+   attached to it.
 3. **Serial depth is what costs.** Going from 1 to 4 tied encode/decode passes costs
    2.5× (2.10 → 5.19 ms) while going from d=16 to d=128 costs 1.10×. Depth, not width,
    is the price.
@@ -273,10 +276,10 @@ The replication on the dataset where this project's memorisation is fastest. e1 
 | 4 | 926 | 0.0208±0.0033 | 0.0222±0.0113 | 0.207 | 0.169 | 1.938 |
 | 8 | 2,562 | 0.0534±0.0094 | 0.0244±0.0083 | 0.500 | 0.085 | 2.098 |
 | 16 | 8,522 | 0.3757±0.1267 | 0.0222±0.0113 | 0.640 | 0.038 | 3.617 |
-| 32 | 31,194 | 0.9980±0.0020 | 0.0267±0.0000 | 0.687 | 0.030 | 11.755 |
-| 64 | 119,546 | _pending_ | | | | |
-| 128 | 468,282 | 1.0000 (n=1, saturated by step 750) | 0.0333 | 0.647 | 0.033 | 13.871 |
-| 256 | 1,853,882 | _pending_ | | | | |
+| 32 | 31,194 | 0.9967±0.0018 | 0.0200±0.0094 | 0.691 | 0.029 | 11.90 |
+| 64 | 119,546 | 0.9980 (n=1) | 0.0200 | 0.707 | 0.027 | 13.20 |
+| 128 | 468,282 | 1.0000 (n=1, saturated by **step 750**) | 0.0333 | 0.647 | 0.033 | 13.87 |
+| 256 | 1,853,882 | _abandoned at cutoff_ | | | | |
 
 **Same shape, sharper.** `train_exact` goes 0.02 → 1.00 across the sweep; `held_exact`
 stays within 0.022–0.033, i.e. within **two examples out of 150** — indistinguishable
@@ -458,6 +461,21 @@ consequence of that correction.
    (PD-SSM's column-one-hot transition is the obvious instance, and straight-through
    has already been measured to be destructive), and the budget to explore it is
    3× larger than anyone has been assuming.
+
+---
+
+## 7a. In flight at cutoff
+
+Every one of these is confirmatory — none of them can change a conclusion above, and
+all are cheap to finish. Exact resume commands are in §8.
+
+| run | what it would add | status |
+|---|---|---|
+| e5 `lr0-control` at 3,000 steps | a longer-horizon copy of §3.1a (which was already run at 200 steps, where lr=0 makes step count irrelevant) | partial |
+| e5 `no-align` ablation, `D_H`=64 ×3 seeds | whether the learned place-relative mixing matters at all | queued |
+| e1 sweep at `D_H`=128/256 ×3 seeds | seed error bars on two rows of the §3.2 table | partial |
+| m1 at `D_H`=32/128 | the "cannot even fit at Medium scale" cross-check (BRIEF2 §2d) | queued |
+| remaining evaluator cells | MAX_T rows for `D_H`=128, `lr0`, `d64_x4`, Neural GPU, and e1 | partial |
 
 ---
 
