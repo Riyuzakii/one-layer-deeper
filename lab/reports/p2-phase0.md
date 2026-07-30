@@ -350,6 +350,9 @@ split is an **unseen-operand** measurement.
 
 | dataset | target | modulus | model | train | **test (unseen operands)** |
 |---|---|---|---|---|---|
+| `cp3` | `x` | 667 (3 digits) | attn | 1.000 | **1.000** |
+| `cp3` | `x` | 667 | lstm | 1.000 | **1.000** |
+| `sq3` | `x² mod N` | 667 | lstm | 1.000 | **0.000** |
 | `cp5` | `x` | 10403 (5 digits) | attn | 1.000 | **1.000** |
 | `cp5` | `x` | 10403 | lstm | 1.000 | **1.000** |
 | `cp5` | `x` | 10403 | deltapm1 | 1.000 | **1.000** |
@@ -360,6 +363,11 @@ split is an **unseen-operand** measurement.
 | `cp7` | `x` | 1,022,117 | lstm | 1.000 | **1.000** |
 | `sq7` | `x² mod N` | 1,022,117 | attn | 0.008 | **0.000** |
 | `sq7` | `x² mod N` | 1,022,117 | lstm | 0.537 | **0.000** |
+| `sq5` | `x² mod N` | 10403, `EMB_INIT` fixed | lstm | **1.000** | **0.000** |
+
+(`cp3`/`sq3` use `batch_size=128`: their 200 training rows give no complete batch
+at the manifest's 512 with `drop_last`. Four runs failed that way before the
+batch size was lowered; they are archived as failures, per BRIEF §4.7.)
 
 This is the sharpest statement of the problem the project has produced. **Copying
 seven decimal digits of an unseen operand generalises perfectly. Squaring them
@@ -454,6 +462,15 @@ Fixed modulus, varying training-set size, 1200 steps.
 | `n5_e4000` | 10,403 | 9,600 | 0.035 / 0.000 / 0.000 | 0.012 / 0.001 / 0.000 |
 | `n5_e9000` | 10,403 | 21,600 | 0.002 / 0.001 / 0.000 | 0.000 / 0.001 / 0.000 |
 | `n7_e250` | 1,022,117 | 600 | 1.000 / 0.000 / 0.000 | 1.000 / 0.000 / 0.000 |
+| `n7_e1000` | 1,022,117 | 2,400 | 0.930 / 0.000 / 0.000 | 0.807 / 0.000 / 0.000 |
+| `n7_e16000` | 1,022,117 | 38,400 | 0.000 / 0.000 / 0.000 | 0.000 / 0.000 / 0.000 |
+
+The 1,022,117 ladder repeats the 10,403 ladder cell for cell — same fitting
+threshold between 2,400 and ~9,600 rows, same 0.000 held-out above and below it —
+across a **98x** larger operand space. The two `*_e16000` / `*_e9000` cells read
+`train` 0.000-0.002 and are therefore **uncalibrated** by the rule below; they
+are shown for the fitting-threshold reading only and are not counted as
+generalisation nulls (the calibrated cells at the same moduli already are).
 
 The **fitting** transition is sharp and sits, at 1,200 steps and this capacity,
 between **2,400 and 9,600 training rows** — i.e. it is a *steps x capacity x rows*
