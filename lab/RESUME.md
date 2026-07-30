@@ -384,6 +384,69 @@ never calls the metric recorder, so `one-layer metrics` structurally **cannot** 
 depth rungs. Their absence is not a failure; Max T is visible only on the
 leaderboard/status page.
 
+### PLAN2 round — non-transformer architectures
+
+**`plan2/sequential-rnn` (complete).** PLAN2's §3.6 falsifier ("step time makes the
+update count non-competitive") **does not fire — it is the cheapest thing in the plan.**
+Timed as ratios to the hosted-H100 reference model (ratios transfer, absolutes do not):
+
+| variant, batch 512, L=21 | ratio | implied H100 ms | steps / 3600 s |
+|---|---|---|---|
+| reference (`exp_axis` d128 x8) | 1.00 | 38.6 | 93,163 |
+| LSTM, naive Python loop | 3.82 | 147 | 24,386 |
+| **fused (cuDNN), D_H 8-128** | **0.27-0.40** | 10.3-15.4 | **233k-349k** |
+
+Eval margin **8.4x** on tier-faithful Easy (vs the ACT ALU's 1.1x) — an RNN has no depth
+ladder at eval, so `alu-compose`'s P2 and P3 do not bind on this family.
+
+**TWO CORRECTIONS THAT AFFECT EVERYTHING:**
+1. **`triton` imports but CANNOT COMPILE on this box** — `ptxas-blackwell: sm_107a is
+   not defined` — and the same failure **kills `torch.compile`**. BRIEF2 §5 is wrong on
+   this. Do not budget for hand-written kernels. Fusion still matters hugely, but via
+   built-ins: cuDNN `nn.LSTM` beat a naive Python loop **8.1x**.
+2. **Parallelism is a NET LOSS at this scale.** One window, batch 512, L=21: fused
+   serial LSTM **0.33x**, reference 1.00x, Neural GPU (most parallel candidate in PLAN2)
+   **7.22x**. The most parallel architecture is **22x slower than the least**. PLAN2 §0's
+   `O(T)` vs `O(log T)` motivation is asymptotics about a sequence axis this task does
+   not have. Judge scan-based candidates on *conditioning*, never on speed.
+
+**The central null, now with four independent levers.** Each moves `train_exact` by a
+large factor and `held_exact` by nothing:
+
+| lever | train_exact | held_exact |
+|---|---|---|
+| hidden width `D_H` 4 -> 256 | 0.007 -> 0.98 (**134x**) | 0.0069-0.0086, flat |
+| step count 3k -> 40k at `D_H`=8 | flat after 5k steps (**13.3x compute**) | flat |
+| learned place-alignment mixing, ablated | 0.484 -> 0.178 (**2.7x**, real work) | 0.0069 -> 0.0075 |
+| tied depth x4 ("one layer deeper", literally) | — | **worse**: 0.0042 vs 0.0071 |
+
+Not a collapse: 635-742 distinct answers over 1,200 prompts. **Small continuous states
+do not generalise — they merely fail to fit.** The `digit-carry` lesson sharpens to:
+**the state alphabet must be small AND discrete.** Neural GPU is flat in width too
+(C=24/48/96 -> train 0.007/0.012/0.014), the same two-axis null on a different
+architecture.
+
+The `D_H`=8 long run is the decisive one: 2,562 params against 4,800 rows is **below
+memorisation capacity**, so `train -> 1.000` would have *implied* `held -> 1.000`. It
+went flat after 5,000 steps. This is the re-test of `grok-optimization`'s null that this
+log's scope caveat demanded, in a family that *can* fit — and it agrees.
+
+**`--lr 0` control:** held ~0.001 at init; training gains ~8 examples in 1,200 then
+stops. Through the evaluator the `lr=0` and trained submissions are **indistinguishable**
+(MAX_T 0 vs 0, mean 0.0058 vs 0.0071). Note this family does **not** show the ALU's
+train-away-from-the-solution inversion — that pathology is architecture-specific.
+
+**PLAN2 §3.5 Neural GPU: recommend dead.** 22x the cost of the RNN it is meant to be the
+parallel-friendly alternative to, flat in both depth and width, and the paper's own
+gradient noise **hurts** (`eta=0.01` holds train at 0.012 where `eta=0` reaches 0.21).
+Curriculum learning, its usual rescue, is legally unavailable under the evaluator's
+fixed loop.
+
+**PLAN2 §6's kill criterion has effectively fired:** a maximally expressive non-linear
+RNN also gets nothing, which by PLAN2's own text means the expressivity diagnosis is
+wrong and the harness, loss and label alignment should be audited before more
+architectures are written.
+
 ### Corrections to earlier entries in this log
 
 - **`batch_size` 512→32 is 1.2× for the ALU model, not 5.8×.** The DataLoader lever
