@@ -928,6 +928,10 @@ $V lab/probe_rnn.py --dataset m1 --steps 200 --d-h 128 256 --seeds 0 1 --lr 0 \
     --tag m1-lr0-control
 $V lab/compare_long.py      # e5 vs m1 at identical checkpoints
 
+# 3c. the HELD-OUT trajectory across the fitting transition (closes the 3.5 caveat)
+$V lab/probe_rnn.py --dataset m1 --steps 40000 --d-h 256 128 --seeds 0 --eval-every \
+    --tag m1-heldout-traj
+
 # 4. the Neural GPU secondary
 $V lab/probe_rnn.py --dataset e5 --submission \
     submissions/p2-sequential-rnn-neuralgpu/submission.py --steps 2000 --d-h 48 \
