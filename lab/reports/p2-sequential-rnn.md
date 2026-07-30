@@ -18,10 +18,10 @@ surplus budget at Medium scale (§3.5) shows **m1 does fit** — `train_exact` 0
 §2(d)'s "at m1 scale and above they cannot even fit" is a **step-count artifact**, the
 Easy/Medium split in the project's diagnosis is not real, and the memorisation failure is
 **one phenomenon at every scale measured**. Held-out was then tracked at all nine
-checkpoints and never exceeds five examples in 3,000 (§3.5b), so there is no grokking
+checkpoints and never exceeds five examples in 3,000 (§3.5a), so there is no grokking
 transient hiding in the fitting transition either. A corollary that affects sibling branches
 directly: the `fs1200`/`fs1500` screens in wide use across the PLAN2 worktrees sit inside
-the pre-fitting region at Medium scale (§3.5a).
+the pre-fitting region at Medium scale (§3.5b).
 
 ---
 
@@ -512,11 +512,11 @@ Two caveats stated so the correction to BRIEF2 does not over-reach:
 1. **Scope.** This revises claim (i) for the non-linear-RNN family. BRIEF2 §2(d)'s other
    claim — `local_ce` 3.5–4.2 against a 0.006 cliff — is a **`DigitALU`** measurement on a
    different metric and is **untouched**. It may still hold.
-2. ~~**Held-out trajectory.**~~ **Closed — see §3.5b.** The first version of this section
+2. ~~**Held-out trajectory.**~~ **Closed — see §3.5a.** The first version of this section
    noted that held-out was measured at only two points, so a transient spike during the
    fitting transition could have been missed. That gap has since been measured away.
 
-#### 3.5b The held-out trajectory across the fitting transition — no spike exists
+#### 3.5a The held-out trajectory across the fitting transition — no spike exists
 
 `probe_rnn.py --eval-every` evaluates the full 3,000-example held-out split at each of
 the nine checkpoints. Re-running the two m1 configurations with it (uncontended GPU,
@@ -550,7 +550,7 @@ Three things this settles that the two-point version could not:
    0.883 of a 27,000-row training set memorised and 3,000 held-out prompts at chance
    simultaneously.
 
-#### 3.5a A screening warning that falls out of these curves, and it affects other branches
+#### 3.5b A screening warning that falls out of these curves, and it affects other branches
 
 Read the fitting onsets off the table above:
 
@@ -730,7 +730,7 @@ All nine cells are archived in `lab/archive.jsonl`; none is outstanding.
    for this family**: 3.57 s of 30 s on tier-faithful Easy, an 8.4× margin against the
    ALU's 1.1×, because an RNN has no depth ladder to run at eval time.
 5. **The pre-fitting region at Medium scale is wide, and short screens land inside it**
-   (§3.5a). m1/`D_H`=128 reads `train_exact` 0.010 at 3,000 steps and 0.625 at 40,000.
+   (§3.5b). m1/`D_H`=128 reads `train_exact` 0.010 at 3,000 steps and 0.625 at 40,000.
    Any Medium-scale null should carry evidence that `train_exact` had begun to move
    before it is read as an architecture result.
 
@@ -891,7 +891,7 @@ finalised.
 
 Neither can change any conclusion in this report. The held-out trajectory item that stood
 here previously — the one gap that *could* have changed a conclusion — was measured and
-closed in §3.5b.
+closed in §3.5a.
 
 ---
 
@@ -956,7 +956,7 @@ measured*; none of it is inferred from another branch's work.
 | PLAN2 §3.5 | budget for it "failing to optimise rather than to express" | §4: 7.2× the reference at `K`=12 → ~12,900 Hard steps, and curriculum learning is not expressible under the evaluator's loop. | **it fails on budget first**, before trainability is reached. |
 | RESUME §5 #4 | "Every candidate must halt early" | §1: eval is 2.2–5.2 s of 30 s across nine cells, because an RNN has no depth ladder at eval time. | **not binding for this family.** |
 | `digit-carry` #2 | "a continuous carry channel restores memorisation; the state alphabet must be small" | §3: held-out flat across `D_H` 4→256 while train goes 0.007→0.98. | **confirmed and strengthened** — small *and discrete*; shrinking a continuous state only removes capacity. |
-| BRIEF2 §2d | "at m1 scale and above they cannot even fit" | §3.5: m1 at 40k steps reaches `train_exact` **0.6205** (`D_H`=128) / **0.8572** (`D_H`=256), 2 seeds each, from 0.0098 at 3,000 steps. Held-out 0.0010 vs 0.0000 at `lr=0`. | **wrong** for the RNN family — a step-count artifact. The Easy/Medium split is not real; memorisation extends to Medium. §3.5b adds the full held-out trajectory: it never exceeds 0.0017 at any of nine checkpoints, so there is no grokking transient. **Scope: claim (i) only**; §2d's `local_ce` 3.5–4.2 figure is a `DigitALU` measurement on a different metric and is untouched. |
+| BRIEF2 §2d | "at m1 scale and above they cannot even fit" | §3.5: m1 at 40k steps reaches `train_exact` **0.6205** (`D_H`=128) / **0.8572** (`D_H`=256), 2 seeds each, from 0.0098 at 3,000 steps. Held-out 0.0010 vs 0.0000 at `lr=0`. | **wrong** for the RNN family — a step-count artifact. The Easy/Medium split is not real; memorisation extends to Medium. §3.5a adds the full held-out trajectory: it never exceeds 0.0017 at any of nine checkpoints, so there is no grokking transient. **Scope: claim (i) only**; §2d's `local_ce` 3.5–4.2 figure is a `DigitALU` measurement on a different metric and is untouched. |
 
 ---
 
