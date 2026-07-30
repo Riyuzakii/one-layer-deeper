@@ -827,44 +827,41 @@ step count you have not calibrated against a fitting curve is not a null.**
 
 ---
 
-## 7. In flight at cutoff
+## 7. Completion status, and what is left open
 
-Every one of these is confirmatory — none of them can change a conclusion above, and
-all are cheap to finish. Exact resume commands are in §8.
-
-**Everything queued on this branch has landed, including the m1 40,000-step experiment.
-Nothing is in flight.**
+**Everything queued on this branch has landed, including the m1 40,000-step experiment
+that §3.4 identified as the one gap. Nothing is in flight.**
 
 Complete: the e5 width sweep, its `lr=0` control and the `ALIGN` ablation (33 cells,
 3 seeds each); the e1 sweep through `D_H`=256 plus its `lr=0` control (24 cells); the
-whole Neural GPU sweep including its `lr=0` control (9 cells); both 40,000-step runs
-(`D_H`=8 and 64); the m1 cross-check; and all nine evaluator cells.
+whole Neural GPU sweep including its `lr=0` control (9 cells); the e5 40,000-step runs at
+`D_H`=8 and 64; the **m1 40,000-step runs at `D_H`=128 and 256, 2 seeds each, plus their
+`lr=0` control**; and all nine evaluator cells.
 
-### The one experiment this branch identified and did not run
+Aggregated numbers for every probe cell are in `lab/summary_tables.md`; raw rows in
+`lab/probe_rnn.jsonl` and `lab/probe_ngpu.jsonl`; evaluator rows in `lab/archive.jsonl`.
+Every headline number was re-verified against the raw JSONL before this report was
+finalised.
 
-**m1 at 40,000 steps.** §3.4 measures `train_exact` 0.0098 at m1 with `D_H`=128 and reads
-it as "cannot fit at Medium scale" per BRIEF2 §2d — but those cells ran for 3,000 steps,
-and §3.3 shows e5 needed ~5,000 steps to fit at 5.6× less data. The two readings are not
-separable from the data collected here. This branch has established that 40,000 steps is
-affordable several times over, so the experiment is cheap:
+### Left open, in priority order
 
-```
-$V lab/probe_rnn.py --dataset m1 --steps 40000 --d-h 128 --seeds 0 1 --tag m1-long40k
-```
-
-It matters because it is load-bearing for a premise the whole fleet is screening against.
-If m1 *does* fit given enough steps, BRIEF2 §2d's "the expressivity framing is defensible
-at the tier that is ranked" weakens, and the memorisation diagnosis — which this branch
-established at Easy across four levers — extends upward to Medium.
-
-The 40,000-step run at `D_H`=8 — the width that provably cannot memorise, and therefore
-the only cell where a moving `train_exact` would have *implied* a moving `held_exact` —
-**landed and did not change anything** (§3.3). The `D_H`=64 companion can only show
-memorisation, which is already established at 3,000 steps.
-
-Aggregated numbers for every probe cell, refreshed as runs land, are in
-`lab/summary_tables.md`; raw rows in `lab/probe_rnn.jsonl` and `lab/probe_ngpu.jsonl`;
-evaluator rows in `lab/archive.jsonl`.
+1. **The held-out *trajectory* at m1.** §3.5 measures held-out at two points (3,000 and
+   40,000 steps). Now that "fits" is the answer, a transient held-out spike during the
+   fitting transition — steps 5,000–20,000, where `train_exact` moves 0.04 → 0.86 — is
+   the one thing these runs could have missed. `--eval-every` was added to
+   `probe_rnn.py` for exactly this and is smoke-tested; the run is ~10 minutes:
+   ```
+   $V lab/probe_rnn.py --dataset m1 --steps 40000 --d-h 256 --seeds 0 --eval-every \
+       --tag m1-heldout-traj
+   ```
+2. **Whether m1 reaches `train_exact` 1.000 given more than 40,000 steps.** `D_H`=256
+   plateaus at ~0.86 from step 25,000, so it is near a ceiling rather than still
+   climbing; whether that ceiling is capacity or optimisation is unmeasured. `D_H`=512
+   at 40,000 steps would separate them.
+3. **Whether the same correction applies at Hard scale.** m1 is 27,000 rows with a single
+   fixed modulus; Hard is larger and modulus-split. The step-count-artifact argument
+   predicts the fitting onset moves later still, which would make short Hard screens even
+   less informative — but that is a prediction, not a measurement.
 
 ---
 
@@ -893,6 +890,13 @@ $V lab/summarize_rnn.py --files lab/probe_rnn.jsonl --group dataset tag params
 # 3. spending the budget this branch proved exists
 $V lab/probe_rnn.py --dataset e5 --steps 40000 --d-h 8  --seeds 0 --tag e5-long40k
 $V lab/probe_rnn.py --dataset e5 --steps 40000 --d-h 64 --seeds 0 --tag e5-long40k
+
+# 3b. THE m1 EXPERIMENT -- the one that corrects BRIEF2 2(d).  ~10 min per seed.
+$V lab/probe_rnn.py --dataset m1 --steps 40000 --d-h 128 --seeds 0 1 --tag m1-long40k
+$V lab/probe_rnn.py --dataset m1 --steps 40000 --d-h 256 --seeds 0 1 --tag m1-long40k
+$V lab/probe_rnn.py --dataset m1 --steps 200 --d-h 128 256 --seeds 0 1 --lr 0 \
+    --tag m1-lr0-control
+$V lab/compare_long.py      # e5 vs m1 at identical checkpoints
 
 # 4. the Neural GPU secondary
 $V lab/probe_rnn.py --dataset e5 --submission \
