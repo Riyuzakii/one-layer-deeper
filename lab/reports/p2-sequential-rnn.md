@@ -222,7 +222,7 @@ answer). A constant map reads `div ≈ 1/n`, `top ≈ 1.0`. `held_ce` is recorde
 | 128 | 468,282 | 0.9694±0.0042 | 0.0086±0.0011 | 0.605 | 0.007 | 8.315 |
 | 256 | 1,853,882 | 0.9804±0.0011 | 0.0078±0.0021 | 0.618 | 0.005 | 7.956 |
 
-**Reading.** `train_exact` climbs **134×** across the sweep, from 0.0073 at `D_H`=4 to
+**Reading.** `train_exact` climbs ≈**135×** across the sweep, from 0.0073 at `D_H`=4 to
 0.98 at `D_H`=256. `held_exact` **does not move at all** — every cell sits in
 0.0069–0.0086, and the *lowest* held-out accuracy in the table belongs to the *most
 capable* model. There is no width at which the carry channel is narrow enough to force
@@ -677,7 +677,7 @@ consequence of that correction.
    anything built this way.
 3. **Spend the freed budget and the freed engineering time on the state alphabet.**
    This branch's width sweep is the argument: across six octaves of hidden width and
-   two datasets, `train_exact` moved 134× and `held_exact` moved not at all. Capacity, compute, expressivity and wall clock are all *surplus*. What
+   two datasets, `train_exact` moved ≈135× and `held_exact` moved not at all. Capacity, compute, expressivity and wall clock are all *surplus*. What
    `digit-carry` #2 and this sweep jointly say is that a **continuous** state is a
    value-encoding channel at every width — small ones just encode less. The open
    question is a state that is discrete *by construction* rather than by relaxation
