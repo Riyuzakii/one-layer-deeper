@@ -1,0 +1,29 @@
+{
+  "ref_local_ms": 23.598229372873902,
+  "seq_len": 21,
+  "batch": 512,
+  "rows": [
+    {
+      "submission": "p2-sequential-rnn-neuralgpu",
+      "d_h": 48,
+      "loops": 12,
+      "align": null,
+      "params": 65297,
+      "local_ms": 170.28,
+      "ratio": 7.2158,
+      "h100_ms_est": 278.53,
+      "hard_steps_est": 12911
+    },
+    {
+      "submission": "p2-sequential-rnn",
+      "d_h": 48,
+      "loops": 1,
+      "align": true,
+      "params": 68858,
+      "local_ms": 7.682,
+      "ratio": 0.3255,
+      "h100_ms_est": 12.57,
+      "hard_steps_est": 286191
+    }
+  ]
+}

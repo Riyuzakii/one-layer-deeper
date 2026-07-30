@@ -41,6 +41,17 @@ carry channel and the memorisation capacity. Padding is handled by an index perm
 (`_end_anchored_reverse_index`) rather than `pack_padded_sequence`, so nothing leaves
 the GPU and no host sync is introduced.
 
+**Datasets and their λ (BRIEF2 §6.5).** Screening is on **e5** — 512-example rungs,
+4,800 train / 1,200 `test` / 600 `ood` rows, sampled 10/11-bit moduli, so `test`
+measures operand generalisation and `ood` measures unseen-modulus generalisation. Its
+moduli are drawn per row and their λ is not knowable without reading
+`data/generated/`, which is forbidden; this costs nothing here because **no measurement
+in this report is a depth measurement** — the recurrence is not over T and the ranking
+quantity screened on is rung-1/held-out exactness. **e1** (N = 323 = 17·19,
+**λ = lcm(16,18) = 144**, so its T-ladder has four distinct maps, not seven) is used
+*only* as the memorisation-isolation dataset, where T-degeneracy is irrelevant because
+the question is whether the model memorises operands.
+
 ---
 
 ## 1. PLAN2's own falsifier, measured first — and it does not fire
@@ -113,6 +124,27 @@ instead of 4.43 — which is exactly why the ratio, not the absolute, is the num
 **The competition-budget answer: ~230,000–350,000 steps in a Hard run, against the
 ~93,000 the reference model gets.** The sequential RNN is not an expensive
 architecture on this task; it is a cheap one.
+
+### The *eval* budget, which is the one that actually killed a previous candidate
+
+`alu-compose`'s P2 is that a candidate can be fast enough to train and still score 0 by
+running out of eval clock, and that the ACT/PonderNet ALU only cleared Easy with a
+~1.1× margin (24.8 s of 30 s), losing the OOD-N ladder in 1 of 3 tier-faithful runs.
+
+Tier-faithful Easy run on e5 (`lab/manifests/lab_e5_wc_s74.json`, 60 s train / 30 s
+eval, contended GPU so pessimistic):
+
+| quantity | fused LSTM, `D_H`=64 | ACT `DigitALU` (alu-compose P2) |
+|---|---|---|
+| eval seconds, all 16 splits + both full ladders | **3.57 s of 30 s (8.4× margin)** | 24.8 s of 30 s (1.1× margin) |
+| training steps completed in 60 s | 314 (contended) | 14–18 |
+| model state elements | 119,546 | 6,817 |
+
+The reason is structural, not tuning: an LSTM has **no depth ladder to run at eval
+time**. It is one forward pass per example at every rung, so the 7 seen-N and 7 OOD-N
+rungs cost what `test` costs. This family cannot fail the way P2 describes, and it does
+not need early halting to be affordable. That removes ranked-next-action #4 from
+`lab/RESUME.md` §5 for this architecture.
 
 ---
 

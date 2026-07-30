@@ -57,8 +57,16 @@ def main() -> int:
     ap.add_argument("--batch", type=int, default=512)
     ap.add_argument("--steps", type=int, default=30)
     ap.add_argument("--d-h", type=int, nargs="*", default=None)
+    ap.add_argument("--set", nargs="*", default=[], help="e.g. K_STEPS=6 WIDTH=2")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
+    extra = {}
+    for item in args.set:
+        key, _, raw = item.partition("=")
+        try:
+            extra[key] = int(raw)
+        except ValueError:
+            extra[key] = float(raw)
 
     torch.manual_seed(0)
     L, B = args.seq_len, args.batch
@@ -72,20 +80,26 @@ def main() -> int:
     rows = []
     for path in args.submission:
         module = load(Path(path))
-        widths = args.d_h if args.d_h else [module.D_H]
+        width_knob = "D_H" if hasattr(module, "D_H") else "CHANNELS"
+        widths = args.d_h if args.d_h else [getattr(module, width_knob)]
         for d_h in widths:
-            module.D_H = d_h
-            module.D_EMB = d_h
+            setattr(module, width_knob, d_h)
+            if hasattr(module, "D_EMB"):
+                module.D_EMB = d_h
+            for key, value in extra.items():
+                if hasattr(module, key):
+                    setattr(module, key, value)
             spec = ModelSpec(17, L, 500_000_000)
             model = _Wrap(module.build_model(spec))
             ms, par = time_model(model, ids, mask, tgt, steps=args.steps)
             h100 = ms / ref_ms * H100_REF_MS
             steps = (HARD_BUDGET_S - H100_STARTUP_S) / (h100 / 1e3)
+            depth = getattr(module, "LOOPS", getattr(module, "K_STEPS", None))
             row = dict(
                 submission=Path(path).parent.name,
                 d_h=d_h,
-                loops=module.LOOPS,
-                align=module.ALIGN,
+                loops=depth,
+                align=getattr(module, "ALIGN", None),
                 params=par,
                 local_ms=round(ms, 3),
                 ratio=round(ms / ref_ms, 4),
@@ -94,8 +108,8 @@ def main() -> int:
             )
             rows.append(row)
             print(
-                f"  {row['submission']:<28} d_h={d_h:<4} loops={module.LOOPS} "
-                f"align={int(module.ALIGN)} params={par:<9} "
+                f"  {row['submission']:<28} d_h={d_h:<4} depth={depth} "
+                f"params={par:<9} "
                 f"{ms:7.2f} ms  ratio {row['ratio']:6.3f}  "
                 f"H100~{h100:6.2f} ms  steps~{int(steps):>7}"
             )
