@@ -183,20 +183,24 @@ RESULTS_PROBE_D
    Householders with non-negative eigenvalues cannot do what three or four with
    negative eigenvalues can.
 3. **The PD-SSM temperature is not a nuisance parameter — on the hardest task it
-   is the whole result, and it points the opposite way to the obvious
-   intuition.** On parity and mod-3 every temperature gives 1.000, which is
-   exactly the kind of flat sweep that would justify quoting one setting. On
-   **A₅** the same sweep reads
-   **0.018 / 0.044 / 0.050 / 1.000** at `τ = 0.1 / 0.3 / 1.0 / 3.0` — chance,
-   chance, chance, then *exact* (sequence-level 1.000, `2×`-length 1.000).
-   `τ` divides the logits, so **larger `τ` is a softer backward pass**, while
-   the forward pass is exactly one-hot at every `τ` (verified in §1). The
-   finding is therefore: **keep the straight-through gradient soft; do not
-   anneal the temperature down.** Annealing toward hard — the standard recipe,
-   and what "sharpen the relaxation" intuition suggests — is precisely the
-   regime (`τ ≤ 1`) in which this architecture reads chance on the only task in
-   the set that needs its full expressivity. Had this branch reported a single
-   temperature it would have reported the wrong one with ~75 % probability.
+   is the whole result, and it has a sharp interior optimum.** On parity and
+   mod-3 *every* temperature gives 1.000, which is exactly the kind of flat
+   sweep that would justify quoting one setting. On **A₅** the same sweep reads
+
+   | `τ` | 0.1 | 0.3 | 1.0 | **3.0** | 10.0 | soft (no STE) |
+   |---|---|---|---|---|---|---|
+   | A₅ last-token acc (chance 0.017) | 0.018 | 0.044 | 0.050 | **1.000** | 0.043 | 0.494 |
+
+   — chance everywhere except a single cell, which is *exact* (sequence-level
+   1.000, `2×`-length 1.000). `τ` divides the logits, so larger `τ` is a
+   **softer backward pass**, while the forward pass is exactly one-hot at every
+   `τ` (verified in §1). So the shape is a genuine interior optimum, not a
+   monotone preference: too sharp (`τ ≤ 1`) and too soft (`τ = 10`) both fail,
+   and **the standard "anneal the relaxation toward hard" recipe walks directly
+   away from the only setting that works.** Had this branch reported a single
+   temperature, it would have reported a chance-level one with probability 4/5.
+   This is the single strongest argument in this report for the mandate's
+   instruction to report the sweep rather than a setting.
 4. **Straight-through discretisation is what makes PD-SSM *generalise*, not what
    stops it training.** The `ste=none` soft control on A₅ reads **0.494**
    in-distribution (sequence-level 0.277) — clearly learning something — and
