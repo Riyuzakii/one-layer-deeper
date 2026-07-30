@@ -22,3 +22,4 @@
 [lr0-control] e5 d_h=8    seed=0 lr=0        params=2562     train=0.0000 held=0.0000 div=0.0500 top=0.3642 ce=3.035 39.7ms/step
 [lr0-control] e5 d_h=8    seed=1 lr=0        params=2562     train=0.0000 held=0.0000 div=0.0033 top=0.7583 ce=2.986 39.4ms/step
 [lr0-control] e5 d_h=8    seed=2 lr=0        params=2562     train=0.0032 held=0.0008 div=0.0200 top=0.5117 ce=3.130 37.7ms/step
+[lr0-control] e5 d_h=64   seed=0 lr=0        params=119546   train=0.0002 held=0.0000 div=0.1675 top=0.0758 ce=2.944 35.6ms/step

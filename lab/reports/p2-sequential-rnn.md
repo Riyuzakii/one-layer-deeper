@@ -230,8 +230,8 @@ the algorithm; there is only a width at which it is wide enough to memorise, and
 it, a width at which it fits nothing.
 
 The collapse detector says the failure is **not** a constant map, so this is a real
-null and not a degenerate one: at `D_H`≥32 the model emits 500–620 distinct answers over
-1,200 held-out prompts with no single answer taking more than 1.1% of them. It is
+null and not a degenerate one: at `D_H`≥32 the model emits **635–742 distinct answers
+over 1,200 held-out prompts** with no single answer taking more than 1.1% of them. It is
 producing varied, confident, wrong answers. `held_ce` rising to 8.3 — far above
 `ln(17) = 2.833` — is the confident-and-wrong signature, and is the reason RESUME.md
 tells you not to rank on held-out CE in either direction.
@@ -343,7 +343,12 @@ when the reference measured 10.53 ms and 0.326 when contention pushed the refere
 | `C=48 K=12` | 0.01 | 2 | 0.0119 | 0.0079 | 0.280 | 0.050 | 2.208 |
 | `C=48 K=12` | **0** | 2 | **0.2117** | 0.0075 | 0.593 | 0.007 | 3.317 |
 | `C=48 K=6` | 0.01 | 1 | 0.0108 | 0.0050 | 0.285 | 0.041 | 2.213 |
-| `C=48 K=20`, `C=24`, `C=96`, lr=0 | — | — | _abandoned at cutoff_ | | | | |
+| `C=48 K=20` | 0.01 | 1 | 0.0103 | 0.0075 | 0.330 | 0.045 | 2.206 |
+| `C=24`, `C=96`, lr=0 | — | — | _in flight at cutoff_ | | | | |
+
+Depth is flat too: `K` = 6 / 12 / 20 give `train_exact` 0.0108 / 0.0119 / 0.0103 at
+fixed `eta`, i.e. **3.3× the serial depth and 3.9× the wall clock buy nothing**, which is
+the same shape as the LSTM's tied-loop axis.
 
 Held-out is at the floor in every cell, exactly as for the LSTM, and with the same
 non-collapsed prediction distribution.
@@ -477,6 +482,24 @@ consequence of that correction.
    (PD-SSM's column-one-hot transition is the obvious instance, and straight-through
    has already been measured to be destructive), and the budget to explore it is
    3× larger than anyone has been assuming.
+
+### 6.4 Honest summary
+
+This is a clean, well-controlled negative, and BRIEF2 §8 says to say so plainly. The
+architecture was built as a candidate, it trains, it is fast, it fits the training set,
+and it certifies nothing: **MAX_T = 0 and OOD-N MAX_T = 0 in every evaluator cell**, with
+the best rung-1 anywhere 2/512 on e5 — at the floor and below the field best of 3/38.
+
+Its value is that it removes two variables from the search rather than adding one.
+Before this branch, "the sequential RNN is maximally expressive but too slow" and
+"maybe a narrower state would force generalisation" were both live and both plausible.
+Both are now measured and false: it is the *fastest* thing in the plan, and the state
+width does not trade against generalisation at all — it trades against nothing, because
+held-out never moves. What is left is what `alu-credit` and `alu-relational` already
+converged on from a completely different direction, and this branch reaches it from the
+expressivity side instead of the credit-assignment side: **the missing ingredient is a
+discrete state, and no amount of capacity, compute, expressivity or wall clock
+substitutes for it.**
 
 ---
 
