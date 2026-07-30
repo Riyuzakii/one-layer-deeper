@@ -94,18 +94,20 @@ because the *achievable* range is a fact about the parameterisation and the
 
 | setting | `n_h` | realised `eig_min` | realised `eig_max` | frac. negative |
 |---|---|---|---|---|
-| `[0,1]` | 1 | +0.421 ± 0.415 | +0.967 ± 0.010 | **0.000 ± 0.000** |
-| `[0,1]` | 2 | +0.006 ± 0.006 | +0.920 ± 0.085 | **0.000 ± 0.000** |
-| `[0,1]` | 4 | +0.000 ± 0.000 | +0.998 ± 0.001 | **0.000 ± 0.000** |
-| `[−1,1]` | 1 | −0.613 ± 0.577 | +0.490 ± 0.393 | 0.375 ± 0.217 |
-| `[−1,1]` | 2 | **−0.983 ± 0.004** | +0.239 ± 0.270 | 0.688 ± 0.272 |
-| `[−1,1]` | 3 | **−0.983 ± 0.005** | +0.563 ± 0.176 | 0.667 ± 0.000 |
-| `[−1,1]` | 4 | **−0.981 ± 0.002** | +0.356 ± 0.159 | 0.750 ± 0.000 |
+| `[0,1]` | 1 | +0.284 ± 0.390 | +0.902 ± 0.092 | **0.000 ± 0.000** |
+| `[0,1]` | 2 | +0.004 ± 0.005 | +0.870 ± 0.164 | **0.000 ± 0.000** |
+| `[0,1]` | 4 | +0.000 ± 0.000 | +0.984 ± 0.027 | **0.000 ± 0.000** |
+| `[−1,1]` | 1 | −0.589 ± 0.474 | +0.608 ± 0.363 | 0.450 ± 0.236 |
+| `[−1,1]` | 2 | **−0.988 ± 0.008** | +0.441 ± 0.362 | 0.741 ± 0.237 |
+| `[−1,1]` | 3 | **−0.988 ± 0.009** | +0.567 ± 0.209 | 0.688 ± 0.049 |
+| `[−1,1]` | 4 | **−0.987 ± 0.008** | +0.335 ± 0.178 | 0.749 ± 0.001 |
 
 **Verified: the extended range is real and training uses it.** With `[−1,1]`
-available, training drives eigenvalues to −0.98 and puts 67–75 % of them
+available, training drives eigenvalues to **−0.988** and puts 69–75 % of them
 negative. With `[0,1]` the realised minimum is exactly 0.000 and *no* eigenvalue
-is ever negative — as it must be. This branch did not run the crippled variant
+is ever negative — as it must be. The realised range on the **real task** is the
+same (`eig[−0.96, +0.79]` … `eig[−0.99, +0.98]`, 53–92 % negative, per-cell in
+the §5 table), so the mechanism is switched on there too; it simply buys nothing. This branch did not run the crippled variant
 and conclude "DeltaNet doesn't work"; the crippled variant was run **as a named
 control** and it fails exactly where theory says it must (§3).
 
