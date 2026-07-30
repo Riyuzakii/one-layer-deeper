@@ -6,3 +6,5 @@
 [ngpu_c48_k20] e5 d_h=48   seed=0 lr=0.001    params=64913    train=0.0103 held=0.0075 div=0.3300 top=0.0450 ce=2.206 242.0ms/step
 [ngpu_c24_k12] e5 d_h=24   seed=0 lr=0.001    params=16913    train=0.0070 held=0.0042 div=0.2300 top=0.0283 ce=2.187 118.1ms/step
 [ngpu_c96_k12] e5 d_h=96   seed=0 lr=0.001    params=254225   train=0.0139 held=0.0058 div=0.3158 top=0.0525 ce=2.255 176.4ms/step
+[ngpu_lr0_control] e5 d_h=48   seed=0 lr=0        params=64913    train=0.0006 held=0.0000 div=0.2275 top=0.0483 ce=2.921 178.9ms/step
+NGPU_SWEEP_DONE

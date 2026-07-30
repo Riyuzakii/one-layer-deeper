@@ -296,9 +296,14 @@ The replication on the dataset where this project's memorisation is fastest. e1 
 | 128 | 468,282 | 0.9967±0.0046 (saturated by **step 750**) | 0.0289±0.0063 | 0.689 | 0.029 | 15.65 |
 | 256 | 1,853,882 | 0.9941±0.0048 | 0.0378±0.0032 | 0.682 | 0.036 | 17.72 |
 
+`--lr 0` control at `D_H`=128, 3 seeds: train **0.0039±0.0055**, held
+**0.0156±0.0125**, `div` 0.362, `top` 0.129.
+
 **Same shape, sharper.** `train_exact` goes 0.021 → 0.994 across the sweep; `held_exact`
 stays within 0.020–0.040, i.e. within **three examples out of 150** — indistinguishable
-from the variance floor at every width. `D_H`=128 reaches train 1.000 by **step 750**
+from the variance floor at every width. And against the control: memorising the *entire*
+training set (train 0.004 → 1.000) moves held-out exactness from 0.016 to 0.029, which on
+a 150-example split is **two examples**. `D_H`=128 reaches train 1.000 by **step 750**
 and holds it for the remaining 2,250 steps with held-out never leaving the floor: the
 `grok-optimization` mechanism note ("train exact hits 1.00 by ~2,000 steps and *holds
 it*; a grokking plateau creeps before it jumps, this does not") reproduces exactly in a
@@ -391,11 +396,14 @@ when the reference measured 10.53 ms and 0.326 when contention pushed the refere
 | `C=48 K=20` | 0.01 | 1 | 0.0103 | 0.0075 | 0.330 | 0.045 | 2.206 |
 | `C=24 K=12` | 0.01 | 1 | 0.0070 | 0.0042 | 0.230 | 0.028 | 2.187 |
 | `C=96 K=12` | 0.01 | 1 | 0.0139 | 0.0058 | 0.316 | 0.053 | 2.255 |
+| **`lr = 0` control** | — | 1 | 0.0006 | **0.0000** | 0.228 | 0.048 | 2.921 |
 
 Depth is flat: `K` = 6 / 12 / 20 give `train_exact` 0.0108 / 0.0119 / 0.0103 at fixed
 `eta`, i.e. **3.3× the serial depth and 3.9× the wall clock buy nothing**. Width is flat:
 `C` = 24 / 48 / 96 give 0.0070 / 0.0119 / 0.0139 with held-out pinned at 0.004–0.008.
-Same two-axis null as the LSTM, on a completely different architecture.
+Same two-axis null as the LSTM, on a completely different architecture, and against a
+`lr = 0` control at held-out **0.0000** the entire trained-vs-init gain is again ~8
+examples in 1,200.
 
 Held-out is at the floor in every cell, exactly as for the LSTM, and with the same
 non-collapsed prediction distribution.
@@ -583,8 +591,10 @@ completeness; none of it can change a conclusion.
 | m1 at `D_H`=32/128 | the "cannot even fit at Medium scale" cross-check (BRIEF2 §2d) | queued |
 | evaluator cells for the Neural GPU and e1 `D_H`=128 | two more MAX_T rows, both expected 0 | running |
 
-The e5 width sweep, its `lr=0` control and the `ALIGN` ablation are all **complete at 3
-seeds** (33 cells); the e1 sweep is complete at 3 seeds through `D_H`=256 (21 cells).
+**Complete:** the e5 width sweep, its `lr=0` control and the `ALIGN` ablation (33 cells,
+3 seeds each); the e1 sweep through `D_H`=256 plus its `lr=0` control (24 cells); the
+whole Neural GPU sweep including its `lr=0` control (9 cells); the 40,000-step run at
+`D_H`=8; seven evaluator cells.
 
 The 40,000-step run at `D_H`=8 — the width that provably cannot memorise, and therefore
 the only cell where a moving `train_exact` would have *implied* a moving `held_exact` —
