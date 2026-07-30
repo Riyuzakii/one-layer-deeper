@@ -240,10 +240,18 @@ The only cells where the collapse detector *does* fire are the smallest: `D_H`=4
 `div` 0.056 with `top` 0.178, i.e. one answer covers 18% of held-out prompts. That is
 the "too small to do anything" regime, not a generalising one.
 
+**Ablating the place-alignment does the same thing.** Removing the learned `L×L`
+end-anchored mixing (`ALIGN=0`, `D_H`=64, e5, 3,000 steps) drops `train_exact` from
+0.484 to **0.178** — a 2.7× hit, so the mixing is doing real work — while `held_exact`
+goes 0.0069 → **0.0075**, i.e. unchanged. This is the third independent lever in this
+report (width, steps, alignment) that moves fitting by a large factor and held-out
+exactness by nothing.
+
 ### 3.1a The mandatory `--lr 0` control (BRIEF2 §6.1)
 
 Same models, same data, optimizer learning rate forced to 0, so every number is the
-value at **random initialisation**. e5, 3 seeds per width.
+value at **random initialisation**. e5, 3 seeds per width. Run at both 200 and 3,000
+steps; the two agree to every printed digit, as they must when the learning rate is 0.
 
 | `D_H` | train_exact @ init | held_exact @ init | div @ init | top @ init |
 |---|---|---|---|---|
@@ -279,7 +287,7 @@ The replication on the dataset where this project's memorisation is fastest. e1 
 | 32 | 31,194 | 0.9974±0.0018 | 0.0200±0.0094 | 0.691 | 0.029 | 11.90 |
 | 64 | 119,546 | 0.9974±0.0024 | 0.0245±0.0032 | 0.711 | 0.036 | 12.62 |
 | 128 | 468,282 | 0.9967±0.0046 (saturated by **step 750**) | 0.0289±0.0063 | 0.689 | 0.029 | 15.65 |
-| 256 | 1,853,882 | 0.9941 (n=1) | 0.0400 | 0.693 | 0.040 | 18.83 |
+| 256 | 1,853,882 | 0.9941±0.0048 | 0.0378±0.0032 | 0.682 | 0.036 | 17.72 |
 
 **Same shape, sharper.** `train_exact` goes 0.021 → 0.994 across the sweep; `held_exact`
 stays within 0.020–0.040, i.e. within **three examples out of 150** — indistinguishable
@@ -374,11 +382,13 @@ when the reference measured 10.53 ms and 0.326 when contention pushed the refere
 | `C=48 K=12` | **0** | 2 | **0.2117** | 0.0075 | 0.593 | 0.007 | 3.317 |
 | `C=48 K=6` | 0.01 | 1 | 0.0108 | 0.0050 | 0.285 | 0.041 | 2.213 |
 | `C=48 K=20` | 0.01 | 1 | 0.0103 | 0.0075 | 0.330 | 0.045 | 2.206 |
-| `C=24`, `C=96`, lr=0 | — | — | _in flight at cutoff_ | | | | |
+| `C=24 K=12` | 0.01 | 1 | 0.0070 | 0.0042 | 0.230 | 0.028 | 2.187 |
+| `C=96 K=12` | 0.01 | 1 | 0.0139 | 0.0058 | 0.316 | 0.053 | 2.255 |
 
-Depth is flat too: `K` = 6 / 12 / 20 give `train_exact` 0.0108 / 0.0119 / 0.0103 at
-fixed `eta`, i.e. **3.3× the serial depth and 3.9× the wall clock buy nothing**, which is
-the same shape as the LSTM's tied-loop axis.
+Depth is flat: `K` = 6 / 12 / 20 give `train_exact` 0.0108 / 0.0119 / 0.0103 at fixed
+`eta`, i.e. **3.3× the serial depth and 3.9× the wall clock buy nothing**. Width is flat:
+`C` = 24 / 48 / 96 give 0.0070 / 0.0119 / 0.0139 with held-out pinned at 0.004–0.008.
+Same two-axis null as the LSTM, on a completely different architecture.
 
 Held-out is at the floor in every cell, exactly as for the LSTM, and with the same
 non-collapsed prediction distribution.
@@ -408,6 +418,12 @@ deliberate tier-faithful timing check (BRIEF.md §5).
 | `rnn-width` | `D_H=8` | e5 fs2000 | 2000 | **0** | 0 | 0.0075 | 0.007 |
 | `rnn-width` | `D_H=128` | e5 fs2000 | 2000 | **0** | 0 | 0.0071 | 0.002 |
 | `rnn-control` | `lr = 0` (**control**) | e5 fs2000 | 2000 | **0** | 0 | 0.0058 | 0.010 |
+| `rnn-depth` | `D_H=64`, **4 tied passes** | e5 fs2000 | 2000 | **0** | 0 | 0.0042 | 0.005 |
+
+The `rnn-depth` cell is worth one sentence: it is "one layer deeper" taken literally —
+four tied applications of the whole encode/carry-scan stack, 2.5× the wall clock — and it
+scores **below** the single-pass model on the diagnostic metric and identically (0) on
+the ranking metric.
 
 **The `lr = 0` control scores MAX_T = 0 and mean 0.0058 through the evaluator, against
 the trained model's MAX_T = 0 and mean 0.0071.** On the ranking metric an untrained
@@ -450,7 +466,9 @@ _remaining cells (`lr0`, `d64_x4`, Neural GPU, e1) in flight at cutoff_
 1. **"A small hidden state generalises where a large one memorises" — falsified, and in
    the least interesting way.** Held-out exact accuracy is **flat at the floor across
    six octaves of `D_H`** while train exact accuracy climbs monotonically from 0.007 to
-   0.97. Small hidden states do not generalise; they simply fail to fit. There is no
+   0.98. Four independent levers — hidden width (134×), step count (13.3×), the learned
+   place alignment (2.7×), and tied depth — all move `train_exact` by large factors and
+   `held_exact` by nothing. Small hidden states do not generalise; they simply fail to fit. There is no
    width at which the carry channel is "narrow enough to force the algorithm" — the
    curve has no such regime. `digit-carry`'s finding #2 is confirmed and strengthened:
    **the state alphabet must be small *and discrete*; making a continuous state small
@@ -549,18 +567,24 @@ substitutes for it.**
 Every one of these is confirmatory — none of them can change a conclusion above, and
 all are cheap to finish. Exact resume commands are in §8.
 
+Everything the report depends on has landed. What is still running is listed for
+completeness; none of it can change a conclusion.
+
 | run | what it would add | status |
 |---|---|---|
-| e5 40,000-step run at `D_H` = 64 | the memorising-width companion to §3.3 (the `D_H`=8 run **completed** — see §3.3) | running |
-| e5 `lr0-control` at 3,000 steps | a longer-horizon copy of §3.1a (already run at 200 steps, where lr=0 makes step count irrelevant) | partial |
-| e5 `no-align` ablation, `D_H`=64 ×3 seeds | whether the learned place-relative mixing matters at all | queued |
-| e1 sweep at `D_H`=256 ×3 seeds | one more row of the §3.2 table | queued |
+| e5 40,000-step run at `D_H` = 64 | the memorising-width companion to §3.3 (the `D_H`=8 run, the one that matters, **completed**) | running |
+| e5 `no-align` ×3 seeds | seed bars on the ablation in §3.1 (n=1 so far) | running |
 | m1 at `D_H`=32/128 | the "cannot even fit at Medium scale" cross-check (BRIEF2 §2d) | queued |
-| evaluator cells for `lr0`, `d64_x4`, Neural GPU, e1 `D_H`=128 | four more MAX_T rows, all expected 0 | partial |
+| evaluator cells for the Neural GPU and e1 `D_H`=128 | two more MAX_T rows, both expected 0 | running |
 
-The 40,000-step runs were the only ones that could have changed a claim, and the one
-that mattered — `D_H`=8, the width that provably cannot memorise — **has landed and did
-not change it** (§3.3). Nothing outstanding can move a conclusion in this report.
+The 40,000-step run at `D_H`=8 — the width that provably cannot memorise, and therefore
+the only cell where a moving `train_exact` would have *implied* a moving `held_exact` —
+**landed and did not change anything** (§3.3). The `D_H`=64 companion can only show
+memorisation, which is already established at 3,000 steps.
+
+Aggregated numbers for every probe cell, refreshed as runs land, are in
+`lab/summary_tables.md`; raw rows in `lab/probe_rnn.jsonl` and `lab/probe_ngpu.jsonl`;
+evaluator rows in `lab/archive.jsonl`.
 
 ---
 

@@ -27,3 +27,5 @@
 [lr0-control] e5 d_h=64   seed=2 lr=0        params=119546   train=0.0027 held=0.0017 div=0.1192 top=0.2067 ce=2.934 32.0ms/step
 [lr0-control] e5 d_h=256  seed=0 lr=0        params=1853882  train=0.0013 held=0.0025 div=0.0533 top=0.2683 ce=3.014 31.6ms/step
 [lr0-control] e5 d_h=256  seed=1 lr=0        params=1853882  train=0.0034 held=0.0042 div=0.1050 top=0.2625 ce=2.965 32.5ms/step
+[lr0-control] e5 d_h=256  seed=2 lr=0        params=1853882  train=0.0032 held=0.0017 div=0.1983 top=0.0517 ce=2.939 38.5ms/step
+[no-align] e5 d_h=64   seed=0 lr=0.001    params=119377   train=0.1784 held=0.0075 div=0.5767 top=0.0142 ce=3.202 52.4ms/step
