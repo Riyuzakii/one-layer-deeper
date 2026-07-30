@@ -1,43 +1,4 @@
-#!/usr/bin/env python
-"""Emit the PLAN2 Phase-0 architecture family as standalone submissions.
-
-One template, one shared scaffold (embedding + N pre-norm blocks + tied head),
-and a *single* swappable sequence mixer.  Every variant therefore differs ONLY
-in the algebraic class of its token-axis transition operator, which is exactly
-what PLAN2 Phase-0 probe 4 asks for.
-
-    ARCH        transition A_t acting on the recurrent state      eigenvalues
-    ----------- ------------------------------------------------ -----------
-    diag01      S <- S diag(a),  a = sigmoid(g)                   [0, 1]
-    diagpm1     S <- S diag(a),  a = 2*sigmoid(g) - 1             [-1, 1]
-    delta01     S <- S (I -   b k k^T),  b = sigmoid(g), |k|=1    [0, 1]
-    deltapm1    S <- S (I - 2 b k k^T),  b = sigmoid(g), |k|=1    [-1, 1]
-    lstm        non-linear gated vector recurrence                n/a (maximal)
-    gru         non-linear gated vector recurrence                n/a (maximal)
-    attn        softmax attention (TC^0 control)                  n/a
-    mlp         no sequence mixing at all (floor control)         n/a
-
-IMPORTANT (BRIEF2 s2a).  The recurrence runs over the **prompt-token axis**
-(length 13-21), NOT over the task's composition depth T.  See the report.
-
-Init is matched across the eigenvalue pairs: the gate bias is chosen so that
-diag01/diagpm1 both start at a ~ 0.5 and delta01/deltapm1 both start at
-eigenvalue ~ 0.5.  Only the *reachable range* differs.
-
-Usage
-  python lab/make_p2arch.py --arch diag01 diagpm1 delta01 deltapm1 lstm gru attn mlp
-  python lab/make_p2arch.py --arch deltapm1 --lr 0 --suffix lr0
-"""
-
-from __future__ import annotations
-
-import argparse
-from pathlib import Path
-
-REPO = Path(__file__).resolve().parent.parent
-OUT = REPO / "submissions" / "plan2-phase0"
-
-TEMPLATE = '''"""PLAN2 Phase-0 probe: ARCH={arch}, D={d_model}, L={n_layers}, lr={lr}.
+"""PLAN2 Phase-0 probe: ARCH=deltapm1, D=128, L=2, lr=0.001.
 
 Shared scaffold, one swappable sequence mixer.  The recurrence runs over the
 PROMPT-TOKEN axis (13-21 tokens), not over the task's composition depth T.
@@ -61,18 +22,18 @@ from benchmark import (
     assert_model_state,
 )
 
-ARCH = "{arch}"
-D_MODEL = {d_model}
-N_LAYERS = {n_layers}
-N_HEADS = {n_heads}
-D_HEAD = {d_head}
+ARCH = "deltapm1"
+D_MODEL = 128
+N_LAYERS = 2
+N_HEADS = 4
+D_HEAD = 32
 FF_MULT = 4
-LR = {lr}
-WEIGHT_DECAY = {wd}
+LR = 0.001
+WEIGHT_DECAY = 0.1
 # None = torch's nn.Embedding default N(0,1).  With a tied head that puts the
 # step-1 loss at ~80 instead of ln(17)=2.83; set a std here to fix it.
-EMB_INIT = {emb_init}
-_BATCH_SIZE = {batch_size}
+EMB_INIT = 0.02
+_BATCH_SIZE = 512
 _EVAL_BATCH_SIZE = 4096
 
 _INNER = N_HEADS * D_HEAD
@@ -234,7 +195,7 @@ def _make_mixer() -> nn.Module:
         return AttnMixer()
     if ARCH == "mlp":
         return NoMixer()
-    raise ValueError(f"unknown ARCH {{ARCH}}")
+    raise ValueError(f"unknown ARCH {ARCH}")
 
 
 class Block(nn.Module):
@@ -309,56 +270,3 @@ SUBMISSION = Submission(
     batch_size=_BATCH_SIZE,
     eval_batch_size=_EVAL_BATCH_SIZE,
 )
-'''
-
-ARCHES = (
-    "diag01",
-    "diagpm1",
-    "delta01",
-    "deltapm1",
-    "lstm",
-    "gru",
-    "attn",
-    "mlp",
-)
-
-
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--arch", nargs="+", required=True, choices=ARCHES)
-    ap.add_argument("--d-model", type=int, default=128)
-    ap.add_argument("--n-layers", type=int, default=2)
-    ap.add_argument("--n-heads", type=int, default=4)
-    ap.add_argument("--d-head", type=int, default=32)
-    ap.add_argument("--lr", type=float, default=1e-3)
-    ap.add_argument("--wd", type=float, default=0.1)
-    ap.add_argument("--emb-init", type=float, default=None)
-    ap.add_argument("--batch-size", type=int, default=512)
-    ap.add_argument("--suffix", default="")
-    args = ap.parse_args()
-
-    for arch in args.arch:
-        name = f"{arch}_d{args.d_model}_L{args.n_layers}"
-        if args.suffix:
-            name = f"{name}_{args.suffix}"
-        path = OUT / name / "submission.py"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            TEMPLATE.format(
-                arch=arch,
-                d_model=args.d_model,
-                n_layers=args.n_layers,
-                n_heads=args.n_heads,
-                d_head=args.d_head,
-                lr=args.lr,
-                wd=args.wd,
-                batch_size=args.batch_size,
-                emb_init=args.emb_init,
-            )
-        )
-        print(path)
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

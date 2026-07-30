@@ -160,3 +160,28 @@ ValueError: submission batch_size=512 produces no complete training batches
       rungs(ood_n)={}
       splits={'ood': 0.0, 'test': 1.0}
 ### 15:16:26  deltapm1_d128_L2  p2_sq5_fs1200_s74  [P0-harness]
+[OK] p2_sq5_fs1200_s74 sha=1fd3f6b5 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[1200] train_s=[470.60174120706506]
+      rungs(seen_n)={1: 0.0, 2: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+### 15:24:23  lstm_lr3e4  p2_e5_fs1200_s74  [P1-expressivity]
+[OK] p2_e5_fs1200_s74 sha=4eeb5392 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0079 steps=[1200] train_s=[164.81117066298611]
+      rungs(seen_n)={1: 0.002, 2: 0.004, 4: 0.006, 8: 0.004, 16: 0.004, 32: 0.006, 64: 0.006}
+      rungs(ood_n)={1: 0.002, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.002, 32: 0.002, 64: 0.0}
+      splits={'ood': 0.008, 'test': 0.008}
+### 15:27:19  lstm_lr3e3  p2_e5_fs1200_s74  [P1-expressivity]
+[OK] p2_e5_fs1200_s74 sha=49ee272c MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0050 steps=[1200] train_s=[154.52848911914043]
+      rungs(seen_n)={1: 0.002, 2: 0.002, 4: 0.004, 8: 0.002, 16: 0.002, 32: 0.01, 64: 0.008}
+      rungs(ood_n)={1: 0.006, 2: 0.0, 4: 0.002, 8: 0.002, 16: 0.0, 32: 0.002, 64: 0.002}
+      splits={'ood': 0.005, 'test': 0.005}
+### 15:30:00  gru_lr3e4  p2_e5_fs1200_s74  [P1-expressivity]
+[OK] p2_e5_fs1200_s74 sha=6460368f MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0083 steps=[1200] train_s=[131.91259598871693]
+      rungs(seen_n)={1: 0.01, 2: 0.002, 4: 0.006, 8: 0.004, 16: 0.002, 32: 0.006, 64: 0.004}
+      rungs(ood_n)={1: 0.006, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.004, 32: 0.002, 64: 0.002}
+      splits={'ood': 0.007, 'test': 0.01}
+### 15:32:22  deltapm1_lr3e4  p2_e5_fs1200_s74  [P1-expressivity]
+[OK] p2_e5_fs1200_s74 sha=21d0f165 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0050 steps=[1200] train_s=[170.09056386118755]
+      rungs(seen_n)={1: 0.006, 2: 0.004, 4: 0.006, 8: 0.006, 16: 0.002, 32: 0.008, 64: 0.008}
+      rungs(ood_n)={1: 0.004, 2: 0.002, 4: 0.0, 8: 0.0, 16: 0.002, 32: 0.002, 64: 0.0}
+      splits={'ood': 0.005, 'test': 0.005}
+=== p2 queue2 complete 15:35:19 ===

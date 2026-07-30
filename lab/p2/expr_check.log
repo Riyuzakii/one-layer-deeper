@@ -47,3 +47,5 @@
 {"arch": "attn", "task": "a5", "length": 32, "seed": 74, "steps": 2000, "token_acc": 0.0733, "final_pos_acc": 0.0176, "seq_acc": 0.0, "chance": 0.0167, "loss": 3.8606, "seconds": 28.1}
 {"arch": "mlp", "task": "a5", "length": 32, "seed": 74, "steps": 2000, "token_acc": 0.0468, "final_pos_acc": 0.0146, "seq_acc": 0.0, "chance": 0.0167, "loss": 3.9667, "seconds": 27.2}
 {"arch": "deltapm1", "task": "a5", "length": 16, "seed": 74, "steps": 15000, "token_acc": 0.139, "final_pos_acc": 0.0146, "seq_acc": 0.0, "chance": 0.0167, "loss": 3.5832, "seconds": 906.8}
+{"arch": "diag01", "task": "a5", "length": 16, "seed": 74, "steps": 15000, "token_acc": 0.1391, "final_pos_acc": 0.0146, "seq_acc": 0.0, "chance": 0.0167, "loss": 3.5837, "seconds": 912.5}
+{"arch": "attn", "task": "a5", "length": 16, "seed": 74, "steps": 15000, "token_acc": 0.1818, "final_pos_acc": 0.0146, "seq_acc": 0.0, "chance": 0.0167, "loss": 3.382, "seconds": 129.3}
