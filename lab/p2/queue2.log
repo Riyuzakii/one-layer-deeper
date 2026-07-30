@@ -1,0 +1,162 @@
+### 14:36:34  attn_d128_L2  p2_cp3_fs1200_s74  [P0-harness]
+[FAIL rc=1] p2_cp3_fs1200_s74 sha=61c13d00
+--- stderr tail ---
+        include_structured_metrics=args.include_structured_metrics,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-phase0/benchmark/runner.py", line 734, in run_submission_file
+    _run_seed(
+    ~~~~~~~~~^
+        submission,
+        ^^^^^^^^^^^
+    ...<7 lines>...
+        metric_recorder,
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-phase0/benchmark/runner.py", line 527, in _run_seed
+    dataloaders = _with_batch_size(
+        dataloaders,
+    ...<3 lines>...
+        seed,
+    )
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-phase0/benchmark/runner.py", line 131, in _with_batch_size
+    raise ValueError(
+        f"submission batch_size={batch_size} produces no complete training batches"
+    )
+ValueError: submission batch_size=512 produces no complete training batches
+!!! failed: attn_d128_L2 p2_cp3_fs1200_s74
+### 14:36:36  lstm_d128_L2  p2_cp3_fs1200_s74  [P0-harness]
+[FAIL rc=1] p2_cp3_fs1200_s74 sha=a5f4f3b0
+--- stderr tail ---
+        include_structured_metrics=args.include_structured_metrics,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-phase0/benchmark/runner.py", line 734, in run_submission_file
+    _run_seed(
+    ~~~~~~~~~^
+        submission,
+        ^^^^^^^^^^^
+    ...<7 lines>...
+        metric_recorder,
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-phase0/benchmark/runner.py", line 527, in _run_seed
+    dataloaders = _with_batch_size(
+        dataloaders,
+    ...<3 lines>...
+        seed,
+    )
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-phase0/benchmark/runner.py", line 131, in _with_batch_size
+    raise ValueError(
+        f"submission batch_size={batch_size} produces no complete training batches"
+    )
+ValueError: submission batch_size=512 produces no complete training batches
+!!! failed: lstm_d128_L2 p2_cp3_fs1200_s74
+### 14:36:39  attn_d128_L2  p2_sq3_fs1200_s74  [P0-harness]
+[FAIL rc=1] p2_sq3_fs1200_s74 sha=61c13d00
+--- stderr tail ---
+        include_structured_metrics=args.include_structured_metrics,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-phase0/benchmark/runner.py", line 734, in run_submission_file
+    _run_seed(
+    ~~~~~~~~~^
+        submission,
+        ^^^^^^^^^^^
+    ...<7 lines>...
+        metric_recorder,
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-phase0/benchmark/runner.py", line 527, in _run_seed
+    dataloaders = _with_batch_size(
+        dataloaders,
+    ...<3 lines>...
+        seed,
+    )
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-phase0/benchmark/runner.py", line 131, in _with_batch_size
+    raise ValueError(
+        f"submission batch_size={batch_size} produces no complete training batches"
+    )
+ValueError: submission batch_size=512 produces no complete training batches
+!!! failed: attn_d128_L2 p2_sq3_fs1200_s74
+### 14:36:41  lstm_d128_L2  p2_sq3_fs1200_s74  [P0-harness]
+[FAIL rc=1] p2_sq3_fs1200_s74 sha=a5f4f3b0
+--- stderr tail ---
+        include_structured_metrics=args.include_structured_metrics,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-phase0/benchmark/runner.py", line 734, in run_submission_file
+    _run_seed(
+    ~~~~~~~~~^
+        submission,
+        ^^^^^^^^^^^
+    ...<7 lines>...
+        metric_recorder,
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-phase0/benchmark/runner.py", line 527, in _run_seed
+    dataloaders = _with_batch_size(
+        dataloaders,
+    ...<3 lines>...
+        seed,
+    )
+  File "/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/p2-phase0/benchmark/runner.py", line 131, in _with_batch_size
+    raise ValueError(
+        f"submission batch_size={batch_size} produces no complete training batches"
+    )
+ValueError: submission batch_size=512 produces no complete training batches
+!!! failed: lstm_d128_L2 p2_sq3_fs1200_s74
+### 14:36:44  attn_d128_L2  p2_cp5_fs1200_s74  [P0-harness]
+[OK] p2_cp5_fs1200_s74 sha=61c13d00 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.5000 steps=[1200] train_s=[182.88991900207475]
+      rungs(seen_n)={1: 0.0, 2: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 1.0}
+### 14:39:50  lstm_d128_L2  p2_cp5_fs1200_s74  [P0-harness]
+[OK] p2_cp5_fs1200_s74 sha=a5f4f3b0 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.5000 steps=[1200] train_s=[230.1967497318983]
+      rungs(seen_n)={1: 0.0, 2: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 1.0}
+### 14:43:43  attn_d128_L2  p2_sq5_fs1200_s74  [P0-harness]
+[OK] p2_sq5_fs1200_s74 sha=61c13d00 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[1200] train_s=[233.45617913920432]
+      rungs(seen_n)={1: 0.0, 2: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+### 14:47:41  lstm_d128_L2  p2_sq5_fs1200_s74  [P0-harness]
+[OK] p2_sq5_fs1200_s74 sha=a5f4f3b0 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[1200] train_s=[302.28971420414746]
+      rungs(seen_n)={1: 0.0, 2: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+### 14:52:47  attn_d128_L2  p2_cp7_fs1200_s74  [P0-harness]
+[OK] p2_cp7_fs1200_s74 sha=61c13d00 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.5000 steps=[1200] train_s=[247.92158300778829]
+      rungs(seen_n)={1: 0.0, 2: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 1.0}
+### 14:57:01  lstm_d128_L2  p2_cp7_fs1200_s74  [P0-harness]
+[OK] p2_cp7_fs1200_s74 sha=a5f4f3b0 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.5000 steps=[1200] train_s=[239.74795683682896]
+      rungs(seen_n)={1: 0.0, 2: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 1.0}
+### 15:01:09  attn_d128_L2  p2_sq7_fs1200_s74  [P0-harness]
+[OK] p2_sq7_fs1200_s74 sha=61c13d00 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[1200] train_s=[236.73008238105103]
+      rungs(seen_n)={1: 0.0, 2: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+### 15:05:11  lstm_d128_L2  p2_sq7_fs1200_s74  [P0-harness]
+[OK] p2_sq7_fs1200_s74 sha=a5f4f3b0 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[1200] train_s=[216.69840609305538]
+      rungs(seen_n)={1: 0.0, 2: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+### 15:08:59  deltapm1_d128_L2  p2_cp5_fs1200_s74  [P0-harness]
+[OK] p2_cp5_fs1200_s74 sha=1fd3f6b5 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.5000 steps=[1200] train_s=[441.04402826703154]
+      rungs(seen_n)={1: 0.0, 2: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 1.0}
+### 15:16:26  deltapm1_d128_L2  p2_sq5_fs1200_s74  [P0-harness]

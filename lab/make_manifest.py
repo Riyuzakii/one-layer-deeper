@@ -55,6 +55,14 @@ DATA_ROOTS = {
     "n5_e9000": "data/generated/p2grid_n5_e9000",
     "n7_e1000": "data/generated/p2grid_n7_e1000",
     "n7_e16000": "data/generated/p2grid_n7_e16000",
+    # PLAN2 Phase-0 harness/label-alignment control (see lab/gen_p2_isolate.sh).
+    # cp* : T=0 -> answer is x itself (pure digit copy).  sq* : T=1 -> one squaring.
+    "cp3": "data/generated/p2iso_cp3",
+    "sq3": "data/generated/p2iso_sq3",
+    "cp5": "data/generated/p2iso_cp5",
+    "sq5": "data/generated/p2iso_sq5",
+    "cp7": "data/generated/p2iso_cp7",
+    "sq7": "data/generated/p2iso_sq7",
 }
 
 TIER_SECONDS = {"e": 60.0, "m": 600.0, "h": 3600.0}
