@@ -14,7 +14,7 @@ project's canonical failure exactly. **MAX_T = 0 everywhere.**
 
 **The result with the widest blast radius is not about this architecture.** Spending that
 surplus budget at Medium scale (§3.5) shows **m1 does fit** — `train_exact` 0.0098 at
-3,000 steps and **0.8567 at 40,000** — with held-out at four examples in 3,000. So BRIEF2
+3,000 steps and **0.8572 at 40,000** — with held-out at three examples in 3,000. So BRIEF2
 §2(d)'s "at m1 scale and above they cannot even fit" is a **step-count artifact**, the
 Easy/Medium split in the project's diagnosis is not real, and the memorisation failure is
 **one phenomenon at every scale measured**. A corollary that affects sibling branches
@@ -456,36 +456,43 @@ held-out cannot have moved and the two points suffice.
 Training-batch exact accuracy at identical checkpoints, e5 and m1 side by side
 (`lab/compare_long.py`):
 
-| dataset | `D_H` | params/row | 1 | 5k | 10k | 15k | 20k | 25k | 30k | 35k | 40k |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| e5 | 8 | 0.5 | 0.000 | 0.008 | 0.023 | 0.016 | 0.016 | 0.008 | 0.031 | 0.008 | 0.000 |
-| e5 | 64 | 24.9 | 0.000 | 0.984 | 0.992 | 0.984 | 0.992 | 1.000 | 0.977 | 0.977 | 1.000 |
-| **m1** | **128** | 17.4 | 0.000 | 0.039 | 0.219 | 0.492 | 0.492 | 0.547 | 0.555 | 0.648 | **0.625** |
-| **m1** | **256** | 68.7 | 0.000 | 0.320 | 0.742 | 0.781 | 0.859 | 0.883 | 0.859 | 0.844 | **0.844** |
+| dataset | `D_H` | params/row | seed | 1 | 5k | 10k | 15k | 20k | 25k | 30k | 35k | 40k |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| e5 | 8 | 0.5 | 0 | 0.000 | 0.008 | 0.023 | 0.016 | 0.016 | 0.008 | 0.031 | 0.008 | 0.000 |
+| e5 | 64 | 24.9 | 0 | 0.000 | 0.984 | 0.992 | 0.984 | 0.992 | 1.000 | 0.977 | 0.977 | 1.000 |
+| **m1** | **128** | 17.4 | 0 | 0.000 | 0.039 | 0.219 | 0.492 | 0.492 | 0.547 | 0.555 | 0.648 | **0.625** |
+| **m1** | **128** | 17.4 | 1 | 0.000 | 0.039 | 0.320 | 0.453 | 0.508 | 0.492 | 0.617 | 0.586 | **0.672** |
+| **m1** | **256** | 68.7 | 0 | 0.000 | 0.320 | 0.742 | 0.781 | 0.859 | 0.883 | 0.859 | 0.844 | **0.844** |
+| **m1** | **256** | 68.7 | 1 | 0.000 | 0.297 | 0.758 | 0.836 | 0.789 | 0.859 | 0.859 | 0.805 | **0.836** |
 
-| dataset | `D_H` | final loss | train_exact | **held_exact** | div | top | held_ce | n_held |
-|---|---|---|---|---|---|---|---|---|
-| e5 | 64 | 0.0114 | 0.9842 | 0.0058 | 0.643 | 0.006 | 11.29 | 1,200 |
-| **m1** | **128** | 0.3561 | **0.6212** | **0.0013** | 0.871 | 0.002 | 7.42 | 3,000 |
-| **m1** | **256** | 0.1444 | **0.8567** | **0.0013** | 0.861 | 0.002 | 7.89 | 3,000 |
+Both seeds, aggregated:
+
+| dataset | `D_H` | n | final loss | train_exact | **held_exact** | **`lr=0` held** | div | top | held_ce | n_held |
+|---|---|---|---|---|---|---|---|---|---|---|
+| e5 | 64 | 1 | 0.011 | 0.9842 | 0.0058 | 0.0008 | 0.643 | 0.006 | 11.29 | 1,200 |
+| **m1** | **128** | 2 | 0.34 | **0.6205±0.0007** | **0.0010±0.0003** | **0.0000** | 0.871 | 0.002 | 7.32 | 3,000 |
+| **m1** | **256** | 2 | 0.15 | **0.8572±0.0005** | **0.0008±0.0005** | **0.0000** | 0.867 | 0.002 | 7.87 | 3,000 |
+
+Seed agreement is tight — `train_exact` reproduces to ±0.0007 at `D_H`=128 and ±0.0005 at
+`D_H`=256 — so this is not a lucky initialisation.
 
 **Both readings the coordinator asked to separate contributed, and neither is "cannot
 fit".**
 
 * **Steps were the dominant variable.** At fixed `D_H`=128, going 3,000 → 40,000 steps
-  takes `train_exact` from **0.0098 → 0.6212**, a **63× move from step count alone**.
+  takes `train_exact` from **0.0098 → 0.6205±0.0007**, a **63× move from step count alone**.
   §3.4's cells stopped at 3,000 steps; the curve shows m1 was still at 0.039 by step
   5,000, so 3,000 steps landed in the flat pre-fitting region and measured nothing.
 * **Capacity was a real secondary variable, as predicted.** At fixed 40,000 steps,
-  `D_H`=128 → 256 takes `train_exact` from 0.6212 → 0.8567, and the params/row table
+  `D_H`=128 → 256 takes `train_exact` from 0.6205 → 0.8572, and the params/row table
   called this in advance: 17.4/row is below the 24.9/row that fit on e5. `D_H`=256 is at
   0.883 by step 25,000 and flat thereafter, i.e. near its ceiling.
 * **"Cannot fit at m1" is false.** It was an artifact of the step count at which the
   claim was measured.
 
 **And the memorisation signature reproduces at Medium, in full.** `held_exact` is
-**0.0013 — four examples out of 3,000** — against **0.0000** at the `lr = 0` control, at
-both widths, while train exact accuracy reaches 0.86 and loss falls to 0.14. `held_ce`
+**0.0010±0.0003 — three examples out of 3,000** — against **0.0000** at the `lr = 0`
+control, at both widths, while train exact accuracy reaches 0.86 and loss falls to 0.14. `held_ce`
 7.4–7.9 is the confident-and-wrong signature (e5's was 8.3). The collapse detector says
 this is a real null and not a degenerate one: `div` 0.86–0.87 with `top` 0.002, so the
 model emits ~2,600 distinct answers over 3,000 held-out prompts.
@@ -714,13 +721,13 @@ All nine cells are archived in `lab/archive.jsonl`; none is outstanding.
    |---|---|---|---|---|
    | e1 | 600 | 1.0000 | 0.0333 | 0.0156 |
    | e5 | 4,800 | 0.9842 | 0.0058 | 0.0008 |
-   | **m1** | **27,000** | **0.8567** | **0.0013** | **0.0000** |
+   | **m1** | **27,000** | **0.8572** | **0.0010** | **0.0000** |
 
    PLAN2 §6's first kill criterion is written for precisely this outcome.
    **This claim was scoped to Easy in an earlier draft of this report; §3.5 removed that
    scope.** The Easy/Medium split BRIEF2 §2(d) draws was a step-count artifact — at
-   40,000 steps and adequate capacity m1 fits to 0.86 with held-out at four examples in
-   3,000. *(Coordination note: `plan2/phase0` owns the diagnostic version of this
+   40,000 steps and adequate capacity m1 fits to 0.86 with held-out at three examples
+   in 3,000. *(Coordination note: `plan2/phase0` owns the diagnostic version of this
    question; this branch reports the candidate-side evidence and does not claim to have
    run their experiment.)*
 3. **"Budget is the constraint" — falsified for this family in both directions, and
@@ -908,7 +915,7 @@ measured*; none of it is inferred from another branch's work.
 | PLAN2 §3.5 | budget for it "failing to optimise rather than to express" | §4: 7.2× the reference at `K`=12 → ~12,900 Hard steps, and curriculum learning is not expressible under the evaluator's loop. | **it fails on budget first**, before trainability is reached. |
 | RESUME §5 #4 | "Every candidate must halt early" | §1: eval is 2.2–5.2 s of 30 s across nine cells, because an RNN has no depth ladder at eval time. | **not binding for this family.** |
 | `digit-carry` #2 | "a continuous carry channel restores memorisation; the state alphabet must be small" | §3: held-out flat across `D_H` 4→256 while train goes 0.007→0.98. | **confirmed and strengthened** — small *and discrete*; shrinking a continuous state only removes capacity. |
-| BRIEF2 §2d | "at m1 scale and above they cannot even fit" | §3.5: m1 at 40k steps reaches `train_exact` **0.6212** (`D_H`=128) / **0.8567** (`D_H`=256), from 0.0098 at 3,000 steps. Held-out 0.0013 vs 0.0000 at `lr=0`. | **wrong** for the RNN family — a step-count artifact. The Easy/Medium split is not real; memorisation extends to Medium. **Scope: claim (i) only**; §2d's `local_ce` 3.5–4.2 figure is a `DigitALU` measurement on a different metric and is untouched. |
+| BRIEF2 §2d | "at m1 scale and above they cannot even fit" | §3.5: m1 at 40k steps reaches `train_exact` **0.6205** (`D_H`=128) / **0.8572** (`D_H`=256), 2 seeds each, from 0.0098 at 3,000 steps. Held-out 0.0010 vs 0.0000 at `lr=0`. | **wrong** for the RNN family — a step-count artifact. The Easy/Medium split is not real; memorisation extends to Medium. **Scope: claim (i) only**; §2d's `local_ce` 3.5–4.2 figure is a `DigitALU` measurement on a different metric and is untouched. |
 
 ---
 
