@@ -279,6 +279,65 @@ def test_wall_clock() -> None:
     set_impl("fast")
 
 
+def test_full_model_throughput() -> None:
+    """Matched wall clock at the level that decides steps-in-budget.
+
+    All configurations are timed back-to-back in ONE process so they share
+    whatever GPU contention exists; relative numbers are the meaningful ones.
+    """
+    hr("8. full-model fwd+bwd, B=128 L=13 vocab=17, 2 layers (matched wall clock)")
+    import importlib.util
+    import os
+    import time
+
+    from benchmark import ModelSpec
+
+    spec = ModelSpec(vocab_size=17, max_seq_len=13, maximum_model_state_elements=5 * 10**8)
+    ids = torch.randint(0, 17, (128, 13), device=DEV)
+    mask = torch.ones(128, 13, dtype=torch.bool, device=DEV)
+    cfgs = [
+        ("§3.3 DeltaProduct n_h=1", dict(P2_ARCH="delta", P2_NH=1)),
+        ("§3.3 DeltaProduct n_h=2", dict(P2_ARCH="delta", P2_NH=2)),
+        ("§3.3 DeltaProduct n_h=3", dict(P2_ARCH="delta", P2_NH=3)),
+        ("§3.3 DeltaProduct n_h=4", dict(P2_ARCH="delta", P2_NH=4)),
+        ("§3.2 PD-SSM N=16", dict(P2_ARCH="pdssm", P2_STATE=16)),
+        ("§3.2 PD-SSM N=8", dict(P2_ARCH="pdssm", P2_STATE=8)),
+        ("§3.1 matrix scan N=16", dict(P2_ARCH="matscan", P2_STATE=16)),
+    ]
+    base = None
+    for label, env in cfgs:
+        for k in ("P2_ARCH", "P2_NH", "P2_STATE"):
+            os.environ.pop(k, None)
+        for k, v in env.items():
+            os.environ[k] = str(v)
+        s = importlib.util.spec_from_file_location("_p2_timing", _SUBPATH)
+        mod = importlib.util.module_from_spec(s)
+        s.loader.exec_module(mod)
+        m = mod.build_model(spec).to(DEV)
+        params = sum(p.numel() for p in m.parameters())
+        for _ in range(5):
+            m(ids, mask)[0].float().logsumexp(-1).sum().backward()
+        torch.cuda.synchronize()
+        t0 = time.time()
+        for _ in range(30):
+            m.zero_grad(set_to_none=True)
+            m(ids, mask)[0].float().logsumexp(-1).sum().backward()
+        torch.cuda.synchronize()
+        ms = (time.time() - t0) / 30 * 1000
+        if base is None:
+            base = ms
+        print(f"  {label:<26} {params:>9,} params   {ms:7.2f} ms/step   "
+              f"{1000/ms:7.1f} steps/s   {base/ms:5.2f}x vs n_h=1")
+    for k in ("P2_ARCH", "P2_NH", "P2_STATE"):
+        os.environ.pop(k, None)
+
+
+_SUBPATH = (
+    Path(__file__).resolve().parent.parent
+    / "submissions" / "plan2-pd-ssm-delta" / "submission.py"
+)
+
+
 if __name__ == "__main__":
     test_matrix_scan_against_serial()
     test_delta_householder_spectrum()
@@ -287,4 +346,5 @@ if __name__ == "__main__":
     test_pdssm_closure()
     test_fast_paths_match_sequential()
     test_wall_clock()
+    test_full_model_throughput()
     print("\nALL VERIFICATION CHECKS PASSED\n")

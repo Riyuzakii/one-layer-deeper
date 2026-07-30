@@ -111,19 +111,38 @@ _SUM = re.compile(r"MAX_T=(\d+) OOD_N_MAX_T=(\d+) mean_acc=([\d.]+) steps=\[(\d+
 _R1 = re.compile(r"rungs\(seen_n\)=\{1: ([\d.]+)")
 
 
+def _archive_stream() -> list:
+    """Grid cells append to archive.jsonl in the same order they run, and this
+    worktree's archive has no other writer -- so join by ordinal within tag."""
+    out = []
+    for r in load(LAB / "archive.jsonl"):
+        if not str(r.get("tag", "")).startswith("S"):
+            continue
+        c = r.get("train_curve") or []
+        fl = r.get("final_train_loss") or [None]
+        out.append({
+            "tag": r["tag"], "manifest": r.get("manifest"),
+            "train_acc": c[-1][2] if c else None,
+            "train_loss": fl[0],
+        })
+    return out
+
+
 def grid_table() -> None:
     rows = load(LAB / "p2_grid_log.jsonl")
     if not rows:
         print("\n(no grid rows yet)")
         return
+    arc = _archive_stream()
     by = defaultdict(list)
-    for r in rows:
+    for i, r in enumerate(rows):
         s = r.get("summary", "")
         m = _SUM.search(s)
         if not m:
             continue
         key = r["cell"].rsplit("_s", 1)[0]
         d = r.get("diag_final", {})
+        a = arc[i] if i < len(arc) and arc[i]["tag"] == r["tag"] else {}
         by[key].append({
             "tag": r["tag"],
             "max_t": int(m.group(1)), "ood_t": int(m.group(2)),
@@ -137,12 +156,14 @@ def grid_table() -> None:
             "eig_frac_neg": d.get("eig_frac_neg"),
             "p_max_prob": d.get("p_max_prob"), "p_perm_frac": d.get("p_perm_frac"),
             "wall": r["wall_seconds"],
+            "train_acc": a.get("train_acc"),
+            "train_loss": a.get("train_loss"),
         })
 
     print("\n### REAL TASK -- e5, fixed_step 1500, multi-seed")
-    print("| cell | n | MAX_T | OOD_N | rung-1 | mean_acc | out_div | top_share | "
-          "train_s | extra |")
-    print("|---|---|---|---|---|---|---|---|---|---|")
+    print("| cell | n | MAX_T | OOD_N | train_exact | rung-1 (held) | mean_acc | "
+          "out_div | top_share | train_s | transition diagnostics |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|")
     for key in sorted(by):
         v = by[key]
         r1 = [x["rung1"] for x in v if x["rung1"] is not None]
@@ -158,8 +179,9 @@ def grid_table() -> None:
         if pm:
             extra = (f"p_max={st.mean(pm):.3f} "
                      f"perm={st.mean([x['p_perm_frac'] for x in v]):.3f}")
+        ta = [x["train_acc"] for x in v if x["train_acc"] is not None]
         print(f"| {key} | {len(v)} | {max(x['max_t'] for x in v)} | "
-              f"{max(x['ood_t'] for x in v)} | {agg(r1)} | "
+              f"{max(x['ood_t'] for x in v)} | {agg(ta)} | {agg(r1)} | "
               f"{agg([x['mean_acc'] for x in v])} | {agg(dv)} | {agg(tsh)} | "
               f"{st.mean([x['train_s'] for x in v]):.0f} | {extra} |")
 
