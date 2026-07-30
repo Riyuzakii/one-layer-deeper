@@ -100,3 +100,4 @@
 [6/6] F_matscan_N64  N=64 s=1 last=0.112 seq=0.009 chance=0.017 div=0.967 ext2x=0.031 (24.05s)
 [1/3] C_tau       pdssm    tau=10.0 ste=hard s=1 last=0.035 seq=0.000 chance=0.017 div=0.967 ext2x=0.021
 [2/3] C_soft      pdssm    tau=1.0 ste=none s=1 last=0.385 seq=0.231 chance=0.017 div=1.000 ext2x=0.021
+[3/3] D_matscan   matscan  tau=1.0 ste=hard s=1 last=0.043 seq=0.000 chance=0.017 div=0.983 ext2x=0.023

@@ -217,13 +217,15 @@ RESULTS_PROBE_D
    chance-level cell in most draws. This is the strongest argument in the report
    for the mandate's instruction to report the sweep rather than a setting.
 4. **Straight-through discretisation is what makes PD-SSM *generalise*, not what
-   stops it training.** The `ste=none` soft control on A₅ reads **0.494**
-   in-distribution (sequence-level 0.277) — clearly learning something — and
-   **0.037 at `2×` length**, i.e. chance. Hard straight-through at `τ = 3` reads
-   1.000 and **1.000** at `2×` length. The soft relaxation memorises; the
-   discrete forward pass generalises. This is the direct opposite of the prior
-   this branch was handed (straight-through as "the known failure mode"), and it
-   is measured on the only task in the set that needs the full expressivity.
+   stops it training.** The `ste=none` soft control on A₅ clearly learns
+   something in-distribution — **0.494** (seq 0.277) in seed 0 and **0.385**
+   (seq 0.231) in seed 1 — and then fails completely at `2×` length: **0.037**
+   and **0.021**, both chance. Hard straight-through at its working temperature
+   reads 1.000 in-distribution *and* 1.000 at `2×` length. **The soft relaxation
+   memorises; the discrete forward pass generalises, in both seeds.** This is
+   the direct opposite of the prior this branch was handed (straight-through as
+   "the known failure mode"), and it is measured on the only task in the set
+   that needs the full expressivity.
 5. **In-distribution accuracy is fooled; length extrapolation is not.**
    `[0,1]` at `n_h=2` reaches 0.941 in-distribution on mod-3 while its `2×`
    extrapolation is 0.328 — chance. It memorised length-20 sequences without
