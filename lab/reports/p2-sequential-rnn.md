@@ -783,8 +783,10 @@ consequence of that correction.
    anything built this way.
 3. **Spend the freed budget and the freed engineering time on the state alphabet.**
    This branch's width sweep is the argument: across six octaves of hidden width and
-   two datasets, `train_exact` moved ≈135× and `held_exact` moved not at all. Capacity,
-   compute, expressivity and wall clock are all *surplus*. What
+   **three datasets spanning 600 to 27,000 training rows**, `train_exact` moved ≈135×
+   and `held_exact` moved not at all. Capacity, compute, expressivity and wall clock are
+   all *surplus*, and after §3.5 that is true at **Medium as well as Easy** — the tier
+   split that could have made this an Easy-only result is gone. What
    `digit-carry` #2 and this sweep jointly say is that a **continuous** state is a
    value-encoding channel at every width — small ones just encode less. The open
    question is a state that is discrete *by construction* rather than by relaxation
@@ -830,7 +832,8 @@ step count you have not calibrated against a fitting curve is not a null.**
 Every one of these is confirmatory — none of them can change a conclusion above, and
 all are cheap to finish. Exact resume commands are in §8.
 
-**Everything queued on this branch has landed. Nothing is in flight.**
+**Everything queued on this branch has landed, including the m1 40,000-step experiment.
+Nothing is in flight.**
 
 Complete: the e5 width sweep, its `lr=0` control and the `ALIGN` ablation (33 cells,
 3 seeds each); the e1 sweep through `D_H`=256 plus its `lr=0` control (24 cells); the
