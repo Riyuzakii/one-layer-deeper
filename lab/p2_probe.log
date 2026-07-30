@@ -83,3 +83,4 @@
 [82/96] A_eig       a5     delta    n_h=1 eig=neg tau=1.0   ste=hard s=1 | last=0.012 seq=0.000 chance=0.017 div=0.667 ext2x=0.023 (39.03s)
 [83/96] B_nh        a5     delta    n_h=1 eig=neg tau=1.0   ste=hard s=1 | last=0.012 seq=0.000 chance=0.017 div=0.667 ext2x=0.023 (37.2s)
 [84/96] B_nh        a5     delta    n_h=2 eig=neg tau=1.0   ste=hard s=1 | last=0.049 seq=0.020 chance=0.017 div=0.867 ext2x=0.021 (57.92s)
+[85/96] B_nh        a5     delta    n_h=3 eig=neg tau=1.0   ste=hard s=1 | last=0.071 seq=0.023 chance=0.017 div=0.967 ext2x=0.023 (70.44s)

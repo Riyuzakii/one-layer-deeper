@@ -34,6 +34,8 @@ def cell_name(cfg: dict) -> str:
         parts += [f"tau{cfg['P2_TAU']}", cfg["P2_STE"]]
         if str(cfg.get("P2_STATE", 16)) != "16":
             parts.append(f"N{cfg['P2_STATE']}")
+    if str(cfg.get("P2_HEADDIM", 32)) != "32":
+        parts.append(f"hd{cfg['P2_HEADDIM']}")
     if str(cfg.get("P2_REPEAT", 1)) != "1":
         parts.append(f"rep{cfg['P2_REPEAT']}")
     if str(cfg.get("P2_LR", "0.001")) == "0":
@@ -158,6 +160,19 @@ def main() -> int:
             c["P2_LR"] = 0
             jobs.append((c, mans[0], "S5-lr0",
                          f"CONTROL --lr 0 BRIEF2 6.1 random init no training {mans[0]}"))
+    if "size" in g:
+        # The CONTINUOUS-state-size control, replicating plan2/sequential-rnn's
+        # hidden-size sweep inside this family: train_exact climbs while held-out
+        # does not.  Contrast with the "small" grid, where the state alphabet is
+        # DISCRETE (PD-SSM's column-one-hot P).
+        for hd in (8, 16, 64):
+            for m in mans:
+                jobs.append((
+                    {"P2_ARCH": "delta", "P2_NH": 2, "P2_EIG": "neg",
+                     "P2_HEADDIM": hd},
+                    m, "S8-size",
+                    f"LEGAL §3.3 continuous state-size control head_dim={hd} {m}",
+                ))
     if "small" in g:
         # §3.2 at the granularity where the task plausibly HAS a small FSA:
         # digit-carry's sharpest finding is "the state alphabet must be small"

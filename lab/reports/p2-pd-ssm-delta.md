@@ -203,6 +203,24 @@ RESULTS_PROBE_D
 
 ## 4. Wall clock — and the §3.2 falsifier
 
+> **Framing correction applied mid-branch, from `plan2/sequential-rnn`.** (a)
+> `triton` imports but **cannot compile** on this box (`sm_107a is not defined`),
+> and the same failure kills `torch.compile`. Nothing in this branch uses either
+> — the chunkwise delta rule below is plain PyTorch
+> (`torch.linalg.solve_triangular` + `matmul`) and the manifests set
+> `compile=false` — so no result here depends on the retracted capability.
+> (b) *Parallelism is not the selling point here.* The sibling measures a fused
+> sequential LSTM at 0.33× the reference and the most-parallel candidate
+> (Neural GPU) at 7.22×, i.e. **22× the wrong way**: PLAN2 §0's `O(T)` vs
+> `O(log T)` motivation is asymptotics about a sequence axis this task does not
+> have (§0 above). **This branch's data independently confirms that from inside
+> the structured-SSM family**: PD-SSM's log-depth associative scan is *no
+> faster* than its own sequential loop at `L=13` (11.34 vs 10.94 ms). So the
+> table below is reported because the mandate asks for a matched-wall-clock
+> comparison and because it establishes that **`n_h` is a pure expressivity
+> axis with no compute price** — not because scan cost is the interesting
+> variable. Judge these architectures on expressivity and trainability.
+
 PLAN2 §3.2's falsifier is *"underperforms §3.1 at matched wall clock → the
 sparsity bias is wrong"*. Measured at the real task's shape
 (`B=128, L=13, D=128`), forward+backward of one mixer, 20 iterations after
@@ -336,6 +354,26 @@ Three things fall out.
    constant map a collapse detector is built to catch (that would read
    `1/17 = 0.059`), but movement in that direction, which is why the row is
    reported next to the accuracy rather than instead of it.
+
+### 5.4 Does a *discrete* state change the train/held-out relationship?
+
+`plan2/sequential-rnn` measured that on a continuous recurrent state, a
+hidden-size sweep moves `train_exact` **134×** (0.007 → 0.98) while held-out
+never leaves the floor — capacity buys *fitting*, not *generalising*. Combined
+with `digit-carry`'s "the state alphabet must be small", the sharpened claim is
+that the state must be small **and discrete**. PD-SSM's column-one-hot `P` is
+exactly a discrete state, so this branch can test the claim directly, with two
+controls that differ in *only* the discretisation:
+
+* **`ste=hard` vs `ste=none`** — identical parameters, identical state size,
+  identical everything; the forward pass is a hard one-hot in one and a softmax
+  mixture in the other.
+* **a continuous state-size sweep** in the DeltaProduct family
+  (`head_dim ∈ {8, 16, 32, 64}`), which is the direct analogue of the sibling's
+  hidden-size sweep, against **a discrete state-size sweep** in PD-SSM
+  (`N ∈ {8, 11, 16}`; `N=11` is the carry alphabet for base-10 add-with-carry).
+
+RESULTS_DISCRETE
 
 RESULTS_NARRATIVE
 
