@@ -341,6 +341,48 @@ moment outside the eigenbasis makes numerator and denominator independently-roun
 projections that blow up in near-null directions. Moving both moments into the basin
 (paper Algorithm 1) turned divergence into a 374x win on an ill-conditioned quadratic.
 
+### Round 6 — the first hosted Hard run: what h1 actually looks like
+
+One Hard submission was made (an `exp_axis` screening file that hard-codes
+`_MAX_STEPS = 400`, so it used **19.3s of the 3600s budget** — 0.5%). Metrics saved at
+`lab/hosted/hard_h1_exp_axis_400steps.jsonl`. Two structural facts fall out.
+
+**1. Hard uses `split_group="modulus"` with `separate_ood_splits=True`.** The scoring
+splits are `test`, `ood_t`, `ood_n_t`, and in `data/squaring_mod.py` that exact triple
+is produced only by `_generate_modulus_grouped_records`. Therefore:
+
+- `_partition_factor_pairs` gives **disjoint train and test modulus pools** — Hard's
+  `test` split already requires generalising to **moduli never seen in training**, not
+  merely to unseen `x`.
+- `ood_t` = training-pool moduli at unseen T; `ood_n_t` = held-out moduli at unseen T.
+
+**This invalidates our Hard proxies as models of h1.** `hp1`/`hp2`/`hp3` were all
+generated with `--split_group prompt`, where train and test share moduli. Hard is
+strictly harder. Anyone regenerating proxies should use `--split_group modulus
+--separate_ood_splits true`.
+
+It also sharpens the coverage result: on Hard a residue-indexed readout cannot work
+*at all*, because test moduli never appear in training. The modulus-independent digit
+readout (`DigitALU`, same ~6.8k parameters at every N) is the right shape for this
+tier; the training closure, not the representation, is what blocks it.
+
+**2. First real H100 calibration** (all previous timings were local, on sm_107):
+
+| quantity | measured |
+|---|---|
+| startup: import + construct + `.to(device)` + optimizer + first step | **3.9 s** |
+| steady state, batch 512, D=128 recurrent stack | **~38.6 ms/step** |
+| implied steps in a full 3600s Hard run | **~93,000** |
+
+**Results:** train exact accuracy 0.000 at every logged step; `test` 0.001,
+`ood_t` 0.000, `ood_n_t` 0.001; loss 2.22-2.25 against `ln(17) = 2.833`. Digit
+marginals learned, nothing more.
+
+**Reading the metrics file:** `_evaluate_depth_profile` prints per-rung results but
+never calls the metric recorder, so `one-layer metrics` structurally **cannot** contain
+depth rungs. Their absence is not a failure; Max T is visible only on the
+leaderboard/status page.
+
 ### Corrections to earlier entries in this log
 
 - **`batch_size` 512→32 is 1.2× for the ALU model, not 5.8×.** The DataLoader lever
