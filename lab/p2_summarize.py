@@ -125,21 +125,41 @@ _SUM = re.compile(r"MAX_T=(\d+) OOD_N_MAX_T=(\d+) mean_acc=([\d.]+) steps=\[(\d+
 _R1 = re.compile(r"rungs\(seen_n\)=\{1: ([\d.]+)")
 
 
-def _archive_stream() -> list:
-    """Grid cells append to archive.jsonl in the same order they run, and this
-    worktree's archive has no other writer -- so join by ordinal within tag."""
-    out = []
+def _note_for(rec: dict) -> str:
+    """Reproduce lab/p2_grid.py's note string for rows logged before `note` was
+    recorded, so train-accuracy can be joined from lab/archive.jsonl."""
+    if rec.get("note"):
+        return rec["note"]
+    c, m, tag = rec["cfg"], rec["manifest"], rec["tag"]
+    if tag == "S1-nh":
+        return f"LEGAL \u00a73.3 DeltaProduct n_h={c['P2_NH']} eig=[-1,1] {m}"
+    if tag == "S2-eig":
+        return (f"LEGAL \u00a73.3 control: n_h={c['P2_NH']} eig=[0,1] "
+                f"the flagged trap {m}")
+    if tag == "S3-tau":
+        if c.get("P2_STE") == "none":
+            return f"LEGAL \u00a73.2 PD-SSM soft control no discretisation {m}"
+        return f"LEGAL \u00a73.2 PD-SSM straight-through tau={c['P2_TAU']} {m}"
+    if tag == "S4-base":
+        return f"LEGAL \u00a73.1 dense matrix-scan reference {m}"
+    if tag == "S5-lr0":
+        # note format changed mid-branch; the older cells used this string
+        return "CONTROL --lr 0 (BRIEF2 §6.1): random init, no training"
+    return ""
+
+
+def _archive_index() -> dict:
+    """(note, manifest) -> list of train-accuracy records, consumed in order."""
+    idx = {}
     for r in load(LAB / "archive.jsonl"):
-        if not str(r.get("tag", "")).startswith("S"):
-            continue
         c = r.get("train_curve") or []
+        if not c or not str(r.get("tag", "")).startswith("S"):
+            continue
         fl = r.get("final_train_loss") or [None]
-        out.append({
-            "tag": r["tag"], "manifest": r.get("manifest"),
-            "train_acc": c[-1][2] if c else None,
-            "train_loss": fl[0],
-        })
-    return out
+        idx.setdefault((r.get("note", ""), r.get("manifest", "")), []).append(
+            {"train_acc": c[-1][2], "train_loss": fl[0]}
+        )
+    return idx
 
 
 def grid_table() -> None:
@@ -147,16 +167,20 @@ def grid_table() -> None:
     if not rows:
         print("\n(no grid rows yet)")
         return
-    arc = _archive_stream()
+    arc = _archive_index()
     by = defaultdict(list)
-    for i, r in enumerate(rows):
+    for r in rows:
         s = r.get("summary", "")
         m = _SUM.search(s)
         if not m:
             continue
         key = r["cell"].rsplit("_s", 1)[0]
         d = r.get("diag_final", {})
-        a = arc[i] if i < len(arc) and arc[i]["tag"] == r["tag"] else {}
+        if "final_train_exact" in r:
+            a = {"train_acc": r["final_train_exact"]}
+        else:
+            bucket = arc.get((_note_for(r), r["manifest"]), [])
+            a = bucket.pop(0) if bucket else {}
         by[key].append({
             "tag": r["tag"],
             "max_t": int(m.group(1)), "ood_t": int(m.group(2)),

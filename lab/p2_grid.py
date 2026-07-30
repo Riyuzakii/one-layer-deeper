@@ -66,7 +66,19 @@ def run(cfg: dict, manifest: str, tag: str, note: str) -> dict:
     wall = time.time() - t0
     out = proc.stdout
     rec = {"cell": name, "cfg": cfg, "manifest": manifest, "tag": tag,
-           "wall_seconds": round(wall, 1), "rc": proc.returncode}
+           "note": note, "wall_seconds": round(wall, 1), "rc": proc.returncode}
+    curve = []
+    for ln in out.splitlines():
+        if ln.startswith("step=") or " loss=" in ln and " accuracy=" in ln:
+            try:
+                parts = dict(kv.split("=", 1) for kv in ln.split() if "=" in kv)
+                curve.append([int(parts["step"]), float(parts["loss"]),
+                              float(parts["accuracy"])])
+            except (KeyError, ValueError):
+                pass
+    if curve:
+        rec["train_curve"] = curve[:: max(1, len(curve) // 20)] + [curve[-1]]
+        rec["final_train_exact"] = curve[-1][2]
     for ln in out.splitlines():
         if ln.startswith("[OK]"):
             rec["summary"] = ln.strip()
