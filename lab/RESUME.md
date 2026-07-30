@@ -469,6 +469,17 @@ not a collapse. **The memorisation signature is one phenomenon at 600 rows and a
 27,000**, which strengthens the diagnosis. (Scope: the `DigitALU` `local_ce` 3.5-4.2
 measurement is a different metric on a different family and is untouched.)
 
+**No grokking transient — confirmed by dense evaluation.** The m1 result was initially
+known at only two checkpoints, so a transient during the fitting transition would have
+been invisible. Evaluating the full 3,000-example split at all nine checkpoints, both
+widths: **held-out never exceeds 0.0017 (five examples in 3,000) at any point**, while
+train traverses 0.000 -> 0.883 and loss falls 3.02 -> 0.10. The apparent +0.0010 over the
+`lr=0` control sits inside the trajectory's own oscillation, so the honest statement at
+m1 is **"held-out does not move at all"** — *cleaner* than the Easy-tier statement
+(~8 examples in 1,200), and it is the **ranked** tier that gives the cleaner null. At
+step 25,000 the model holds 0.883 of a 27,000-row training set memorised and 3,000
+held-out prompts at chance simultaneously.
+
 **THE PRE-FITTING REGION — a fleet-wide screening rule.** At m1 scale a **1,200-1,500
 step screen sits inside the pre-fitting region**; the PLAN2 manifests are dominated by
 `fs1200`/`fs1500`. Onsets are architecture-specific, so this does not invalidate results
