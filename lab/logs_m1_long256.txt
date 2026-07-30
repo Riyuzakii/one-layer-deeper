@@ -1,0 +1,1 @@
+[m1-long40k] m1 d_h=256  seed=0 lr=0.001    params=1854450  train=0.8567 held=0.0013 div=0.8607 top=0.0017 ce=7.889 12.7ms/step
