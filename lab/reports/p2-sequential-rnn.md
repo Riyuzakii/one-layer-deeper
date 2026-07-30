@@ -411,6 +411,21 @@ training row make that concrete, and turn it into a prediction rather than a cav
 | only `D_H`=256 fits | capacity was the binding variable | **§2d wrong**, for a capacity reason |
 | neither fits | a real Medium-scale obstruction | **§2d holds**, the Easy/Medium split is real |
 
+**Scoping note, so that BRIEF2 is corrected accurately rather than broadly.** BRIEF2 §2d
+bundles two claims: (i) that models at m1 scale and above "cannot even fit", and (ii) a
+specific `local_ce` measurement of 3.5–4.2 against a 0.006 cliff. Claim (ii) was measured
+on the **`DigitALU`**, a different architecture and a different metric, and **this
+experiment does not address it.** What is measured here is claim (i), for the
+non-linear-RNN family, at adequate capacity and step count. A result here should revise
+(i); it says nothing about the ALU's `local_ce`.
+
+A second property of m1 worth stating, because it cuts against reading a null as "scale":
+m1 has a **single fixed modulus** (N = 10403), so its held-out split is unseen `x` at a
+*seen* N — pure operand generalisation, bottleneck #2 in isolation. Memorising m1 means
+learning a map over `x` at one modulus, whereas memorising e5 means learning `(N, x)`
+pairs across *sampled* moduli. On that axis m1 is the **easier** memorisation target
+despite having 5.6× the rows.
+
 `--lr 0` control at m1 (200 steps, 2 seeds, so every number is random init):
 
 | `D_H` | train_exact @ init | held_exact @ init | div | top |
