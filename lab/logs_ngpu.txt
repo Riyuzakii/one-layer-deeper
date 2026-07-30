@@ -1,3 +1,4 @@
 [ngpu_c48_k12_noise] e5 d_h=48   seed=0 lr=0.001    params=64913    train=0.0118 held=0.0100 div=0.2842 top=0.0733 ce=2.212 96.4ms/step
 [ngpu_c48_k12_noise] e5 d_h=48   seed=1 lr=0.001    params=64913    train=0.0120 held=0.0058 div=0.2750 top=0.0258 ce=2.204 120.8ms/step
 [ngpu_c48_k12_nonoise] e5 d_h=48   seed=0 lr=0.001    params=64913    train=0.2023 held=0.0075 div=0.5875 top=0.0075 ce=3.288 122.1ms/step
+[ngpu_c48_k12_nonoise] e5 d_h=48   seed=1 lr=0.001    params=64913    train=0.2211 held=0.0075 div=0.5992 top=0.0067 ce=3.345 150.9ms/step

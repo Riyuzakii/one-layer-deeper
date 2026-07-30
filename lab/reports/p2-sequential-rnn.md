@@ -217,9 +217,27 @@ answer). A constant map reads `div ≈ 1/n`, `top ≈ 1.0`. `held_ce` is recorde
 | 32 | 31,194 | 0.0341±0.0020 | 0.0072±0.0010 | 0.529 | 0.011 | 2.357 |
 | 64 | 119,546 | 0.4843±0.0410 | 0.0069±0.0034 | 0.607 | 0.008 | 4.275 |
 | 128 | 468,282 | 0.9694±0.0042 | 0.0086±0.0011 | 0.605 | 0.007 | 8.315 |
-| 256 | _pending_ | | | | | |
+| 256 | 1,853,882 | _pending_ | | | | |
 
-_analysis pending_
+**Reading.** `train_exact` climbs **140×** across the sweep, from 0.007 at `D_H`=4 to
+0.97 at `D_H`=128. `held_exact` **does not move at all** — every cell sits in
+0.0069–0.0086, and the *lowest* held-out accuracy in the table belongs to the *most
+capable* model. There is no width at which the carry channel is narrow enough to force
+the algorithm; there is only a width at which it is wide enough to memorise, and below
+it, a width at which it fits nothing.
+
+The collapse detector says the failure is **not** a constant map, so this is a real
+null and not a degenerate one: at `D_H`≥32 the model emits 500–620 distinct answers over
+1,200 held-out prompts with no single answer taking more than 1.1% of them. It is
+producing varied, confident, wrong answers. `held_ce` rising to 8.3 — far above
+`ln(17) = 2.833` — is the confident-and-wrong signature, and is the reason RESUME.md
+tells you not to rank on held-out CE in either direction.
+
+The only cells where the collapse detector *does* fire are the smallest: `D_H`=4 gives
+`div` 0.056 with `top` 0.178, i.e. one answer covers 18% of held-out prompts. That is
+the "too small to do anything" regime, not a generalising one.
+
+_e1 replication and long-run tables pending_
 
 ---
 
@@ -266,9 +284,18 @@ resuming it.** The training numbers that were nevertheless collected are in §4.
 when the reference measured 10.53 ms and 0.326 when contention pushed the reference to
 23.60 ms. Contention cancels; the ratios in this report are stable.)*
 
-### 4.1 Neural GPU training numbers
+### 4.1 Neural GPU training numbers (e5, 2,000 steps, `lab/probe_ngpu.jsonl`)
 
-_pending_
+_table pending_
+
+**The one substantive training finding: the paper's own training aid hurts here.**
+Gradient noise at `eta = 0.01` holds `train_exact` at **0.012** while the identical model
+with `eta = 0` reaches **0.202** — a 17× difference in the *fitting* direction, with
+held-out unmoved at ~0.008 in both. On this task the noise scale that the Neural GPU
+literature calls modest is large relative to a 2,000-step budget, so it prevents the
+model from fitting rather than helping it escape a bad basin. Anyone reviving §3.5
+should sweep `eta` down by 1–2 orders of magnitude, or drop it — but see the budget
+argument above first.
 
 ---
 
@@ -325,7 +352,56 @@ _table pending_
 
 ### 6.3 The single highest-value recommendation
 
-_pending_
+> **Stop buying parallelism. On this task it is not merely unnecessary — it is a net
+> loss — and every hour spent on scan kernels, chunkwise algorithms or Triton is an hour
+> not spent on the one thing that is open.**
+
+PLAN2 §0 builds the entire plan on one premise: *composition is the bottleneck,
+composition is associative, so represent it as an associative operator and compute it
+with a parallel prefix scan in `O(log T)` instead of `O(T)`.* Sections 3.1, 3.2, 3.3
+and 3.7 are all instances of that, and §3.5 is chosen partly because it is "highly
+parallel, good H100 utilization". §3.6 — the serial one — is the entry PLAN2 hedges.
+
+Measured, on the same GPU, in the same window, at the competition's own batch size and
+sequence length:
+
+| candidate | how it computes depth | ms/step, ratio to the H100-calibrated reference |
+|---|---|---|
+| **fused sequential LSTM** (§3.6, *no scan at all*) | `O(T)` serial, T ≤ 21 | **0.33×** |
+| reference recurrent transformer (the H100 anchor) | 8 tied parallel blocks | 1.00× |
+| Neural GPU (§3.5, "highly parallel") | `K` tied conv-GRU steps | **7.2×** |
+
+**The most parallel candidate in the plan is 22× slower than the least parallel one.**
+The reason is structural and was already in the previous session's notes without being
+followed through: this workload is **kernel-launch bound, not FLOP bound**. A serial
+recurrence over 21 steps issues ~21 launches; a "parallel" alternative issues more
+launches doing more total work on tensors too small to fill the machine. Amdahl has
+nothing to say at `T = 21`. The `O(T)` vs `O(log T)` argument that motivates PLAN2 §0 is
+an asymptotic statement about a sequence axis this task does not have — BRIEF2 §2a
+already says the sequence axis is not the composition axis, and this is the wall-clock
+consequence of that correction.
+
+**What follows, concretely.**
+
+1. **Do not write a Triton recurrence kernel.** It cannot even be compiled on this box,
+   it raises a "participant-controlled backward" question under BRIEF.md §4.4, and the
+   thing it would replace is already 3× faster than the reference. `nn.LSTM` is the
+   fused path; it is free, legal and stock.
+2. **Treat ~250,000 Hard steps and an 8× eval margin as the working budget** for any
+   RNN-shaped candidate, not the ~93,000 from the reference calibration. Step famine
+   (`alu-compose` P3) and the eval-budget failure (P2) are not constraints on this
+   family. That removes two of the five ranked next actions in `lab/RESUME.md` §5 for
+   anything built this way.
+3. **Spend the freed budget and the freed engineering time on the state alphabet.**
+   This branch's width sweep is the argument: across six octaves of hidden width, and
+   with 13× the screening step count, `train_exact` moved 140× and `held_exact` moved
+   not at all. Capacity, compute, expressivity and wall clock are all *surplus*. What
+   `digit-carry` #2 and this sweep jointly say is that a **continuous** state is a
+   value-encoding channel at every width — small ones just encode less. The open
+   question is a state that is discrete *by construction* rather than by relaxation
+   (PD-SSM's column-one-hot transition is the obvious instance, and straight-through
+   has already been measured to be destructive), and the budget to explore it is
+   3× larger than anyone has been assuming.
 
 ---
 
