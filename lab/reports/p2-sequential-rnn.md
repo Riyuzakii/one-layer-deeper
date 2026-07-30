@@ -544,7 +544,7 @@ substitutes for it.**
 
 ---
 
-## 7a. In flight at cutoff
+## 7. In flight at cutoff
 
 Every one of these is confirmatory — none of them can change a conclusion above, and
 all are cheap to finish. Exact resume commands are in §8.
@@ -601,7 +601,7 @@ bash lab/eval_cells.sh
 
 ---
 
-## 7. Compliance statement
+## 9. Compliance statement
 
 * No file under `data/generated/` was read, printed, sampled or summarised. The probe
   in `lab/probe_rnn.py` constructs dataloaders through the public `data.factory` API
