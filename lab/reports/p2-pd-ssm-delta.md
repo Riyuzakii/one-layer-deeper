@@ -190,15 +190,23 @@ RESULTS_PROBE_D
    PROBE_C_A5_PERSEED
 
    `τ` divides the logits, so larger `τ` is a **softer backward pass**, while
-   the forward pass is exactly one-hot at every `τ` (verified in §1). Two things
-   matter here. First, the sweep spans **chance to exact**: some temperature
-   reaches near-perfect A₅ in every seed, and most temperatures are at chance.
-   Second, **which** temperature works is seed-dependent, so there is no single
-   value to quote — and the standard "anneal the relaxation toward hard" recipe
-   is not reliably the right direction either. Had this branch reported one
-   temperature, it would have reported a chance-level cell in most draws. This
-   is the strongest argument in this report for the mandate's instruction to
-   report the sweep rather than a setting.
+   the forward pass is exactly one-hot at every `τ` (verified in §1). Three
+   things matter here.
+
+   * The sweep spans **chance to exact**. Some temperature reaches near-perfect
+     A₅ in *both* seeds; most temperatures are at chance in both.
+   * **Which** temperature works is entirely seed-dependent — `τ = 3` in seed 0
+     (1.000, and 0.055 in seed 1), `τ = 0.3` in seed 1 (0.961, and 0.044 in
+     seed 0). **No single `τ` in the sweep works for both seeds.** So this is
+     not "tune `τ` once"; it is a basin-selection problem in disguise, of
+     exactly the shape `explore/alu-population` characterised — which suggests
+     the right instrument is a replica dimension over `τ`, not a schedule.
+   * The standard "anneal the relaxation toward hard" recipe is therefore not
+     reliably the right direction either.
+
+   Had this branch reported one temperature it would have reported a
+   chance-level cell in most draws. This is the strongest argument in the report
+   for the mandate's instruction to report the sweep rather than a setting.
 4. **Straight-through discretisation is what makes PD-SSM *generalise*, not what
    stops it training.** The `ste=none` soft control on A₅ reads **0.494**
    in-distribution (sequence-level 0.277) — clearly learning something — and

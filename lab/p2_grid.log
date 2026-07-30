@@ -40,3 +40,9 @@ Terminated
   [ 454.1s] pdssm_tau1.0_hard_N11_s74    [OK] p2_e5_fs1500_s74 sha=a943d59a MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0050 steps=[1500] train_s=[445.733229435049]
           diag: out_diversity=0.588 top_token_share=0.314 p_max_prob=0.647 p_perm_frac=0.628 d_abs_mean=0.787
 [2/2] S7-small {'P2_ARCH': 'pdssm', 'P2_STATE': 8, 'P2_TAU': 1.0, 'P2_STE': 'hard'} p2_e5_fs1500_s74
+  [ 282.6s] matscan_s7                   [OK] p2_e5_fs1500_s7 sha=a943d59a MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0092 steps=[1500] train_s=[274.7469077021815]
+          diag: out_diversity=1.000 top_token_share=0.389
+[3/4] S6-rep {'P2_ARCH': 'delta', 'P2_NH': 2, 'P2_EIG': 'neg', 'P2_REPEAT': 2} p2_e5_fs1500_s74
+  [ 283.3s] delta_nh1_neg_s7             [OK] p2_e5_fs1500_s7 sha=a943d59a MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0054 steps=[1500] train_s=[274.97977154585533]
+          diag: out_diversity=0.588 top_token_share=0.428 eig_min=-0.961 eig_max=0.771 eig_frac_neg=0.611
+[3/8] S1-nh {'P2_ARCH': 'delta', 'P2_NH': 2, 'P2_EIG': 'neg'} p2_e5_fs1500_s74
