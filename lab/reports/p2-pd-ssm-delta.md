@@ -160,14 +160,21 @@ RESULTS_PROBE_D
    On mod-3 (`Z₃`, needs a non-triangular transition): `n_h=1` is 0.512 against
    chance 0.333; `n_h=2,3,4` are 1.000 ± 0.000, including at `2×` length. One
    Householder cannot build the order-3 rotation; two can. On **A₅** — the
-   non-solvable, `NC¹`-complete case — `n_h=1` reads **0.012** and `n_h=2`
-   reads **0.021** against chance **0.017**, and `n_h=3` reads **1.000**, with
-   sequence-level accuracy 1.000 and `2×`-length extrapolation 1.000.
-   **A chance-to-exact transition between `n_h=2` and `n_h=3` on a non-solvable
-   group word problem is exactly the behaviour DeltaProduct is claimed to have,
-   reproduced here with the same code, same budget, and same sweep that is
-   about to be applied to the competition task.** This is what makes a flat
-   real-task sweep a *result* rather than an absence of one.
+   non-solvable, `NC¹`-complete case, chance 0.017 — the per-seed values are
+
+   | `n_h` | 1 | 2 | 3 | 4 |
+   |---|---|---|---|---|
+   | seed 0 | 0.012 | 0.021 | **1.000** | **1.000** |
+   | seed 1 | 0.012 | 0.049 | 0.071 | **1.000** |
+
+   with sequence-level accuracy and `2×`-length extrapolation also 1.000 in
+   every bold cell. So: **never solved at `n_h ≤ 2` in any seed, solved in 1/2
+   seeds at `n_h = 3`, solved in 2/2 at `n_h = 4`.** The threshold is
+   seed-dependent; the ordering is not. **A chance-to-exact transition in `n_h`
+   on a non-solvable group word problem is exactly the behaviour DeltaProduct is
+   claimed to have, reproduced here with the same code, same budget, and the
+   same sweep that is about to be applied to the competition task.** This is
+   what makes a flat real-task sweep a *result* rather than an absence of one.
 3. **The PD-SSM temperature is not a nuisance parameter — on the hardest task it
    is the whole result, and it points the opposite way to the obvious
    intuition.** On parity and mod-3 every temperature gives 1.000, which is
