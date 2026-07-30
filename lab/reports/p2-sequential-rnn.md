@@ -338,7 +338,15 @@ when the reference measured 10.53 ms and 0.326 when contention pushed the refere
 
 ### 4.1 Neural GPU training numbers (e5, 2,000 steps, `lab/probe_ngpu.jsonl`)
 
-_table pending_
+| config | `eta` | n | train_exact | **held_exact** | div | top | held_ce |
+|---|---|---|---|---|---|---|---|
+| `C=48 K=12` | 0.01 | 2 | 0.0119 | 0.0079 | 0.280 | 0.050 | 2.208 |
+| `C=48 K=12` | **0** | 2 | **0.2117** | 0.0075 | 0.593 | 0.007 | 3.317 |
+| `C=48 K=6` | 0.01 | 1 | 0.0108 | 0.0050 | 0.285 | 0.041 | 2.213 |
+| `C=48 K=20`, `C=24`, `C=96`, lr=0 | — | — | _abandoned at cutoff_ | | | | |
+
+Held-out is at the floor in every cell, exactly as for the LSTM, and with the same
+non-collapsed prediction distribution.
 
 **The one substantive training finding: the paper's own training aid hurts here.**
 Gradient noise at `eta = 0.01` holds `train_exact` at **0.012** while the identical model
@@ -362,9 +370,17 @@ deliberate tier-faithful timing check (BRIEF.md §5).
 | `rnn-base` | `D_H=64` | e5 fs2000 | 2000 | **0** | 0 | 0.0050 | 0.007 |
 | `ref-calib` | `exp_axis` d128 ×8 (control) | e5 fs2000 | 400 | **0** | 0 | 0.0058 | 0.007 |
 | `rnn-wallclock` | `D_H=64` | e5 **wallclock 60 s** | 314 | **0** | 0 | 0.0071 | 0.008 |
-| `rnn-width` | `D_H=8` | e5 fs2000 | 2000 | **0** | 0 | 0.0075 | _pending_ |
+| `rnn-width` | `D_H=8` | e5 fs2000 | 2000 | **0** | 0 | 0.0075 | 0.007 |
+| `rnn-width` | `D_H=128` | e5 fs2000 | 2000 | **0** | 0 | 0.0071 | 0.002 |
 
-_remaining cells pending_
+Per-rung, `D_H=128` (the configuration that reaches train 0.97): seen-N
+`{1: 0.002, 2: 0.008, 4: 0.002, 8: 0.006, 16: 0.006, 32: 0.004, 64: 0.004}`, OOD-N
+`{1: 0.002, 2: 0.0, 4: 0.004, 8: 0.0, 16: 0.002, 32: 0.0, 64: 0.0}`. **The rung profile
+is flat, not decaying** — consistent with `tied-recurrence`'s finding that error
+compounding in T is not the constraint, and confirming again that nothing about depth is
+what is failing here.
+
+_remaining cells (`lr0`, `d64_x4`, Neural GPU, e1) in flight at cutoff_
 
 ---
 
