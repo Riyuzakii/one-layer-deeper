@@ -433,6 +433,15 @@ despite having 5.6× the rows.
 | 128 | 0.0003±0.0002 | **0.0000** | 0.094 | 0.099 |
 | 256 | 0.0000±0.0000 | **0.0000** | 0.095 | 0.178 |
 
+**Instrumentation limitation, stated because it bounds what the answer can settle.**
+`probe_rnn.py` records *training-batch* exact accuracy at every checkpoint but evaluates
+held-out only at the end of a run. That is true of the e5 40k runs too, so the two remain
+directly comparable — but it means a **held-out** trajectory here is two points (3,000
+and 40,000 steps), not nine, and a transient held-out spike between them would not be
+seen. If the 40k result turns out to be "fits", the held-out trajectory becomes the
+interesting object and intermediate points are worth adding; if it is "does not fit",
+held-out cannot have moved and the two points suffice.
+
 _40,000-step results pending._
 
 ---
