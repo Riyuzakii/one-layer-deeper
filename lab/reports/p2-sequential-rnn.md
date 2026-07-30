@@ -357,7 +357,7 @@ held-out at 0.0069 → 0.0058. **The surplus training budget this branch found i
 it is worthless on this objective at both ends of the width range** — at the width that
 cannot memorise it fits nothing, and at the width that can it finishes memorising.
 
-### 3.4 m1 — the Medium-scale cross-check, and an honest confound
+### 3.4 m1 — the Medium-scale cross-check (short runs, superseded by §3.5)
 
 BRIEF2 §2d says the expressivity framing is tier-dependent: at Easy the models fit train
 and fail to generalise, but "at m1 scale and above they cannot even fit". m1 (N = 10403
@@ -383,7 +383,42 @@ times over; it is the single most useful thing left undone here and is listed in
 Note this cuts *against* the convenient reading. If m1 turns out to fit given enough
 steps, then the "expressivity is binding at the ranked tier" defence in BRIEF2 §2d
 weakens and the memorisation diagnosis extends upward — which would strengthen §6.3's
-recommendation rather than weaken it. Either way the measurement has not been made.
+recommendation rather than weaken it.
+
+**§3.5 makes the measurement.**
+
+### 3.5 m1 at 40,000 steps — resolving all three readings
+
+The coordinator's response to §3.4 added a third candidate explanation, and it is a good
+one: the m1 cells may be **under capacity**, not merely under-trained. Parameters per
+training row make that concrete, and turn it into a prediction rather than a caveat:
+
+| dataset | `D_H` | params | train rows | **params/row** | fits? |
+|---|---|---|---|---|---|
+| e5 | 32 | 31,194 | 4,800 | 6.5 | no (train 0.034) |
+| e5 | **64** | 119,546 | 4,800 | **24.9** | **yes — 0.984 at 40k** |
+| e5 | 128 | 468,282 | 4,800 | 97.6 | yes — 0.969 at 3k |
+| **m1** | **128** | 468,594 | 27,000 | **17.4** | ? |
+| **m1** | **256** | 1,854,194 | 27,000 | **68.7** | ? |
+
+**m1 at `D_H`=128 sits at 17.4 params/row — below the 24.9 that did fit on e5.** So §3.4's
+`D_H`=128 cells were plausibly starved of capacity as well as steps, and `D_H`=256 at
+68.7/row is the discriminator. The three readings separate cleanly:
+
+| outcome at 40,000 steps | reading | consequence for BRIEF2 §2d |
+|---|---|---|
+| both widths fit | steps were the binding variable | **§2d wrong**, memorisation extends to Medium |
+| only `D_H`=256 fits | capacity was the binding variable | **§2d wrong**, for a capacity reason |
+| neither fits | a real Medium-scale obstruction | **§2d holds**, the Easy/Medium split is real |
+
+`--lr 0` control at m1 (200 steps, 2 seeds, so every number is random init):
+
+| `D_H` | train_exact @ init | held_exact @ init | div | top |
+|---|---|---|---|---|
+| 128 | 0.0003±0.0002 | **0.0000** | 0.094 | 0.099 |
+| 256 | 0.0000±0.0000 | **0.0000** | 0.095 | 0.178 |
+
+_40,000-step results pending._
 
 ---
 
