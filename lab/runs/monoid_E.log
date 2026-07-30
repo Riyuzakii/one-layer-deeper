@@ -28,3 +28,13 @@ Traceback (most recent call last):
     p = self.multiply(x, hard=hard, ste=self.ste)
 TypeError: MonoidALU.multiply() got an unexpected keyword argument 'ste'
 ### E-samp11-d16-s2 :: --modulus 0 --bits 11 --n-mod-train 8 --n-mod-held 4 --train-x 400 --held-x 256 --slots 4 --d 16 --family colsoftmax --seed 2 --steps 2000
+[E-samp11-d16-s2] mod=sampled11 S=4 L=8 d=16 family=colsoftmax impl=scan T=1 train=3200 held=1024 params=126,916 op_depth=14 graph_depth=49
+[E-samp11-d16-s2] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.690 tbl=0.027 (2s)
+[E-samp11-d16-s2] step=   500 loss=1.85508 train_exact=0.001 held_exact=0.000 train_exact_hard=0.001 held_exact_hard=0.001 held_div=0.012 tbl=0.024 (8s)
+[E-samp11-d16-s2] step=  1000 loss=1.81099 train_exact=0.003 held_exact=0.002 train_exact_hard=0.000 held_exact_hard=0.001 held_div=0.013 tbl=0.029 (15s)
+[E-samp11-d16-s2] step=  1500 loss=1.76287 train_exact=0.002 held_exact=0.004 train_exact_hard=0.001 held_exact_hard=0.001 held_div=0.029 tbl=0.023 (24s)
+[E-samp11-d16-s2] step=  2000 loss=1.71498 train_exact=0.003 held_exact=0.002 train_exact_hard=0.001 held_exact_hard=0.001 held_div=0.057 tbl=0.024 (34s)
+### E-samp11-lr0 :: --modulus 0 --bits 11 --n-mod-train 8 --n-mod-held 4 --train-x 400 --held-x 256 --slots 4 --d 16 --family colsoftmax --lr 0 --steps 500
+[E-samp11-lr0] mod=sampled11 S=4 L=8 d=16 family=colsoftmax impl=scan T=1 train=3200 held=1024 params=126,916 op_depth=14 graph_depth=49
+[E-samp11-lr0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.549 tbl=0.040 (6s)
+[E-samp11-lr0] step=   500 loss=2.30139 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.549 tbl=0.040 (18s)

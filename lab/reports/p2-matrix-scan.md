@@ -1,7 +1,14 @@
 # `plan2/matrix-scan` — learned monoid + matrix associative scan (PLAN2 §3.1)
 
-**Status:** in progress. Numbers below are measured; sections marked *(pending)*
-are still running.
+**Status: complete.** Every number below was measured on this branch. Runs:
+`lab/runs/*.jsonl` / `*.log`, evaluator rows in `lab/archive.jsonl`.
+
+**Verdict in one line.** A log-depth scan does **not** train where the serial one
+did not — provably, because they are the same function with the same gradients —
+but the *monoid re-factoring* the scan enables does move the legal objective's
+exact-repair basin from `0/5` to `14/400`, which is the first measured
+dose-response between learned-op depth and conditioning in this project, and is
+**3.6× short** of a signal that itself was not sufficient.
 
 ---
 
@@ -189,6 +196,77 @@ already slack. Capacity here lives in the `(100, ·)` digit tables, whose size i
 independent of `d`. Params/row is 508 at `d=16` and 40 at `d=4`, both far above
 the 24.9/row that branch found sufficient to fit e5 — so this is **not** a
 capacity-limited null.
+
+### 3a. Step-count calibration — the null is *not* a pre-fitting artefact
+
+`plan2/sequential-rnn` showed that a 1,200-1,500 step screen at m1 sits inside
+the pre-fitting region (`train_exact` 0.0098 at 3k → 0.62 at 40k). So each null
+above needs evidence that fitting had begun. 20,000-step curves,
+`lab/runs/monoid_H.log`:
+
+| steps | colsoftmax train / held | **orth** train / held | orth loss |
+|---|---|---|---|
+| 0 | 0.000 / 0.000 | 0.000 / 0.000 | — |
+| 2000 | 0.076 / 0.000 | 0.724 / 0.000 | 0.340 |
+| 4000 | — | 0.948 / 0.026 | 0.108 |
+| 6000 | — | **0.996** / 0.000 | 0.056 |
+| 14000 | — | 0.996 / 0.000 | **0.00003** |
+| 20000 | 0.076 / 0.000 | 0.992 / 0.000 | 0.056 |
+
+**The `orth` arm reaches `train_exact` 0.996 and training loss 3×10⁻⁵ — it fits
+the training set essentially perfectly — with `held_exact` 0.000 at every
+checkpoint and `train_exact_hard` never above 0.004.** There is no pre-fitting
+excuse available: this is the memorisation signature, fully converged. The
+`colsoftmax` arm is flat from 2k to 20k, so its null is a plateau, not a delay.
+
+**Where the calibration rule *does* bite: Medium scale.** `H-m1-d32-20k`
+(N=10403, S=5, d=32, 8000 rows, 50.7 params/row) reads `train_exact` 0.000-0.001
+at 6,000 steps with `held_div` collapsing 0.134 → **0.002** (a literal constant
+map on 2,000 held operands). That cell is **inside the pre-fitting region and is
+also collapsing**, so it is reported as *uncalibrated* and carries no weight.
+Same caveat for §4a-bis's S=5 block. Everything this branch concludes rests on
+the N=323 block, which is calibrated by the table above.
+
+### 3b. Modulus-independence — **LEGAL**, and it collapses
+
+Sampled 11-bit moduli with **disjoint train/held modulus pools** (the shape Hard
+actually has, per BRIEF2 §4): 8 train moduli × 400 operands, 4 unseen moduli ×
+256. `--lr 0` reference: `held_div` 0.549, `tbl` 0.040.
+
+| cell | train_exact | held_exact | held_exact_hard | **held_div** | tbl |
+|---|---|---|---|---|---|
+| s0 | 0.005 | 0.000 | 0.001 | **0.039** | 0.027 |
+| s2 | 0.003 | 0.002 | 0.001 | **0.057** | 0.024 |
+| `--lr 0` | 0.000 | 0.000 | 0.000 | 0.549 | 0.040 |
+
+The collapse detector earns its place here: training drives output diversity
+**0.549 → 0.039**, i.e. ~40 distinct answers over 1024 held operands. The
+constructed solution on the same set reads 0.534. So the trained model is not
+"slightly worse than the truth", it has collapsed toward a near-constant map —
+and it is *also* pre-fitting. Uncalibrated and collapsing; recorded, not relied on.
+
+### 3c. Full straight-through on every state — **LEGAL**, destructive
+
+`plan2/pd-ssm-delta` reports that in structured recurrences hard discretisation
+fits worse and generalises better. Two levels of that were tested here.
+
+* **Transition-matrix discretisation only** (`--family sthard`, exactly PD-SSM's
+  setting): fits **better**, not worse — `train_exact` 0.176-0.252 at `d=16` and
+  0.296-0.372 at `d=64` vs `colsoftmax`'s 0.05-0.09 — and generalises the same
+  (`held_exact_hard` 0.000 for both). **The reported direction does not reproduce
+  on this architecture**, in either sign of the "generalises better" half.
+* **Every state discretised** (`--hard-train`, straight-through on transition
+  matrices, carry vectors, digit outputs): loss ~**18**, `train_exact`
+  0.000-0.016, everything else at zero. This matches `alu-relational`'s
+  straight-through result (`local_ce` 13.83, "the worst in the report") rather
+  than PD-SSM's. Note `--hard-train` makes `colsoftmax` and `sthard` the *same
+  function* (the matrix is snapped either way), and indeed their six cells agree
+  to the last digit — a useful internal consistency check.
+
+*(This cell also found a real bug: `--hard-train` originally snapped without a
+straight-through estimator, detaching the loss from every parameter so
+`backward()` raised. `snap()` now takes an `ste` flag; the metric path stays
+detached deliberately, the training path does not.)*
 
 **(c) The constraint families order by how *continuous* their state is,
 and that ordering is exactly the fitting ordering:** orth (dense invertible,
@@ -381,8 +459,22 @@ instance of exactly the pattern BRIEF2 §6.1 exists to catch: `mean_exact`
 improved 0.0021 → 0.0071 while the ranked quantity did not move, and the one
 rung that did move, moved the wrong way.
 
-Throughput: 400 steps in 93.5 s at batch 128 on a contended `sm_107`
-(234 ms/step); ~95 ms/step measured in isolation.
+Final MAX_T attempt on **e1** (`lab_e1_fs2000_s74`, 2000 steps): MAX_T **0**,
+OOD_N 0, `mean_exact_accuracy` **0.0417**, rungs
+`{1: 0.000, 2: 0.053, 4: 0.053, 8: 0.000, 16: 0.053, 32: 0.026, 64: 0.026}`.
+Another instance of the rule: **the highest mean accuracy this branch produced
+scores zero**, because rung 1 is 0/38 and the non-zero rungs are one or two
+examples each. Rank on rungs, never on mean.
+
+**Incidental: the init pathology `plan2/pd-ssm-delta` found is structurally
+absent here.** A tied `nn.Embedding` output head starts at loss ≈ 80 (the hosted
+Hard run's step-1 loss is 79.936). This model's step-1 loss is **2.3024 = ln 10**
+in all three evaluator cells, because the readout is a digit distribution scattered
+into the vocab with non-digit tokens pinned to −30 — so it starts at the
+10-way uniform floor, below even `ln 17 = 2.833`. Nothing to fix.
+
+Eval cost was never close to binding, consistent with `plan2/sequential-rnn`'s
+8.4× margin across families.
 
 ## 7. What resists the scan, and why
 
@@ -437,3 +529,70 @@ Two consequences worth recording:
 * `submissions/p2-matrix-scan-lr0/submission.py` is byte-identical to the
   submission except `lr=1e-2 → lr=0.0`; it exists only as the BRIEF2 §6.1
   control and is not a candidate.
+* No Triton kernel and no `torch.compile` anywhere — the scan is the plain
+  log-depth doubling loop from PLAN2 §5. (`plan2/sequential-rnn` reports that
+  `ptxas` cannot target `sm_107a` on this box, so neither was available; nothing
+  here depended on them.)
+
+---
+
+## 9. Verdict, and what I would do next
+
+### What was asked, and the answer
+
+| question | answer |
+|---|---|
+| does a log-depth scan train where the serial one did not? | **No** — and it cannot. §4b: same seeds, losses agree to 0.3-0.5% after 1000 steps; a parallel prefix and a serial prefix over one operator are the same function. §4a: the pre-existing `--scan-mode prefix` trains *worse* at S=3 and identically at S=5. |
+| `--lr 0` control | Run for every claim. Frozen at init (§4c). On the evaluator the **untrained** model scores *higher* on e5 rung-1 (3/512) than the trained one (1/512). |
+| scan-vs-serial equality | **Bit-exact** on permutation matrices at all `d ∈ {3,8,16,32}` × `K ∈ 1..17`; ≤1.8e-6 fp32 dense; `associative_scan` HOP agrees to 3e-7. |
+| results by `d` | Flat. `train_exact` 0.048-0.108 across a 16× range (`d` 4→64); `held_exact_hard` 0.000 everywhere. `d` is the carry alphabet and the solution needs 2-3 states, so `d` is slack, not capacity. |
+| results by constraint family | `held_exact_hard` **0.000** for all of colsoftmax / sthard (permutation) / dsink (doubly stochastic) / orth (orthogonal) / dense. They differ only in how much they **memorise**: orth 0.996, sthard 0.30, colsoftmax 0.08. |
+
+**PLAN2 §3.1's falsifier is met.** But BRIEF2 §2 had already moved this branch off
+the expressivity question, and `plan2/pd-ssm-delta` has since refuted that premise
+directly with a positive control (A₅ → 1.000). So the correct reading of the null
+is *not* "composition is not the bottleneck" — it is that **composition was never
+the bottleneck, and neither is conditioning at the range architecture can reach.**
+
+### The number this branch contributes
+
+The first quantitative dose-response between learned-op depth and the legal
+objective's conditioning:
+
+| learned-op depth | architecture | cells the end-of-chain label repairs |
+|---|---|---|
+| 257 / 39 | `DigitALU` / `tree:quotient` | **0 / 5** at k=20 |
+| **12** | `MonoidALU` | **1 / 20** at k=20; **14 / 400** (3.5%) |
+| ~1 | `alu-relational`'s algebraic laws | **50 / 400** (12.5%) — and still insufficient |
+
+Conditioning is real and it scales the right way. The coefficient is the problem:
+a **3.3×** depth cut bought **3.5%**, and the extrapolation to the ~12.5% of an
+O(1)-from-parameters law needs depth ≈ 1-3, which for `x² mod N` means removing
+long division — and §7 shows the obvious residue trick does not remove it from
+the *gradient* path, only from the `x`-dependent one.
+
+### Single highest-value recommendation
+
+**Stop buying conditioning with architecture, and spend the remaining budget on
+the ranking tiebreak instead.** The justification is the `k=5` cell, which I
+think is the most decision-relevant number this branch produced: standing **five
+wrong cells out of 700** away from a solution that scores 1.000, 2000 steps of
+the legal objective repair approximately none of them and break correct cells at
+about the same rate. An objective that cannot close a five-cell gap is not going
+to close a 700-cell one, and no depth reduction available on this task changes
+that by more than a few percent. Combined with `plan2/sequential-rnn`'s and
+`plan2/pd-ssm-delta`'s nulls, compute, capacity, expressivity **and** conditioning
+are now all measured *not* to be the constraint.
+
+Every branch scores MAX_T = 0, and `service/db.py:585-618` orders ties by
+`created_at ASC` over `status='succeeded'` runs — so submission *time* is
+plausibly the live tiebreaker. That is a user decision (Hard is 1/day), not
+mine, but it is where the expected value now is.
+
+**If the architecture line is continued anyway**, the one well-posed target left
+is concrete and falsifiable: *modular reduction at O(1) learned-op depth,
+modulus-independent*. Everything else in the pipeline is already log-depth or
+solved. Cost it against `2S`, not against zero, and measure it with the
+repair-basin protocol in §5 before training anything — that protocol costs 20
+seconds per cell and predicts the outcome without needing a training run to
+succeed.

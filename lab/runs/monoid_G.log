@@ -251,3 +251,58 @@ RuntimeError: element 0 of tensors does not require grad and does not have a gra
 [G-hard-colsoftmax-s1] step=  1500 loss=18.51278 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.579 tbl=0.029 (17s)
 [G-hard-colsoftmax-s1] step=  2000 loss=17.98779 train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.632 tbl=0.030 (22s)
 ### G-hard-colsoftmax-s2 :: --modulus 323 --d 16 --family colsoftmax --hard-train --seed 2 --steps 2000
+[G-hard-colsoftmax-s2] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[G-hard-colsoftmax-s2] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.632 tbl=0.027 (2s)
+[G-hard-colsoftmax-s2] step=   500 loss=19.09304 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.632 tbl=0.021 (9s)
+[G-hard-colsoftmax-s2] step=  1000 loss=18.78909 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.553 tbl=0.027 (16s)
+[G-hard-colsoftmax-s2] step=  1500 loss=18.73383 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.579 tbl=0.024 (22s)
+[G-hard-colsoftmax-s2] step=  2000 loss=18.59568 train_exact=0.016 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.763 tbl=0.027 (27s)
+### G-hard-sthard-s0 :: --modulus 323 --d 16 --family sthard --hard-train --seed 0 --steps 2000
+[G-hard-sthard-s0] mod=323 S=3 L=6 d=16 family=sthard impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[G-hard-sthard-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.040 (3s)
+[G-hard-sthard-s0] step=   500 loss=18.37463 train_exact=0.016 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.868 tbl=0.030 (8s)
+[G-hard-sthard-s0] step=  1000 loss=18.37463 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.036 (13s)
+[G-hard-sthard-s0] step=  1500 loss=18.78909 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.526 tbl=0.024 (18s)
+[G-hard-sthard-s0] step=  2000 loss=18.12595 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.026 (23s)
+### G-hard-sthard-s1 :: --modulus 323 --d 16 --family sthard --hard-train --seed 1 --steps 2000
+[G-hard-sthard-s1] mod=323 S=3 L=6 d=16 family=sthard impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[G-hard-sthard-s1] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.974 tbl=0.030 (2s)
+[G-hard-sthard-s1] step=   500 loss=18.65094 train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.026 held_div=0.711 tbl=0.029 (7s)
+[G-hard-sthard-s1] step=  1000 loss=18.23647 train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.763 tbl=0.034 (12s)
+[G-hard-sthard-s1] step=  1500 loss=18.51278 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.579 tbl=0.029 (17s)
+[G-hard-sthard-s1] step=  2000 loss=17.98779 train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.632 tbl=0.030 (22s)
+### G-hard-sthard-s2 :: --modulus 323 --d 16 --family sthard --hard-train --seed 2 --steps 2000
+[G-hard-sthard-s2] mod=323 S=3 L=6 d=16 family=sthard impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[G-hard-sthard-s2] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.632 tbl=0.027 (2s)
+[G-hard-sthard-s2] step=   500 loss=19.09304 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.632 tbl=0.021 (7s)
+[G-hard-sthard-s2] step=  1000 loss=18.78909 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.553 tbl=0.027 (12s)
+[G-hard-sthard-s2] step=  1500 loss=18.73383 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.579 tbl=0.024 (17s)
+[G-hard-sthard-s2] step=  2000 loss=18.59568 train_exact=0.016 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.763 tbl=0.027 (22s)
+### B-323-d8-colsoftmax-s2 :: --modulus 323 --d 8 --family colsoftmax --seed 2 --steps 2000
+[B-323-d8-colsoftmax-s2] mod=323 S=3 L=6 d=8 family=colsoftmax impl=scan T=1 train=250 held=38 params=45,308 op_depth=12 graph_depth=41
+[B-323-d8-colsoftmax-s2] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.605 tbl=0.027 (3s)
+[B-323-d8-colsoftmax-s2] step=   500 loss=1.57406 train_exact=0.024 held_exact=0.026 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.263 tbl=0.037 (12s)
+[B-323-d8-colsoftmax-s2] step=  1000 loss=1.18803 train_exact=0.068 held_exact=0.000 train_exact_hard=0.024 held_exact_hard=0.000 held_div=0.342 tbl=0.033 (17s)
+[B-323-d8-colsoftmax-s2] step=  1500 loss=1.12514 train_exact=0.064 held_exact=0.000 train_exact_hard=0.028 held_exact_hard=0.000 held_div=0.368 tbl=0.040 (22s)
+[B-323-d8-colsoftmax-s2] step=  2000 loss=1.08047 train_exact=0.068 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.368 tbl=0.034 (26s)
+### B-323-d32-colsoftmax-s0 :: --modulus 323 --d 32 --family colsoftmax --seed 0 --steps 2000
+[B-323-d32-colsoftmax-s0] mod=323 S=3 L=6 d=32 family=colsoftmax impl=scan T=1 train=250 held=38 params=405,332 op_depth=12 graph_depth=41
+[B-323-d32-colsoftmax-s0] step=     0 loss=nan train_exact=0.016 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.474 tbl=0.040 (7s)
+[B-323-d32-colsoftmax-s0] step=   500 loss=1.50938 train_exact=0.016 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.158 tbl=0.031 (14s)
+[B-323-d32-colsoftmax-s0] step=  1000 loss=1.19374 train_exact=0.060 held_exact=0.000 train_exact_hard=0.020 held_exact_hard=0.026 held_div=0.263 tbl=0.031 (19s)
+[B-323-d32-colsoftmax-s0] step=  1500 loss=1.12996 train_exact=0.064 held_exact=0.000 train_exact_hard=0.016 held_exact_hard=0.000 held_div=0.316 tbl=0.027 (24s)
+[B-323-d32-colsoftmax-s0] step=  2000 loss=1.08442 train_exact=0.084 held_exact=0.000 train_exact_hard=0.012 held_exact_hard=0.000 held_div=0.368 tbl=0.029 (29s)
+### B-323-d32-colsoftmax-s1 :: --modulus 323 --d 32 --family colsoftmax --seed 1 --steps 2000
+[B-323-d32-colsoftmax-s1] mod=323 S=3 L=6 d=32 family=colsoftmax impl=scan T=1 train=250 held=38 params=405,332 op_depth=12 graph_depth=41
+[B-323-d32-colsoftmax-s1] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.000 held_div=0.842 tbl=0.030 (5s)
+[B-323-d32-colsoftmax-s1] step=   500 loss=1.54188 train_exact=0.020 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.105 tbl=0.026 (15s)
+[B-323-d32-colsoftmax-s1] step=  1000 loss=1.19525 train_exact=0.068 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.237 tbl=0.029 (27s)
+[B-323-d32-colsoftmax-s1] step=  1500 loss=1.11409 train_exact=0.084 held_exact=0.000 train_exact_hard=0.012 held_exact_hard=0.000 held_div=0.316 tbl=0.029 (38s)
+[B-323-d32-colsoftmax-s1] step=  2000 loss=1.06490 train_exact=0.088 held_exact=0.000 train_exact_hard=0.012 held_exact_hard=0.000 held_div=0.395 tbl=0.023 (49s)
+### B-323-d32-colsoftmax-s2 :: --modulus 323 --d 32 --family colsoftmax --seed 2 --steps 2000
+[B-323-d32-colsoftmax-s2] mod=323 S=3 L=6 d=32 family=colsoftmax impl=scan T=1 train=250 held=38 params=405,332 op_depth=12 graph_depth=41
+[B-323-d32-colsoftmax-s2] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.711 tbl=0.027 (3s)
+[B-323-d32-colsoftmax-s2] step=   500 loss=1.67466 train_exact=0.024 held_exact=0.026 train_exact_hard=0.016 held_exact_hard=0.000 held_div=0.289 tbl=0.043 (15s)
+[B-323-d32-colsoftmax-s2] step=  1000 loss=1.22776 train_exact=0.064 held_exact=0.000 train_exact_hard=0.016 held_exact_hard=0.000 held_div=0.316 tbl=0.034 (26s)
+[B-323-d32-colsoftmax-s2] step=  1500 loss=1.11907 train_exact=0.056 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.368 tbl=0.034 (37s)
+[B-323-d32-colsoftmax-s2] step=  2000 loss=1.07621 train_exact=0.048 held_exact=0.000 train_exact_hard=0.004 held_exact_hard=0.000 held_div=0.421 tbl=0.036 (48s)
