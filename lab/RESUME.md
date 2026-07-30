@@ -460,6 +460,14 @@ and the 4-tied-pass model alike, unlike the ALU family's 1.1x.
 `{1: 0.000, 2: 0.000, 4: 0.026, 8: 0.026, 16: 0, 32: 0, 64: 0}` — the two non-zero
 entries are one example out of 38, the variance floor.
 
+**Scope caveat on the Medium diagnosis.** The claim "models cannot fit at m1 scale" is
+well supported for the **ALU family** (`local_ce` 3.5-4.2 at 12k-20k steps) but **NOT**
+for the RNN family: e5 needed ~5,000 steps to fit at `D_H`=64 and m1 has 5.6x the rows
+but was only run for 3,000. `plan2/sequential-rnn` flagged this against its own
+conclusion and is running `--dataset m1 --steps 40000` with a capacity arm. If m1 does
+fit given enough steps, the memorisation diagnosis extends to Medium and the
+expressivity framing weakens at every tier.
+
 **PLAN2 §6's kill criterion has effectively fired:** a maximally expressive non-linear
 RNN also gets nothing, which by PLAN2's own text means the expressivity diagnosis is
 wrong and the harness, loss and label alignment should be audited before more

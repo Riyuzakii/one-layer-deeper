@@ -101,7 +101,10 @@ is the single most valuable untested question, and it is what this plan should a
 
 ## 5. Environment (already checked — do not re-verify)
 
-- `triton` **3.7.1 importable** → custom chunkwise/fused kernels are on the table.
+- `triton` **3.7.1 imports but CANNOT COMPILE on this box** — `ptxas-blackwell: sm_107a
+  is not defined`. The same failure **kills `torch.compile`**. **Do not write or budget
+  for custom kernels.** Fusion still pays enormously via built-ins: cuDNN `nn.LSTM` beat
+  a naive Python loop **8.1x**.
 - `torch._higher_order_ops.associative_scan` **importable** (torch 2.12.1+cu130).
 - `max_seq_len` 13 / 15 / 21 (e1-e5 / m1 / m4); `vocab_size` 17 everywhere.
 - Venv: `/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python`. No installs.
@@ -125,7 +128,17 @@ is the single most valuable untested question, and it is what this plan should a
    modulus you use.
 6. **Measure a signal's illegal ceiling and its basin before building its legal
    version.** Four runs closed the strongest family last session.
-7. Use `--mode fixed_step` manifests for cross-agent comparisons; several agents share
+7. **Cost ratios do not transfer across tier shapes.** The Neural GPU is 22x the fused
+   LSTM at Hard's shape (L=21, batch 512) but only 1.7x at e5's (L=13, batch 128) — at
+   small shapes both are launch-bound and the DataLoader dominates. Screen *accuracy* on
+   e5, but take every wall-clock comparison at Hard's shape, as a ratio to a fixed
+   reference model (absolutes do not transfer off sm_107).
+8. **Parallelism is a net loss at this scale.** Fused serial LSTM 0.33x, reference 1.00x,
+   Neural GPU 7.22x — the most parallel candidate is 22x slower than the least. Judge
+   scan-based candidates on *conditioning*, never on speed.
+9. **Eval budget does not constrain PLAN2**: 2.2-5.2 s against a 30 s Easy allowance
+   across every family tested (~8x margin), unlike the ALU family's 1.1x.
+10. Use `--mode fixed_step` manifests for cross-agent comparisons; several agents share
    one GPU and wall-clock step counts are not comparable.
 
 ## 7. Compliance (BRIEF.md §4 in full — unchanged, and it binds)
