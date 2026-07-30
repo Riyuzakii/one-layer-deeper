@@ -97,3 +97,4 @@
 [3/6] F_matscan_N64  N=64 s=0 last=0.018 seq=0.000 chance=0.017 div=0.017 ext2x=0.020 (30.24s)
 [4/6] F_pdssm_N64    N=64 s=1 last=1.000 seq=1.000 chance=0.017 div=1.000 ext2x=0.998 (60.1s)
 [5/6] F_pdssm_N32    N=32 s=1 last=0.146 seq=0.034 chance=0.017 div=1.000 ext2x=0.025 (36.84s)
+[6/6] F_matscan_N64  N=64 s=1 last=0.112 seq=0.009 chance=0.017 div=0.967 ext2x=0.031 (24.05s)

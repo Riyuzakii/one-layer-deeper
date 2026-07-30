@@ -129,18 +129,22 @@ composition axis:
 freshly-generated held-out sequences, plus a `2×`-length extrapolation eval.
 **DIAGNOSTIC** — these are not the competition task.
 
-> **Two caveats, stated before the numbers rather than after.**
+> **Three caveats, stated before the numbers rather than after.**
 > (a) The "§3.1" row is *this branch's own* low-rank instantiation
 > (`M_t = I + u_t v_tᵀ / √r`, `r = 4`), not the `plan2/matrix-scan` sibling's
 > implementation. Read it as a locally-matched reference point, never as a
 > statement about their work.
 > (b) The main probe runs PD-SSM at `N = 16`, which **cannot** represent A₅'s
 > 60 states under PD-SSM's own theorem, so its A₅ cells are under-provisioned by
-> construction. Probe F re-runs A₅ at `N = 32` and `N = 64`, and the theorem is
-> confirmed: at `τ = 1`, `N = 16` reads **0.050** while `N = 32` reads **1.000**
-> and `N = 64` reads **0.987**. (`N = 16` can still reach 1.000 at a lucky
-> temperature, because the readout is not restricted to the state — but the
-> state-size dependence is real and it is where the theorem says it is.)
+> construction. Probe F re-runs A₅ at `N = 32` and `N = 64` and **the theorem is
+> confirmed at its boundary**: at `τ = 1`, over two seeds, `N = 16` solves
+> **0/2**, `N = 32` solves **1/2** (1.000 and 0.146), and `N = 64` — the first
+> size tried at or above `|A₅| = 60` — solves **2/2** (1.000 and 0.987, with
+> `2×`-length extrapolation 1.000 and 0.738). PD-SSM's "one layer of dimension
+> `N` emulates any `N`-state FSA" claim reproduces here. (`N = 16` can still
+> reach 1.000 at a lucky temperature, because the readout is not restricted to
+> the state — but the state-size dependence is real and it lands where the
+> theorem says.)
 > (c) The main probe process was killed by harness cleanup at cell 93 of 96; the
 > three lost cells (seed-1 A₅ at `τ=10`, the seed-1 soft control, and the seed-1
 > §3.1 reference) were re-run separately via `lab/p2_probe_finish.py`. No cell
