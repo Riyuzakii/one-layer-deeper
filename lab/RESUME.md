@@ -460,13 +460,22 @@ and the 4-tied-pass model alike, unlike the ALU family's 1.1x.
 `{1: 0.000, 2: 0.000, 4: 0.026, 8: 0.026, 16: 0, 32: 0, 64: 0}` — the two non-zero
 entries are one example out of 38, the variance floor.
 
-**Scope caveat on the Medium diagnosis.** The claim "models cannot fit at m1 scale" is
-well supported for the **ALU family** (`local_ce` 3.5-4.2 at 12k-20k steps) but **NOT**
-for the RNN family: e5 needed ~5,000 steps to fit at `D_H`=64 and m1 has 5.6x the rows
-but was only run for 3,000. `plan2/sequential-rnn` flagged this against its own
-conclusion and is running `--dataset m1 --steps 40000` with a capacity arm. If m1 does
-fit given enough steps, the memorisation diagnosis extends to Medium and the
-expressivity framing weakens at every tier.
+**RESOLVED — m1 fits, and there is no Easy/Medium split.** The claim "models cannot fit
+at m1 scale" was a **step-count artifact** for the RNN family. A 40,000-step curve:
+`train_exact` at `D_H`=128 goes 0.0098 (3k) -> 0.039 (5k) -> **0.6205 (40k)**, a 63x
+move from step count alone; `D_H`=256 reaches **0.8572**. Held-out is **0.0010 / 0.0008**
+against **0.0000** at `lr=0`, `held_ce` 7.3-7.9, output diversity 0.87 — a genuine null,
+not a collapse. **The memorisation signature is one phenomenon at 600 rows and at
+27,000**, which strengthens the diagnosis. (Scope: the `DigitALU` `local_ce` 3.5-4.2
+measurement is a different metric on a different family and is untouched.)
+
+**THE PRE-FITTING REGION — a fleet-wide screening rule.** At m1 scale a **1,200-1,500
+step screen sits inside the pre-fitting region**; the PLAN2 manifests are dominated by
+`fs1200`/`fs1500`. Onsets are architecture-specific, so this does not invalidate results
+by itself, but **every Medium-scale null must carry a `train_exact` curve showing it had
+begun to move.** **A null at a step count you have not calibrated against a fitting
+curve is not a null.** Capacity is a real secondary axis and **params/row predicts it**
+(m1 at `D_H`=128 is 17.4/row vs the 24.9/row that fit e5).
 
 **PLAN2 §6's kill criterion has effectively fired:** a maximally expressive non-linear
 RNN also gets nothing, which by PLAN2's own text means the expressivity diagnosis is

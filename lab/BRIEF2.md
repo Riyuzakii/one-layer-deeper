@@ -47,15 +47,26 @@ not an expressivity failure. This is established and robust — it now includes 
 step run on a maximally expressive non-linear RNN that hits train 0.984 by step 5,000
 and holds 0.98-1.00 for the remaining 35,000 while held-out sits at 7/1200.
 
-**The Medium claim is NOT established — treat it as open.** An earlier version of this
-brief said "at m1 scale and above they cannot even fit". That is confounded with step
-count: e5 needed ~5,000 steps to fit at `D_H`=64, and m1 has **5.6x more rows** but was
-only run for 3,000. `plan2/sequential-rnn` flagged this against its own conclusion and
-is running the clean experiment (`--dataset m1 --steps 40000`, with a capacity arm to
-separate "cannot fit" from "too few steps" from "too little capacity"). Until it lands,
-do not design around an Easy/Medium split in the diagnosis. Note the direction cuts
-against convenience: if m1 *does* fit given enough steps, the memorisation diagnosis
-extends to Medium and the expressivity framing weakens at every tier.
+**The Medium claim was WRONG and is now settled — there is no Easy/Medium split.**
+An earlier version of this brief said "at m1 scale and above they cannot even fit". A
+40,000-step curve at m1 disproves it: `train_exact` at `D_H`=128 goes 0.0098 (3k steps)
+-> 0.039 (5k) -> **0.62 (40k)**, and `D_H`=256 reaches **0.86**. The memorisation
+signature is **one phenomenon at 600 rows and at 27,000** — train 0.86 with held-out at
+**3 examples in 3,000**, against **0.0000** at `lr=0`, output diversity 0.87 (a genuine
+null, not a collapse) and `held_ce` 7.9 (confident and wrong). This *strengthens* the
+diagnosis rather than weakening it. Scope: this revises the claim for the RNN family;
+the `DigitALU` `local_ce` 3.5-4.2 measurement is a different metric and stands.
+
+**(e) THE PRE-FITTING REGION — read before you interpret any Medium-scale null.** At m1
+scale a **1,200-1,500 step screen sits inside the pre-fitting region**, where
+`train_exact` has not begun to move. The PLAN2 manifests are dominated by
+`fs1200`/`fs1500`. Fitting onsets are architecture-specific, so this does not invalidate
+results by itself — but **every Medium-scale null must carry a `train_exact` curve
+showing it had begun to move.** That is one extra curve, not one extra experiment.
+**A null at a step count you have not calibrated against a fitting curve is not a null.**
+Capacity is a real secondary axis and **params/row predicts it**: m1 at `D_H`=128 is
+17.4 params/row, below the 24.9/row that fit e5, and raising capacity moved train
+0.62 -> 0.86.
 
 ## 3. What the last session established — do not re-derive
 
