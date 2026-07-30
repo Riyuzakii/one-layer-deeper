@@ -519,7 +519,48 @@ so this is a *direction*, not a certification. But it is the only direction in
 this branch that points the right way, and it is the one the coordinator asked
 to be tested.
 
-RESULTS_NARRATIVE
+### 5.5 Reading the grid
+
+**`MAX_T = 0` and `OOD_N_MAX_T = 0` in every cell, at every setting, for all
+three architectures.** No rung is certified anywhere. Consistent with the rest
+of this project's ~950 experiments, and consistent with `plan2/sequential-rnn`'s
+reminder that a 10× `mean_exact_accuracy` outlier still scored `MAX_T = 0`: the
+ranking is on rungs, and nothing here moves a rung.
+
+**1. The `n_h` sweep — PLAN2 §3.3's falsifier, in one table.**
+
+| `n_h` | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|
+| `train_exact` (2 seeds) | 0.332 | 0.527 | 0.582 | NH4_TRAIN |
+| rung-1 held-out (2 seeds) | 0.002 | 0.003 | 0.005 | NH4_HELD |
+| A₅, same code, same budget | chance | chance | **1.000** (1/2 seeds) | **1.000** (2/2) |
+
+**On the real task `n_h` is a capacity knob; on A₅ it is an expressivity knob.**
+`train_exact` rises monotonically with `n_h` — more Householders fit more
+training examples, exactly as more `head_dim` does in §5.4(a) — while held-out
+rung-1 moves by 1–3 examples out of 512, inside the `lr = 0` band. The bottom
+row is why this is a result rather than a shrug: the identical sweep, run with
+the identical code at the identical budget, goes from chance to exact on a
+non-solvable group word problem across the same range. **Non-commutativity is
+available, is being used (69–75 % of eigenvalues negative, `eig_min ≈ −0.99`),
+and is not what is missing.**
+
+**2. §3.2 vs §3.1 vs §3.3 head to head.** At *matched steps* — which, per §4,
+hands PD-SSM 3.8× more compute than a matched-wall-clock comparison would —
+PD-SSM does not beat the §3.1 reference on any rung, and neither beats
+DeltaProduct. All three sit at `MAX_T = 0`, rung-1 between 0.002 and 0.016, and
+`mean_acc` between 0.003 and 0.010 against an `lr = 0` band of 0.001–0.004.
+
+**3. The unrolled-depth control settles "13 factors is not enough".** It is not
+the explanation. Applying the tied block `R` times (composition depth `R·L`, so
+26 and 52 factors instead of 13) gives `train_exact` 0.562 at `R=2` and 0.289 at
+`R=4` with rung-1 held 0.008 and 0.002 — no better than `R=1`, and `R=4` is
+worse on both. Notably `R=2` and `R=4` drive `eig_frac_neg` to 0.92 and 0.84
+(vs ~0.58 at `R=1`), so the deeper composition *does* change what the recurrence
+learns; it just does not change the outcome.
+
+**4. The one thing that behaves differently is discreteness, not depth,
+expressivity, or capacity** — §5.4(c).
 
 ---
 
