@@ -152,13 +152,43 @@ freshly-generated held-out sequences, plus a `2×`-length extrapolation eval.
 > §3.1 reference) were re-run separately via `lab/p2_probe_finish.py`. No cell
 > was dropped for being inconvenient.
 
-RESULTS_PROBE_A
+### PROBE A -- realised eigenvalue range (DeltaNet n_h=1), last-token accuracy
+| task | chance | eig in [0,1] | eig in [-1,1] | 2x-length, [-1,1] |
+|---|---|---|---|---|
+| parity | 0.500 | 0.521+-0.004 | 1.000+-0.000 | 1.000+-0.000 |
+| mod3 | 0.333 | 0.235+-0.107 | 0.512+-0.028 | 0.358+-0.009 |
+| a5 | 0.017 | 0.010+-0.001 | 0.012+-0.000 | 0.021+-0.003 |
 
-RESULTS_PROBE_B
+### PROBE B -- the n_h sweep (DeltaProduct), last-token accuracy
+| task | chance | eig | n_h=1 | n_h=2 | n_h=3 | n_h=4 |
+|---|---|---|---|---|---|---|
+| parity | 0.500 | [-1,1] | 1.000+-0.000 | 1.000+-0.000 | 1.000+-0.000 | 1.000+-0.000 |
+| parity | 0.500 | [0,1] | 0.521+-0.004 | 0.585+-0.121 | -- | 0.682+-0.132 |
+| mod3 | 0.333 | [-1,1] | 0.512+-0.028 | 1.000+-0.000 | 1.000+-0.000 | 1.000+-0.000 |
+| mod3 | 0.333 | [0,1] | 0.235+-0.107 | 0.701+-0.241 | -- | 0.911+-0.038 |
+| a5 | 0.017 | [-1,1] | 0.012+-0.000 | 0.035+-0.014 | 0.536+-0.464 | 1.000+-0.000 |
+| a5 | 0.017 | [0,1] | 0.010+-0.001 | 0.017+-0.005 | -- | 0.019+-0.000 |
 
-RESULTS_PROBE_C
+### PROBE C -- PD-SSM straight-through temperature sweep, last-token accuracy
+| task | chance | tau=0.1 | tau=0.3 | tau=1 | tau=3 | tau=10 | soft (no STE) |
+|---|---|---|---|---|---|---|---|
+| parity | 0.500 | 1.000+-0.000 | 1.000+-0.000 | 0.996+-0.004 | 1.000+-0.000 | 1.000+-0.000 | 1.000+-0.000 |
+| mod3 | 0.333 | 1.000+-0.000 | 1.000+-0.000 | 1.000+-0.000 | 1.000+-0.000 | 1.000+-0.000 | 1.000+-0.000 |
+| a5 | 0.017 | 0.018+-0.000 | 0.502+-0.458 | 0.037+-0.013 | 0.527+-0.473 | 0.039+-0.004 | 0.439+-0.055 |
 
-RESULTS_PROBE_D
+### PROBE F -- A5 with PD-SSM given a state size >= |A5| = 60
+| arch | N | last-acc | seq-acc | chance | out div | 2x-length |
+|---|---|---|---|---|---|---|
+| matscan | 64 | 0.065+-0.047 | 0.004+-0.004 | 0.017 | 0.492+-0.475 | 0.025+-0.006 |
+| pdssm | 32 | 0.573+-0.427 | 0.517+-0.483 | 0.017 | 1.000+-0.000 | 0.513+-0.487 |
+| pdssm | 64 | 0.994+-0.006 | 0.992+-0.008 | 0.017 | 1.000+-0.000 | 0.868+-0.130 |
+
+### PROBE D -- §3.1 dense matrix-scan reference on the same tasks
+| task | chance | matscan last-acc | out diversity |
+|---|---|---|---|
+| parity | 0.500 | 0.774+-0.226 | 1.000+-0.000 |
+| mod3 | 0.333 | 0.974+-0.026 | 1.000+-0.000 |
+| a5 | 0.017 | 0.048+-0.005 | 0.992+-0.008 |
 
 **Reading.**
 
@@ -198,7 +228,11 @@ RESULTS_PROBE_D
    mod-3 *every* temperature gives 1.000, which is exactly the kind of flat
    sweep that would justify quoting one setting. On **A₅** the same sweep reads
 
-   PROBE_C_A5_PERSEED
+   ### PROBE C' -- A5 temperature sweep, PER SEED (the location moves)
+| seed | tau=0.1 | tau=0.3 | tau=1 | tau=3 | tau=10 | soft (no STE) |
+|---|---|---|---|---|---|---|
+| 0 | 0.018 | 0.044 | 0.050 | 1.000 | 0.043 | 0.494 |
+| 1 | 0.018 | 0.961 | 0.023 | 0.055 | 0.035 | 0.385 |
 
    `τ` divides the logits, so larger `τ` is a **softer backward pass**, while
    the forward pass is exactly one-hot at every `τ` (verified in §1). Three
@@ -411,7 +445,29 @@ statement of the failure than the accuracy numbers give on their own.
 
 ### 5.2 The grid
 
-RESULTS_GRID
+### REAL TASK -- e5, fixed_step 1500, multi-seed
+| cell | n | MAX_T | OOD_N | train_exact | rung-1 (held) | mean_acc | out_div | top_share | train_s | transition diagnostics |
+|---|---|---|---|---|---|---|---|---|---|---|
+| delta_nh1_neg | 2 | 0 | 0 | 0.332+-0.027 | 0.002+-0.002 | 0.005+-0.000 | 0.588+-0.000 | 0.354+-0.074 | 313 | eig[-0.964,+0.792] neg=0.596 |
+| delta_nh2_neg | 2 | 0 | 0 | 0.527+-0.004 | 0.003+-0.001 | 0.004+-0.001 | 0.588+-0.000 | 0.278+-0.088 | 187 | eig[-0.980,+0.978] neg=0.576 |
+| delta_nh2_neg_hd16 | 1 | 0 | 0 | 0.391 | 0.010 | 0.005 | 0.588 | 0.312 | 242 | eig[-0.974,+0.942] neg=0.526 |
+| delta_nh2_neg_hd64 | 1 | 0 | 0 | 0.664 | 0.000 | 0.005 | 0.588 | 0.345 | 234 | eig[-0.981,+0.964] neg=0.568 |
+| delta_nh2_neg_hd8 | 1 | 0 | 0 | 0.242 | 0.004 | 0.005 | 0.588 | 0.314 | 348 | eig[-0.950,+0.941] neg=0.540 |
+| delta_nh2_neg_lr0 | 1 | 0 | 0 | 0.008 | 0.000 | 0.004 | 0.941 | 0.191 | 300 | eig[-0.677,+0.717] neg=0.494 |
+| delta_nh2_neg_rep2 | 1 | 0 | 0 | 0.562 | 0.008 | 0.006 | 0.588 | 0.419 | 221 | eig[-0.991,+0.801] neg=0.915 |
+| delta_nh2_neg_rep4 | 1 | 0 | 0 | 0.289 | 0.002 | 0.004 | 0.588 | 0.495 | 192 | eig[-0.990,+0.892] neg=0.841 |
+| delta_nh3_neg | 2 | 0 | 0 | 0.582+-0.066 | 0.005+-0.003 | 0.008+-0.002 | 0.588+-0.000 | 0.397+-0.002 | 163 | eig[-0.987,+0.988] neg=0.578 |
+| delta_nh4_neg | 2 | 0 | 0 | 0.652+-0.012 | 0.005+-0.001 | 0.006+-0.001 | 0.588+-0.000 | 0.332+-0.012 | 139 | eig[-0.984,+0.985] neg=0.563 |
+| matscan | 2 | 0 | 0 | 0.379+-0.035 | 0.003+-0.001 | 0.006+-0.003 | 0.971+-0.029 | 0.304+-0.085 | 307 |  |
+| matscan_lr0 | 1 | 0 | 0 | 0.000 | 0.006 | 0.003 | 1.000 | 0.240 | 257 |  |
+| pdssm_tau0.1_hard | 1 | 0 | 0 | 0.680 | 0.016 | 0.010 | 0.588 | 0.234 | 384 | p_max=0.983 perm=0.727 |
+| pdssm_tau1.0_hard | 1 | 0 | 0 | 0.141 | 0.012 | 0.007 | 0.588 | 0.273 | 424 | p_max=0.641 perm=0.565 |
+| pdssm_tau1.0_hard_N11 | 1 | 0 | 0 | 0.055 | 0.010 | 0.005 | 0.588 | 0.314 | 446 | p_max=0.647 perm=0.628 |
+| pdssm_tau1.0_hard_N8 | 1 | 0 | 0 | 0.062 | 0.006 | 0.007 | 0.588 | 0.373 | 319 | p_max=0.660 perm=0.557 |
+| pdssm_tau1.0_hard_lr0 | 1 | 0 | 0 | 0.008 | 0.000 | 0.001 | 1.000 | 0.191 | 391 | p_max=0.071 perm=0.632 |
+| pdssm_tau1.0_none | 1 | 0 | 0 | 0.430 | 0.002 | 0.005 | 0.588 | 0.469 | 220 | p_max=0.667 perm=0.413 |
+| pdssm_tau10.0_hard | 1 | 0 | 0 | 0.039 | 0.004 | 0.009 | 0.588 | 0.266 | 275 | p_max=0.103 perm=0.644 |
+| pdssm_tau3.0_hard | 1 | 0 | 0 | 0.078 | 0.016 | 0.010 | 0.588 | 0.349 | 355 | p_max=0.354 perm=0.647 |
 
 ### 5.3 The straight-through failure mode — instrumented, and it did *not* fire
 
@@ -481,16 +537,20 @@ and finishes at **zero** at the largest state. Same conclusion as
 continuous state buys fitting and nothing else.**
 
 **(b) The discrete-state cells sit higher on held-out at far lower
-`train_exact`.** Every PD-SSM cell reads rung-1 held 0.006–0.016 (3–8 of 512)
-while its `train_exact` is 0.055–0.141 — except `τ = 0.1`, which reaches
-`train_exact` 0.680. The continuous cells reach `train_exact` 0.24–0.66 and read
-0.000–0.010 held. Ranked by held-out rung-1, the top four cells in the entire
-grid are **all PD-SSM** (`τ=0.1` 0.016, `τ=3` 0.016, `τ=1` 0.012, `N=11` 0.010).
+`train_exact`.** Ranked by held-out rung-1, the **top three cells in the entire
+grid are hard-STE PD-SSM** — `τ=0.1` and `τ=3` at 0.016, `τ=1` at 0.012 — and
+fourth place is a tie between PD-SSM `N=11` and DeltaProduct `head_dim=16` at
+0.010. Two of those three reach it at `train_exact` of only 0.078 and 0.141,
+against continuous cells that reach `train_exact` 0.24–0.66 and read 0.000–0.010
+held. The hard PD-SSM cells span rung-1 0.004–0.016 overall; the `τ=10` cell
+(0.004) is the one that does not participate, and it is also the cell whose
+`p_max_prob` is lowest (0.103), i.e. the least discrete of them.
 
 **Caveat, and it is a large one.** These are 3–8 correct examples out of 512, at
 one seed per cell, against `lr = 0` controls that read 0–3. The ordering is
-consistent across six PD-SSM cells and six continuous cells, which is why it is
-reported — but it is **not** a certified difference, it moves no rung, and it
+consistent across six hard-STE PD-SSM cells and eight continuous cells, and it
+reproduces the direction of the A₅ control and of the controlled pair in (c),
+which is why it is reported — but it is **not** a certified difference, it moves no rung, and it
 must not be read as "discreteness works". The honest statement is: *the
 discreteness hypothesis survives this branch's test rather than being confirmed
 by it, and it is the only hypothesis in this report that does.*
@@ -531,8 +591,8 @@ ranking is on rungs, and nothing here moves a rung.
 
 | `n_h` | 1 | 2 | 3 | 4 |
 |---|---|---|---|---|
-| `train_exact` (2 seeds) | 0.332 | 0.527 | 0.582 | NH4_TRAIN |
-| rung-1 held-out (2 seeds) | 0.002 | 0.003 | 0.005 | NH4_HELD |
+| `train_exact` (2 seeds) | 0.332 | 0.527 | 0.582 | **0.652** |
+| rung-1 held-out (2 seeds) | 0.002 | 0.003 | 0.005 | 0.005 |
 | A₅, same code, same budget | chance | chance | **1.000** (1/2 seeds) | **1.000** (2/2) |
 
 **On the real task `n_h` is a capacity knob; on A₅ it is an expressivity knob.**

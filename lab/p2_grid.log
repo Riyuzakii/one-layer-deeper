@@ -78,3 +78,8 @@ Terminated
   [ 183.6s] delta_nh3_neg_s7             [OK] p2_e5_fs1500_s7 sha=a943d59a MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0058 steps=[1500] train_s=[175.74880705191754]
           diag: out_diversity=0.588 top_token_share=0.399 eig_min=-0.990 eig_max=0.994 eig_frac_neg=0.549
 [7/8] S1-nh {'P2_ARCH': 'delta', 'P2_NH': 4, 'P2_EIG': 'neg'} p2_e5_fs1500_s74
+  [ 172.9s] delta_nh4_neg_s74            [OK] p2_e5_fs1500_s74 sha=a943d59a MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0046 steps=[1500] train_s=[165.9350991831161]
+          diag: out_diversity=0.588 top_token_share=0.344 eig_min=-0.984 eig_max=0.977 eig_frac_neg=0.561
+[8/8] S1-nh {'P2_ARCH': 'delta', 'P2_NH': 4, 'P2_EIG': 'neg'} p2_e5_fs1500_s7
+  [ 120.0s] delta_nh4_neg_s7             [OK] p2_e5_fs1500_s7 sha=a943d59a MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0071 steps=[1500] train_s=[112.11558299022727]
+          diag: out_diversity=0.588 top_token_share=0.320 eig_min=-0.983 eig_max=0.994 eig_frac_neg=0.566
