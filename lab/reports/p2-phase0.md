@@ -183,7 +183,41 @@ steps, seeds 74 / 7 / 13, matched compute, matched parameters, matched init.
 held-out prompts; `r1` is depth rung T=1, i.e. `(N,x)` pairs reserved out of
 train/test/ood entirely.
 
-PLACEHOLDER_P4_TABLE
+| arch | eigenvalues | params | `train` (s74/s7/s13) | `test` (s74/s7/s13) | **rung-1** (s74/s7/s13) |
+|---|---|---|---|---|---|
+| `diag01`   | `[0,1]`  | 465,280 | 0.781 / 0.805 / 0.740 | 0.010 / 0.004 / 0.004 | 0.002 / 0.010 / 0.010 |
+| `diagpm1`  | `[-1,1]` | 465,280 | 0.895 / 0.852 / 0.842 | 0.007 / 0.007 / 0.008 | 0.002 / 0.008 / 0.016 |
+| `delta01`  | `[0,1]`  | 465,280 | 0.896 / 0.891 / 0.865 | 0.008 / 0.005 / 0.005 | 0.008 / 0.002 / 0.004 |
+| `deltapm1` | `[-1,1]` | 465,280 | 0.865 / 0.914 / 0.896 | 0.008 / 0.007 / 0.006 | 0.006 / 0.010 / 0.006 |
+| `lstm`     | maximal  | 862,336 | 0.639 / 0.639 / 0.791 | 0.008 / 0.006 / 0.008 | 0.008 / 0.012 / 0.006 |
+| `gru`      | maximal  | 730,240 | 0.562 / 0.699 / 0.643 | 0.009 / 0.005 / 0.005 | 0.002 / 0.004 / 0.012 |
+| `attn`     | TC0      | 398,976 | 0.049 / 0.078 / 0.078 | 0.006 / 0.006 / 0.005 | 0.008 / 0.002 / 0.006 |
+| **`mlp`** (no mixing) | none | 267,904 | 0.016 / 0.008 | 0.010 / 0.008 | 0.000 / 0.002 |
+| *`--lr 0` floor* | — | — | 0.000 | 0.001 | 0.000 |
+
+MAX_T = 0 and OOD_N MAX_T = 0 in every cell. One rung example is 0.002.
+
+**Collapse detector** (DIAGNOSTIC, `lab/p2_diversity.py`, e5, 1200 steps, seed 74).
+The reference is not 1.0: squaring is 4-to-1 on `Z*_N`, so the *exact solution*
+has a bounded output diversity. Measured by running the constructed oracle
+through the same instrument rather than assumed:
+
+| model | `depth_t_1` exact | token acc | const share | **distinct frac** | entropy (bits) |
+|---|---|---|---|---|---|
+| **exact solution (oracle)** | **1.000** | 1.000 | 0.010 | **0.7012** | 8.32 |
+| `diag01` | 0.010 | 0.169 | 0.010 | 0.799 | 8.56 |
+| `deltapm1` | 0.012 | 0.158 | 0.008 | 0.801 | 8.57 |
+| `lstm` | 0.004 | 0.145 | 0.008 | 0.789 | 8.53 |
+| `attn` | 0.004 | 0.153 | 0.025 | 0.625 | 8.00 |
+| **`mlp`** | 0.002 | 0.158 | **0.650** | **0.022** | **1.79** |
+
+`diag01`, `deltapm1` and `lstm` are **not collapsed** — they emit *more* distinct
+answers than the truth does, at ~8.5 bits of entropy, and are simply wrong. Their
+held-out token accuracy (0.145-0.169) is the digit-marginal rate, matching the
+hosted Hard run's "digit marginals learned, nothing more". `mlp` **is** a
+collapse (one string for 65% of inputs) and yet scores the same on the ranked
+metric — which is why the ordering above must be read as flat rather than as
+`delta01` marginally leading.
 
 **The ordering is flat.** No pair of the four transition classes is separated by
 more than the seed spread, and every one of them is inside the band occupied by
@@ -226,7 +260,42 @@ transition monoid is solvable, and almost certainly aperiodic.** Nothing above
 reproduces the control independently under matched conditions and adds the honest
 tuning pass that PLAN2 §6 requires before a kill criterion may be called.
 
-PLACEHOLDER_P1_TABLE
+| model | dataset | steps | lr | train | test | rung-1 | note |
+|---|---|---|---|---|---|---|---|
+| `lstm` | e5 | 1200 | 3e-4 | 0.055 | 0.008 | 0.002 | under-fit |
+| `lstm` | e5 | 1200 | 1e-3 | 0.639 | 0.008 | 0.008 | |
+| `lstm` | e5 | 1200 | 3e-3 | 0.928 | 0.005 | 0.002 | best fit |
+| `lstm` | e5 | **8000** | 1e-3 | **0.994** | 0.008 | 0.008 | 6.7x steps |
+| `gru` | e5 | 1200 | 3e-4 | 0.027 | 0.010 | 0.010 | |
+| `deltapm1` | e5 | 1200 | 3e-4 | 0.158 | 0.005 | 0.006 | |
+| `lstm` | m1 | 1200 | 1e-3 | 0.002 | 0.000 | 0.000 | **uncalibrated: pre-fitting** |
+| `lstm` | m1 | **8000** | 1e-3 | **0.414** | 0.0003 | 0.000 | calibrated |
+| `deltapm1` | m1 | **8000** | 1e-3 | **0.420** | 0.000 | 0.000 | calibrated |
+| `attn`/`diag01` | m1 | 1200 | 1e-3 | 0.002 | 0.000 | 0.000 | **uncalibrated** |
+
+The m1 fitting curve (`lstm`, per 1000 steps): 0.000 · 0.004 · 0.000 · 0.014 ·
+0.031 · 0.123 · 0.223 · 0.305 · **0.414**. `deltapm1` is identical in shape
+(0.000 → 0.420). **A 1,200-step screen at m1 is inside the pre-fitting region**,
+so the four m1 cells at 1,200 steps are marked uncalibrated and are not counted
+as nulls. The 8,000-step cells are calibrated — fitting is plainly underway at
+0.42 — and held-out is still 0.000. This reproduces `plan2/sequential-rnn`'s
+40,000-step finding in a different architecture family.
+
+**The tied-head init bug, folded in.** `nn.Embedding`'s default `N(0,1)` with a
+tied head puts step-1 CE at ~80 instead of `ln 17 = 2.83` — I measured 70.5-79.1
+locally and the hosted Hard run logs 79.936, so it is in *every* result this
+project has produced. `EMB_INIT = 0.02` fixes it. Its effect (e5, 1200 steps,
+seed 74):
+
+| arch | train, default init | train, `EMB_INIT=0.02` | test | rung-1 |
+|---|---|---|---|---|
+| `attn` | 0.049 | **0.947** (19x) | 0.004 | 0.000 |
+| `lstm` | 0.639 | **0.957** | 0.008 | 0.010 |
+| `diag01` | 0.781 | **0.961** | 0.006 | 0.002 |
+| `deltapm1` | 0.865 | **0.971** | 0.008 | 0.010 |
+
+A genuine bug, worth fixing for free steps at every tier — and it buys **exactly
+zero** generalisation. Siblings should take the fix and expect nothing from it.
 
 Bidirectional LSTM and GRU — maximal expressivity, `O(T)` serial, no theoretical
 caveats, and the *only* models in the family that solve A₅ — get **exactly what
@@ -299,6 +368,42 @@ loss and the exact-match rule are all confirmed working *by a legal learned mode
 on unseen operands*, and the entire failure is localised to one squaring — which
 is precisely what BRIEF2 §2 said was the only thing still open.
 
+### 5.3 Structural audit — alignment and cohorts, by counts only (DIAGNOSTIC)
+
+`lab/p2_audit.py`. Prints only counts: never a token id, never a target value,
+never an answer. It checks the harness's structural claims independently of §5.1
+so the two cannot share a failure mode.
+
+| check | e5 | `n5_e250` | `sq5` |
+|---|---|---|---|
+| `target_positions[r,j] == in_len(r) − tgt_len(r) + j` | **0 violations** | 0 | 0 |
+| every supervised target is a digit token (7 ≤ id < 17) | **0 violations** | 0 | 0 |
+| the runner's own slicing expression hits the marked position | **0 violations** | 0 | 0 |
+| supervised rows audited | 13,576 | 2,554 | 1,324 |
+
+**Rung cohort audit** — the cardinality of the `(N,x)` intersection with `train`,
+computed from the *prompt* side only (labels never decoded):
+
+| split | e5 | `n5_e250` | `sq5` |
+|---|---|---|---|
+| all 7 seen-N depth rungs | **0 of 512 each** | **0 of 256 each** | **0 of 256 each** |
+| all 7 OOD-N depth rungs | **0 of 512 each** | n/a | n/a |
+| `test` | 249 of 1,166 (21%) | 9 of 150 (6%) | **0 of 200** |
+| `ood` | 190 of 600 | 4 of 100 | 4 of 100 |
+
+So `_generate_prompt_grouped_records`' reservation does exactly what the source
+says: **every depth rung is 100% operand-disjoint from training**, on both
+ladders. Rung-1 is an unseen-operand measurement, without exception. And e5's
+`test` is 79% unseen-operand, which is far better than e1 (RESUME: 96% *overlap*)
+and confirms BRIEF2 §6.4's instruction to screen on e5.
+
+### 5.4 The audit's verdict
+
+Three independent instruments — a constructed oracle scoring MAX_T=64/OOD_N=64
+end to end, a legal learned model scoring 1.000 held-out on a copy target, and a
+structural check with zero alignment violations over 17,000 supervised rows —
+agree. **There is no upstream error.** Two sessions of nulls are real.
+
 ---
 
 ## 6. Probes 2 and 3 — length scaling and the train/eval transition
@@ -310,13 +415,159 @@ datasets, full T=1…64 ladder, **256 units reserved** out of train/test/ood beh
 every rung, so `r1` is always an unseen-operand measurement
 (`lab/gen_p2_grid.sh`).
 
-PLACEHOLDER_P23_TABLE
+### 6.1 Probe 2 — length scaling: flat and at zero, no cliff
+
+Fixed model, fixed training-set size (250 examples/setting = 600 train rows),
+1200 steps. `train` reaches **1.000 in every cell**, so every cell is calibrated:
+fitting is complete, and the held-out number is a real null rather than a
+pre-fitting artefact.
+
+| dataset | modulus | digits | `max_seq_len` | phi(N) | `deltapm1` train / test / rung-1 | `lstm` train / test / rung-1 |
+|---|---|---|---|---|---|---|
+| `n3_e250` | 667 | 3 | 11 | 616 | **1.000** / 0.000 / 0.008 | **1.000** / 0.000 / 0.000 |
+| `n4_e250` | 1,147 | 4 | 13 | 1,080 | **1.000** / 0.000 / 0.000 | **1.000** / 0.000 / 0.000 |
+| `n5_e250` | 10,403 | 5 | 15 | 10,200 | **1.000** / 0.000 / 0.000 | **1.000** / 0.000 / 0.000 |
+| `n6_e250` | 111,547 | 6 | 17 | 110,880 | **1.000** / 0.000 / 0.000 | **1.000** / 0.000 / 0.000 |
+| `n7_e250` | 1,022,117 | 7 | 19 | 1,020,096 | **1.000** / 0.000 / 0.000 | **1.000** / 0.000 / 0.000 |
+
+**There is no cliff, because there is no shelf to fall off.** Held-out accuracy is
+0.000 at `max_seq_len` = 11, the shortest prompt the task admits, and stays 0.000
+across a 1,657x increase in modulus and the whole 11-19 length range that spans
+the real tiers. PLAN2 §2.2's own reading applies: *"A clean cliff at some length
+is the state-tracking signature. Flat-and-low means something else is wrong."*
+**It is flat-and-low.** This is independent corroboration of probe 4 — length,
+the axis on which the `TC0` results are asymptotic, has no effect whatsoever.
+
+Two things this rules out that were live before: it is not that the operand
+space is too large (0.000 already at 616 units, where 600 training rows cover
+most of it), and it is not that the arithmetic gets too wide (identical at 3 and
+7 digits).
+
+### 6.2 Probe 3 — the train/eval transition: there isn't one
+
+Fixed modulus, varying training-set size, 1200 steps.
+
+| dataset | modulus | train rows | `deltapm1` train / test / rung-1 | `lstm` train / test / rung-1 |
+|---|---|---|---|---|
+| `n5_e250` | 10,403 | 600 | 1.000 / 0.000 / 0.000 | 1.000 / 0.000 / 0.000 |
+| `n5_e1000` | 10,403 | 2,400 | 0.959 / 0.000 / 0.000 | 0.902 / 0.000 / 0.000 |
+| `n5_e4000` | 10,403 | 9,600 | 0.035 / 0.000 / 0.000 | 0.012 / 0.001 / 0.000 |
+| `n5_e9000` | 10,403 | 21,600 | 0.002 / 0.001 / 0.000 | 0.000 / 0.001 / 0.000 |
+| `n7_e250` | 1,022,117 | 600 | 1.000 / 0.000 / 0.000 | 1.000 / 0.000 / 0.000 |
+
+The **fitting** transition is sharp and sits, at 1,200 steps and this capacity,
+between **2,400 and 9,600 training rows** — i.e. it is a *steps x capacity x rows*
+threshold, not a property of the task. Above it, `train` collapses from 0.96 to
+0.035, and the m1 curve in §4 shows the same cells fit fine given 8,000 steps.
+
+The **generalisation** number does not transition at all. It is **0.000 on both
+sides of the fitting threshold**, at every modulus, at every training-set size,
+in every architecture.
+
+So the answer to probe 3 is a correction to the question, and it agrees with
+`plan2/sequential-rnn`: **BRIEF2 §2(d)'s Easy-vs-Medium dichotomy is not real.**
+There is no regime where the model fits and partially generalises, and no regime
+where it fails for a different reason. There is one phenomenon — fit to 1.000,
+generalise to 0.000 — and the only thing that changes with scale is how many
+steps the fitting half takes. **Siblings should stop designing for a regime
+boundary; there isn't one to design for.**
+
+A methodological rule falls out and should be adopted project-wide:
+**a null at a step count you have not calibrated against a fitting curve is not a
+null.** Four of my own m1 cells failed it and are marked accordingly.
 
 ---
 
 ## 7. What each of the four questions answers to
 
-PLACEHOLDER_ANSWERS
+**1. Expressivity vs optimization — expressivity is NOT the binding constraint.**
+Bidirectional LSTM and GRU, maximal expressivity, the only models in the family
+that solve the A5 word problem (0.980 sequence-exact at 15k steps while every
+linear recurrence and attention stays at chance), get exactly what every v1 model
+got: held-out and rung-1 on the `lr=0` floor, MAX_T = 0. Across an honest tuning
+pass (lr 3e-4/1e-3/3e-3), 6.7x the steps, an init-bug fix that raised fitting to
+0.99, and both Easy and Medium scale. **PLAN2 §6's first kill criterion fires.**
+`O(T)` serial cost was never the issue either — at 11-21 tokens it is affordable,
+and it buys nothing.
+
+**2. Length scaling — flat and at zero, no cliff.** 0.000 held-out at
+`max_seq_len` = 11 and at 19, with `train` = 1.000 in every cell. On this task
+length cannot be varied independently of modulus size, and neither moves the
+answer. PLAN2's own criterion: flat-and-low means it is not state tracking.
+
+**3. Train-vs-eval split — the transition you asked me to locate does not exist.**
+The *fitting* threshold is real but is a steps x capacity x rows artefact
+(between 2,400 and 9,600 rows at 1,200 steps; m1 fits to 0.42 by 8,000 steps).
+The *generalisation* number is 0.000 on both sides of it, at every modulus and
+every data size. BRIEF2 §2(d)'s Easy/Medium dichotomy is withdrawn.
+
+**4. The solvability probe — THE ORDERING IS FLAT.**
+
+> `diag[0,1]` = `diag[-1,1]` = `DeltaNet[0,1]` = `DeltaNet[-1,1]` = LSTM = GRU =
+> attention = **no sequence mixing at all**,
+> at matched compute, matched parameters (465,280 each for the four transition
+> classes), matched init, three seeds — all within one or two examples of the
+> `lr = 0` floor on `test` and on rung-1.
+
+The instrument is not blind: the same code separates `delta01` from `deltapm1` on
+parity at length 32 (0.018 vs 1.000), and separates the LSTM from everything else
+on A5 (0.980 vs 0.000). It has resolution at both the eigenvalue detail and the
+non-solvable end. It shows nothing here.
+
+**PLAN2 §6, third kill criterion, fires verbatim: "the task is not a
+state-tracking problem, §0 is wrong, and the space to explore is a different one
+entirely."**
+
+What the flat ordering says positively: the token axis carries only multi-digit
+multiply-and-reduce, whose carry structure is the aperiodic propagate/generate/
+kill monoid. `diag[0,1]` is already more than sufficient. There is no
+non-solvable sub-monoid on this axis for extra expressivity to earn its keep on.
+
+---
+
+## 7b. The metric row for this phase — what fools what
+
+Extending RESUME's table with what this branch measured, plus two rows relayed
+from siblings.
+
+| metric | fooled by | reads | but |
+|---|---|---|---|
+| `mean_exact_accuracy` | `mlp`, no sequence mixing at all | 0.0125 — the *highest* in the family | it is a collapse: one string for 65% of inputs |
+| `test` / rung-1 on e5 | anything, at this resolution | 0.002-0.016 | the `lr=0` floor is 0.001/0.000 and one rung example is 0.002 |
+| `train_exact` | the tied-head init fix | 0.049 → 0.947 for `attn` | held-out unchanged at 0.004 |
+| `train_exact` | a null at an uncalibrated step count | 0.002 at m1/1200 | 0.414 at m1/8000 — the 1200-step "null" was pre-fitting |
+| output diversity vs a 1.0 reference | the 4-to-1 map | 0.70 looks like partial collapse | **the exact solution measures 0.7012** — 1.0 was never the reference |
+| `train_exact` (relayed, `matrix-scan`) | `--family orth` | 0.996 | `train_exact_hard` 0.004, held 0.000 |
+| in-distribution accuracy (relayed, `pd-ssm-delta`) | length extrapolation | 0.941 in-dist | 0.328 at 2x length |
+
+Two of these are new failure modes for the project's own screening habits: the
+**no-mixing control outscoring every real architecture on the diagnostic metric**,
+and the **diversity reference being 0.221-0.70 rather than 1.0**.
+
+---
+
+## 7c. What the siblings should do with this
+
+1. **Stop treating Axis-A expressivity as the unlock.** Probe 4 is flat, length
+   scaling is flat, the LSTM is null, and `pd-ssm-delta` has independently shown
+   the same architectures doing NC¹-complete state tracking *in this codebase at
+   this budget* while getting nothing here. Four independent branches now agree.
+2. **Take the init fix (`EMB_INIT ≈ 0.02`) — it is free — and expect nothing
+   from it.** It is worth 19x the fitting speed for attention and 0.000
+   generalisation.
+3. **Recalibrate every Medium-scale null.** Anything screened at ≤1,500 steps on
+   m1 or above is inside the pre-fitting region. Report the `train_exact` curve.
+4. **Use `mlp` (or any no-mixing control) as a live floor in every table.** It
+   costs one run and it caught the diagnostic metric being uninformative.
+5. **Design against §5.2, not against §0.** The pipeline is measurably perfect at
+   everything except one squaring of an unseen operand. Anything that does not
+   change *that* specific conditional cannot change the score, whatever it does
+   to expressivity, depth, parallelism, conditioning or capacity.
+6. **The one structural claim still standing from PLAN2 is BRIEF2 §2c** — the
+   digit-position carry monoid — and probe 4 says it is *aperiodic*, i.e. it
+   needs the very bottom of Axis A. If anything is built there, it should be
+   built for conditioning, not for expressivity, and `matrix-scan` has already
+   measured the conditioning coefficient as far too small to matter.
 
 ---
 
@@ -336,6 +587,17 @@ PLACEHOLDER_ANSWERS
   eight-architecture family shows it: training moves `train_exact` from 0.000 to
   0.02–0.99 while held-out stays pinned at the lr=0 floor. Two different failure
   shapes, and they should not be conflated.
+* **BRIEF2 §2(d) is withdrawn** (it was written before `plan2/sequential-rnn`'s
+  40,000-step m1 curve and this branch's data-size ladder). There is no
+  Easy-vs-Medium dichotomy in the diagnosis: fit-to-1.000 / generalise-to-0.000
+  is one phenomenon at 600 rows and at 27,000, and the only thing scale changes
+  is how many steps the fitting half needs.
+* **The output-diversity reference is 0.7012, not 1.0, on e5's rung-1** — measured
+  by running the exact solution through the same instrument. Squaring is 4-to-1
+  on `Z*_N`. Relayed from `matrix-scan` and independently measured here.
+* **A null at a step count you have not calibrated against a fitting curve is not
+  a null.** Four of this branch's own m1 cells are marked uncalibrated on that
+  rule.
 
 ---
 

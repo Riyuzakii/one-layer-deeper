@@ -24,3 +24,78 @@
       rungs(ood_n)={}
       splits={'ood': 0.0, 'test': 0.0}
 ### 15:56:47  lstm_d128_L2  p2_n3_e250_fs1200_s74  [P23-grid]
+[OK] p2_n3_e250_fs1200_s74 sha=a5f4f3b0 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0150 steps=[1200] train_s=[173.9942268007435]
+      rungs(seen_n)={1: 0.0, 2: 0.008, 4: 0.008, 8: 0.0, 16: 0.004, 32: 0.004, 64: 0.008}
+      rungs(ood_n)={}
+      splits={'ood': 0.03, 'test': 0.0}
+### 15:59:48  lstm_d128_L2  p2_n4_e250_fs1200_s74  [P23-grid]
+[OK] p2_n4_e250_fs1200_s74 sha=a5f4f3b0 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0250 steps=[1200] train_s=[213.2648302698508]
+      rungs(seen_n)={1: 0.0, 2: 0.004, 4: 0.0, 8: 0.0, 16: 0.008, 32: 0.004, 64: 0.008}
+      rungs(ood_n)={}
+      splits={'ood': 0.05, 'test': 0.0}
+### 16:03:25  lstm_d128_L2  p2_n5_e250_fs1200_s74  [P23-grid]
+[OK] p2_n5_e250_fs1200_s74 sha=a5f4f3b0 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[1200] train_s=[183.71645846497267]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.0, 32: 0.0, 64: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+### 16:06:36  lstm_d128_L2  p2_n6_e250_fs1200_s74  [P23-grid]
+[OK] p2_n6_e250_fs1200_s74 sha=a5f4f3b0 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[1200] train_s=[195.9190619799774]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.0, 32: 0.0, 64: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+### 16:09:57  lstm_d128_L2  p2_n7_e250_fs1200_s74  [P23-grid]
+[OK] p2_n7_e250_fs1200_s74 sha=a5f4f3b0 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[1200] train_s=[210.32806672691368]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.0, 32: 0.0, 64: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+### 16:13:34  deltapm1_d128_L2  p2_n5_e1000_fs1200_s74  [P23-grid]
+[OK] p2_n5_e1000_fs1200_s74 sha=1fd3f6b5 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[1200] train_s=[120.5709637501277]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.004, 16: 0.0, 32: 0.0, 64: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+### 16:15:41  lstm_d128_L2  p2_n5_e1000_fs1200_s74  [P23-grid]
+[OK] p2_n5_e1000_fs1200_s74 sha=a5f4f3b0 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[1200] train_s=[96.20784266199917]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.004, 32: 0.004, 64: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+### 16:17:24  deltapm1_d128_L2  p2_n5_e4000_fs1200_s74  [P23-grid]
+[OK] p2_n5_e4000_fs1200_s74 sha=1fd3f6b5 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0002 steps=[1200] train_s=[98.42179183010012]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.0, 32: 0.0, 64: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+### 16:19:12  lstm_d128_L2  p2_n5_e4000_fs1200_s74  [P23-grid]
+[OK] p2_n5_e4000_fs1200_s74 sha=a5f4f3b0 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0004 steps=[1200] train_s=[67.58516496489756]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.0, 32: 0.0, 64: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.001}
+### 16:20:33  deltapm1_d128_L2  p2_n5_e9000_fs1200_s74  [P23-grid]
+[OK] p2_n5_e9000_fs1200_s74 sha=1fd3f6b5 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0005 steps=[1200] train_s=[82.3155546609778]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.0, 32: 0.0, 64: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.001}
+### 16:22:02  lstm_d128_L2  p2_n5_e9000_fs1200_s74  [P23-grid]
+[OK] p2_n5_e9000_fs1200_s74 sha=a5f4f3b0 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0004 steps=[1200] train_s=[25.054707118077204]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.0, 32: 0.0, 64: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.001}
+### 16:22:37  deltapm1_d128_L2  p2_n7_e1000_fs1200_s74  [P23-grid]
+[OK] p2_n7_e1000_fs1200_s74 sha=1fd3f6b5 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[1200] train_s=[77.29726016777568]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.0, 32: 0.0, 64: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+### 16:24:01  lstm_d128_L2  p2_n7_e1000_fs1200_s74  [P23-grid]
+[OK] p2_n7_e1000_fs1200_s74 sha=a5f4f3b0 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[1200] train_s=[62.3477773880586]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.0, 32: 0.0, 64: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+### 16:25:14  deltapm1_d128_L2  p2_n7_e16000_fs1200_s74  [P23-grid]
+[OK] p2_n7_e16000_fs1200_s74 sha=1fd3f6b5 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[1200] train_s=[36.25080493511632]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.0, 32: 0.0, 64: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+### 16:26:04  lstm_d128_L2  p2_n7_e16000_fs1200_s74  [P23-grid]
+[OK] p2_n7_e16000_fs1200_s74 sha=a5f4f3b0 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[1200] train_s=[11.20817687176168]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.0, 32: 0.0, 64: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+=== p2 queue3 complete 16:26:20 ===

@@ -1,1 +1,41 @@
 ### 15:56:41  deltapm1_d128_L2_emb02  p2_e5_fs1200_s74  [P0-initfix]
+[OK] p2_e5_fs1200_s74 sha=88b5c105 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0046 steps=[1200] train_s=[59.99979489995167]
+      rungs(seen_n)={1: 0.01, 2: 0.0, 4: 0.008, 8: 0.008, 16: 0.004, 32: 0.002, 64: 0.004}
+      rungs(ood_n)={1: 0.002, 2: 0.002, 4: 0.0, 8: 0.0, 16: 0.004, 32: 0.0, 64: 0.0}
+      splits={'ood': 0.002, 'test': 0.008}
+### 15:57:51  lstm_d128_L2_emb02  p2_e5_fs1200_s74  [P0-initfix]
+[OK] p2_e5_fs1200_s74 sha=c36276b6 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0079 steps=[1200] train_s=[42.6186572231818]
+      rungs(seen_n)={1: 0.01, 2: 0.004, 4: 0.01, 8: 0.0, 16: 0.002, 32: 0.004, 64: 0.012}
+      rungs(ood_n)={1: 0.004, 2: 0.006, 4: 0.002, 8: 0.0, 16: 0.0, 32: 0.0, 64: 0.002}
+      splits={'ood': 0.008, 'test': 0.008}
+### 15:58:41  attn_d128_L2_emb02  p2_e5_fs1200_s74  [P0-initfix]
+[OK] p2_e5_fs1200_s74 sha=1a9bbe1e MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0071 steps=[1200] train_s=[33.95055510988459]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.004, 8: 0.006, 16: 0.004, 32: 0.002, 64: 0.004}
+      rungs(ood_n)={1: 0.002, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.002, 32: 0.0, 64: 0.0}
+      splits={'ood': 0.01, 'test': 0.004}
+### 15:59:21  diag01_d128_L2_emb02  p2_e5_fs1200_s74  [P0-initfix]
+[OK] p2_e5_fs1200_s74 sha=64107a74 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0038 steps=[1200] train_s=[47.203042927896604]
+      rungs(seen_n)={1: 0.002, 2: 0.004, 4: 0.004, 8: 0.004, 16: 0.01, 32: 0.008, 64: 0.0}
+      rungs(ood_n)={1: 0.002, 2: 0.002, 4: 0.0, 8: 0.0, 16: 0.0, 32: 0.0, 64: 0.002}
+      splits={'ood': 0.002, 'test': 0.006}
+### 16:00:16  lstm_d128_L2_emb02  p2_sq5_fs1200_s74  [P0-initfix]
+[OK] p2_sq5_fs1200_s74 sha=c36276b6 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[1200] train_s=[217.69167361198924]
+      rungs(seen_n)={1: 0.0, 2: 0.0}
+      rungs(ood_n)={}
+      splits={'ood': 0.0, 'test': 0.0}
+### 16:03:57  lstm_d128_L2_emb02  p2_e5_fs8000_s74  [P0-initfix]
+[OK] p2_e5_fs8000_s74 sha=c36276b6 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0104 steps=[8000] train_s=[308.0133088908624]
+      rungs(seen_n)={1: 0.008, 2: 0.004, 4: 0.01, 8: 0.008, 16: 0.006, 32: 0.008, 64: 0.01}
+      rungs(ood_n)={1: 0.008, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.002, 32: 0.002, 64: 0.004}
+      splits={'ood': 0.013, 'test': 0.008}
+### 16:09:13  lstm_d128_L2  p2_m1_fs8000_s74  [P1-expressivity]
+[OK] p2_m1_fs8000_s74 sha=a5f4f3b0 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0002 steps=[8000] train_s=[318.7860491280444]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.0, 32: 0.0, 64: 0.0}
+      rungs(ood_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.0, 16: 0.0, 32: 0.002, 64: 0.0}
+      splits={'ood': 0.0, 'test': 0.0}
+### 16:14:39  deltapm1_d128_L2  p2_m1_fs8000_s74  [P1-expressivity]
+[OK] p2_m1_fs8000_s74 sha=1fd3f6b5 MAX_T=0 OOD_N_MAX_T=0 mean_acc=0.0000 steps=[8000] train_s=[468.05944847106]
+      rungs(seen_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.005, 16: 0.0, 32: 0.0, 64: 0.0}
+      rungs(ood_n)={1: 0.0, 2: 0.0, 4: 0.0, 8: 0.002, 16: 0.002, 32: 0.0, 64: 0.0}
+      splits={'ood': 0.0, 'test': 0.0}
+=== p2 queue5 complete 16:22:38 ===
