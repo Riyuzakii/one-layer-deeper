@@ -473,9 +473,8 @@ consequence of that correction.
    family. That removes two of the five ranked next actions in `lab/RESUME.md` §5 for
    anything built this way.
 3. **Spend the freed budget and the freed engineering time on the state alphabet.**
-   This branch's width sweep is the argument: across six octaves of hidden width, and
-   with 13× the screening step count, `train_exact` moved 140× and `held_exact` moved
-   not at all. Capacity, compute, expressivity and wall clock are all *surplus*. What
+   This branch's width sweep is the argument: across six octaves of hidden width and
+   two datasets, `train_exact` moved 134× and `held_exact` moved not at all. Capacity, compute, expressivity and wall clock are all *surplus*. What
    `digit-carry` #2 and this sweep jointly say is that a **continuous** state is a
    value-encoding channel at every width — small ones just encode less. The open
    question is a state that is discrete *by construction* rather than by relaxation
