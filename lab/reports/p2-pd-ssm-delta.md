@@ -495,7 +495,29 @@ must not be read as "discreteness works". The honest statement is: *the
 discreteness hypothesis survives this branch's test rather than being confirmed
 by it, and it is the only hypothesis in this report that does.*
 
-DISCRETE_HARDSOFT
+**(c) The controlled pair — the cleanest cell in this section.** PD-SSM at
+`τ = 1`, `N = 16`, seed 74, identical parameter count, identical
+initialisation, identical everything: the *only* difference is whether the
+forward pass takes the hard one-hot or leaves the softmax mixture.
+
+| | `train_exact` | rung-1 held-out |
+|---|---|---|
+| `ste = hard` (discrete `P`) | 0.141 | **0.012** (6 / 512) |
+| `ste = none` (continuous `P`) | **0.430** | 0.002 (1 / 512) |
+
+**The soft version fits 3.0× better and generalises 6× worse.** That is the same
+signature the synthetic control shows on A₅ (soft: 0.494 in-distribution but
+0.037 at `2×` length; hard: 1.000 and 1.000), reproduced on the competition task
+in a properly controlled pair. It is also the exact inversion of the
+capacity story in (a): there, more continuous state bought `train_exact` and
+cost held-out; here, removing the continuous relaxation costs `train_exact` and
+buys held-out.
+
+Against the `lr = 0` control (rung-1 0.000 for this architecture) both are
+above the floor, and 6 vs 1 of 512 is a small absolute difference at one seed —
+so this is a *direction*, not a certification. But it is the only direction in
+this branch that points the right way, and it is the one the coordinator asked
+to be tested.
 
 RESULTS_NARRATIVE
 
