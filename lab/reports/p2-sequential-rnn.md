@@ -188,11 +188,68 @@ than the reference model.**
 
 ## 3. Hidden-state width: train vs held-out
 
-_pending_
+**The hypothesis under test**, from the mandate and from `digit-carry`'s falsification
+#2: *a continuous carry channel is a value-encoding channel that restores
+memorisation* — a place-shared product table with a 32-dim continuous carry reached
+train 1.000 / held 0.000 by step 2000. An LSTM's hidden state is exactly such a
+channel, so `D_H` should trade memorisation against generalisation. **If a small hidden
+state generalises where a large one memorises, that is the result to isolate.**
+
+`lab/probe_rnn.py`, 3,000 steps, batch 128, AdamW lr 1e-3 wd 0.1, 3 seeds per cell,
+bf16 amp. Metrics reported as a row, never a cell: `train_exact` and `held_exact` side
+by side, plus the collapse detector `div` (distinct predicted answer strings / held-out
+examples) and `top` (share of held-out examples receiving the single most common
+answer). A constant map reads `div ≈ 1/n`, `top ≈ 1.0`. `held_ce` is recorded but is
+**not** ranked on (RESUME.md: label smoothing moves it with zero algebraic content).
+
+_tables pending_
 
 ---
 
-## 4. Neural GPU (PLAN2 §3.5) — secondary
+## 4. Neural GPU (PLAN2 §3.5) — secondary, and it dies on the budget, not on training
+
+`submissions/p2-sequential-rnn-neuralgpu/submission.py`: a tied conv-GRU over a
+`(W=4, L, C)` state grid, `K` applications, orthogonal candidate kernel and gate biases
+at +1 so the carry gate starts near-open. Two of the three training aids PLAN2 §3.5
+says it needs are available under the competition contract and both are used:
+
+* **gradient noise** — `sigma_t = sqrt(eta / (1+t)^0.55)` (Neelakantan et al.), delivered
+  as a custom `torch.optim.Optimizer` subclass, which BRIEF2 §7 explicitly permits.
+  Autograd still computes every gradient; the optimizer perturbs only its own update.
+* **careful init** — above.
+* **curriculum learning is NOT available.** The evaluator owns the data order and the
+  training loop (BRIEF.md §4.4), and there is no legal way to stage examples by
+  difficulty inside a submission. This is a genuine handicap for this architecture and
+  is reported rather than worked around.
+
+**PLAN2 told this branch to budget for the Neural GPU failing to *optimise*. It does not
+get that far: it fails on wall clock first.** Same ratio calibration, `C=48`, `W=4`,
+L=21, batch 512:
+
+| model | depth | local ms | ratio vs REF | implied H100 ms | implied steps / 3600 s |
+|---|---|---|---|---|---|
+| Neural GPU `C=48` | `K=6` | 54.97 | 3.77 | 145.5 | 24,712 |
+| Neural GPU `C=48` | `K=12` | 170.28 | 7.22 | 278.5 | 12,911 |
+| Neural GPU `C=48` | `K=20` | 276.64 | 18.98 | 732.6 | 4,908 |
+| fused LSTM `D_H=48` | 1 | 7.68 | 0.33 | 12.6 | 286,191 |
+
+At its intended depth the Neural GPU is **22× more expensive per step than the
+sequential RNN it is supposed to be the parallel-friendly alternative to**, and buys
+~12,900 Hard steps. Kaiser & Sutskever train Neural GPUs for hundreds of thousands of
+steps *with* the curriculum that is unavailable here. Some of the 22× is recoverable —
+`conv2d` on a 4×21 grid is badly launch-bound and folding the grid width into channels
+would help — but a 4× engineering win still lands at ~50k steps against the LSTM's
+~287k, for an architecture with a much worse optimisation reputation.
+
+**Secondary verdict: PLAN2 §3.5 is dominated by §3.6 on this task on wall clock alone,
+before any question of trainability is reached. Timebox spent; recommend not
+resuming it.** The training numbers that were nevertheless collected are in §4.1.
+
+*(Aside, and it validates the whole calibration method: the LSTM's ratio read 0.324
+when the reference measured 10.53 ms and 0.326 when contention pushed the reference to
+23.60 ms. Contention cancels; the ratios in this report are stable.)*
+
+### 4.1 Neural GPU training numbers
 
 _pending_
 
@@ -200,10 +257,64 @@ _pending_
 
 ## 5. Evaluator runs
 
+Every run is archived in `lab/archive.jsonl` through `lab/run_experiment.py`.
+All manifests are `--mode fixed_step` except the one labelled `wallclock`, which is a
+deliberate tier-faithful timing check (BRIEF.md §5).
+
+_table pending_
+
+---
+
+## 6. What this branch establishes, what it falsifies, and what it recommends
+
+### 6.1 Established
+
+1. **PLAN2's falsifier for §3.6 does not fire, and the entry's cost hedge is backwards.**
+   PLAN2 calls the sequential non-linear RNN "the worst wall clock" on Axis B and hedges
+   the whole entry on `max_seq_len` being small. `max_seq_len` is 13–21, and the fused
+   sequential RNN is **2.5–3.9× cheaper per step than the reference model that was
+   actually run on the competition H100** — ~230,000–350,000 Hard steps against ~93,000.
+   It is the *cheapest* thing this project has built, not the most expensive.
+2. **Fusion is worth 5–8× and comes free from `nn.LSTM`.** No Triton, no
+   `torch.autograd.Function`, no compliance grey area.
+3. **Triton cannot compile on this box at all** (`ptxas-blackwell`: `sm_107a` is not a
+   known target), which also disables `torch.compile`. BRIEF2 §5's "custom fused kernels
+   are on the table" should be read as "on the H100, unverifiable here".
+4. **The eval budget, which killed the ALU candidate (`alu-compose` P2), is a non-issue
+   for this family**: 3.57 s of 30 s on tier-faithful Easy, an 8.4× margin against the
+   ALU's 1.1×, because an RNN has no depth ladder to run at eval time.
+
+### 6.2 Falsified
+
+_pending_
+
+### 6.3 The single highest-value recommendation
+
 _pending_
 
 ---
 
-## 6. Verdict and recommendation
+## 7. Compliance statement
 
-_pending_
+* No file under `data/generated/` was read, printed, sampled or summarised. The probe
+  in `lab/probe_rnn.py` constructs dataloaders through the public `data.factory` API
+  exactly as the evaluator does and reports only statistics of **model predictions**
+  (exact accuracy, prediction diversity, cross-entropy). `lab/rnn_bench.py`,
+  `lab/time_submission.py` and `lab/triton_probe.py` use synthetic integer tensors and
+  touch no dataset at all.
+* Both submissions pass `benchmark.validation.lint_submission_source`.
+* No hard-coded arithmetic, solver, lookup table or data-dependent Python control flow
+  in either forward pass. Every tensor is learned from random init in the run.
+  `attention_mask` is used only to build an index permutation and to zero pad
+  embeddings.
+* No custom training loop and no participant-controlled backward in either submission.
+  The Neural GPU's `NoisyAdamW` is a `torch.optim.Optimizer` subclass, which BRIEF2 §7
+  explicitly permits; autograd computes every gradient and the subclass perturbs only
+  the update it itself applies. **No `torch.autograd.Function` and no custom kernel is
+  used anywhere** — the fusion is cuDNN's, reached through stock `nn.LSTM`.
+* Nothing was submitted to the hosted service. No installs. `lab/probe_rnn.py` uses its
+  own training loop and is therefore a **lab diagnostic**, never a submission.
+* Every result in this report is **LEGAL** unless explicitly labelled otherwise. There
+  are no `--construct` / `--teacher-force` style oracles in this branch: nothing here
+  was ever handed the answer, so there is no DIAGNOSTIC ceiling to report and no
+  legal/illegal boundary to police.
