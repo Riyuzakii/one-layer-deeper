@@ -77,3 +77,7 @@
 [76/96] C_tau       a5     pdssm    n_h=1 eig=neg tau=1.0   ste=hard s=0 | last=0.050 seq=0.000 chance=0.017 div=1.000 ext2x=0.016 (49.68s)
 [77/96] C_tau       a5     pdssm    n_h=1 eig=neg tau=3.0   ste=hard s=0 | last=1.000 seq=1.000 chance=0.017 div=1.000 ext2x=1.000 (47.3s)
 [78/96] C_tau       a5     pdssm    n_h=1 eig=neg tau=10.0  ste=hard s=0 | last=0.043 seq=0.001 chance=0.017 div=0.967 ext2x=0.018 (48.51s)
+[79/96] C_soft      a5     pdssm    n_h=1 eig=neg tau=1.0   ste=none s=0 | last=0.494 seq=0.277 chance=0.017 div=1.000 ext2x=0.037 (43.58s)
+[80/96] D_matscan   a5     matscan  n_h=1 eig=neg tau=1.0   ste=hard s=0 | last=0.054 seq=0.011 chance=0.017 div=1.000 ext2x=0.014 (31.13s)
+[81/96] A_eig       a5     delta    n_h=1 eig=pos tau=1.0   ste=hard s=1 | last=0.012 seq=0.000 chance=0.017 div=0.583 ext2x=0.021 (38.71s)
+[82/96] A_eig       a5     delta    n_h=1 eig=neg tau=1.0   ste=hard s=1 | last=0.012 seq=0.000 chance=0.017 div=0.667 ext2x=0.023 (39.03s)

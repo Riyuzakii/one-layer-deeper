@@ -171,7 +171,15 @@ RESULTS_PROBE_D
    regime (`τ ≤ 1`) in which this architecture reads chance on the only task in
    the set that needs its full expressivity. Had this branch reported a single
    temperature it would have reported the wrong one with ~75 % probability.
-4. **In-distribution accuracy is fooled; length extrapolation is not.**
+4. **Straight-through discretisation is what makes PD-SSM *generalise*, not what
+   stops it training.** The `ste=none` soft control on A₅ reads **0.494**
+   in-distribution (sequence-level 0.277) — clearly learning something — and
+   **0.037 at `2×` length**, i.e. chance. Hard straight-through at `τ = 3` reads
+   1.000 and **1.000** at `2×` length. The soft relaxation memorises; the
+   discrete forward pass generalises. This is the direct opposite of the prior
+   this branch was handed (straight-through as "the known failure mode"), and it
+   is measured on the only task in the set that needs the full expressivity.
+5. **In-distribution accuracy is fooled; length extrapolation is not.**
    `[0,1]` at `n_h=2` reaches 0.941 in-distribution on mod-3 while its `2×`
    extrapolation is 0.328 — chance. It memorised length-20 sequences without
    learning the recurrence. Any report of these architectures that quotes only
@@ -344,11 +352,21 @@ here is not "the sweep was too coarse" or "nothing trains"; it is a null from a
 calibrated instrument. **Non-commutativity is not what is missing.**
 
 **3. The straight-through hypothesis is falsified as an explanation of PD-SSM's
-failure** (§5.3). This was the mandate's named prior suspicion and it does not
-hold: `p_max_prob` rises monotonically 0.071 → 0.979, so the surrogate gradient
-becomes *more* accurate over training, not less, and the hard-STE cells match
-the pure-soft (`ste=none`) control. The temperature sweep is flat. Whatever
-stops PD-SSM, it is not the estimator and it is not the temperature.
+failure — and its sign is inverted.** This was the mandate's named prior
+suspicion. Three separate measurements say it does not hold:
+
+* On the real task (§5.3) `p_max_prob` rises monotonically 0.071 → 0.979, so
+  the surrogate gradient becomes *more* accurate over training, not less. The
+  discrete attractor RESUME describes is real and here it is **benign**.
+* On A₅ the hard straight-through configuration **beats** the pure-soft control
+  decisively where it counts: 1.000 vs 0.494 in-distribution, and **1.000 vs
+  0.037** at `2×` length. Discretisation is what makes it *generalise*.
+* The temperature does matter enormously (chance → exact between `τ=1` and
+  `τ=3`), but in the direction of a **softer backward pass**, not a harder one —
+  so "anneal the relaxation toward hard", the standard recipe, is the wrong
+  move for this architecture.
+
+Whatever stops PD-SSM on the competition task, it is not the estimator.
 
 **4. BRIEF2 §2c's carry-monoid route, in its token-axis form, is falsified.**
 The hypothesis this branch bet on was that carry propagation across digit
