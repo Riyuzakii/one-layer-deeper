@@ -370,7 +370,7 @@ solution*, so a leftward metric shift is usually regression toward init.
 |---|---|---|---|---|
 | §3.3 DeltaProduct `n_h=2`, `lr=0` | **0** | **0.0042** | 0.941 | 0.191 |
 | §3.2 PD-SSM `τ=1`, `lr=0` | **0** | **0.0013** | 1.000 | 0.191 |
-| §3.1 matrix scan, `lr=0` | LR0_MATSCAN | | | |
+| §3.1 matrix scan, `lr=0` | **0** | **0.0033** | 1.000 | 0.240 |
 
 **`mean_exact_accuracy` at random init is 0.001–0.004.** Every trained cell in
 this branch is inside or barely outside that band, so no `mean_acc` figure below
