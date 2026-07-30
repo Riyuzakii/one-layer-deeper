@@ -249,7 +249,20 @@ def run_one(args, seed: int, overrides: dict) -> dict:
             with torch.no_grad():
                 preds = token_logits.argmax(dim=-1)
                 tr = float(((preds == targets) | ~valid).all(dim=1).float().mean())
-            curve.append([step, round(float(loss.detach()), 4), round(tr, 4)])
+            point = [step, round(float(loss.detach()), 4), round(tr, 4)]
+            if args.eval_every:
+                # optional held-out evaluation at each checkpoint.  Off by default so
+                # that runs stay comparable with the ones already recorded; turn it on
+                # when the held-out *trajectory* (not just its endpoint) is the question.
+                point.append(
+                    round(
+                        evaluate_cached(
+                            model, held_cache, device, args.eval_batch_size
+                        )["exact"],
+                        4,
+                    )
+                )
+            curve.append(point)
     train_seconds = time.perf_counter() - t0
 
     train_stats = evaluate_cached(model, train_cache, device, args.eval_batch_size)
@@ -288,6 +301,11 @@ def main() -> int:
     ap.add_argument("--eval-batch-size", type=int, default=4096)
     ap.add_argument("--seeds", type=int, nargs="+", default=[0])
     ap.add_argument("--lr", type=float, default=None, help="override; use 0 for control")
+    ap.add_argument(
+        "--eval-every",
+        action="store_true",
+        help="also evaluate held-out at each curve checkpoint (appends a 4th column)",
+    )
     ap.add_argument("--d-h", type=int, nargs="+", default=[64])
     ap.add_argument("--loops", type=int, default=1)
     ap.add_argument("--align", type=int, default=1)
