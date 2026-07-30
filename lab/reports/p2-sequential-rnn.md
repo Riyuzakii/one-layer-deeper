@@ -9,8 +9,17 @@ timeboxed: PLAN2 §3.5, the Neural GPU / tied conv-GRU.
 achievable update count non-competitive" — is **decisively refuted**: fused, this is the
 *cheapest* architecture the project has built, worth ~230k–350k Hard steps against the
 reference model's ~93,000, with an 8.4× eval-budget margin. And with maximal
-expressivity, no theoretical caveats and 3× the compute, it reproduces the project's
-canonical failure exactly. **MAX_T = 0 everywhere.**
+expressivity, no theoretical caveats and 13× the screening compute, it reproduces the
+project's canonical failure exactly. **MAX_T = 0 everywhere.**
+
+**The result with the widest blast radius is not about this architecture.** Spending that
+surplus budget at Medium scale (§3.5) shows **m1 does fit** — `train_exact` 0.0098 at
+3,000 steps and **0.8567 at 40,000** — with held-out at four examples in 3,000. So BRIEF2
+§2(d)'s "at m1 scale and above they cannot even fit" is a **step-count artifact**, the
+Easy/Medium split in the project's diagnosis is not real, and the memorisation failure is
+**one phenomenon at every scale measured**. A corollary that affects sibling branches
+directly: the `fs1200`/`fs1500` screens in wide use across the PLAN2 worktrees sit inside
+the pre-fitting region at Medium scale (§3.5a).
 
 ---
 
@@ -784,16 +793,28 @@ and it certifies nothing: **MAX_T = 0 and OOD-N MAX_T = 0 in all nine evaluator 
 with the best rung-1 anywhere 2/512 on e5 and 0/38 on e1 — at the floor and below the
 field best of 3/38.
 
-Its value is that it removes two variables from the search rather than adding one.
-Before this branch, "the sequential RNN is maximally expressive but too slow" and
-"maybe a narrower state would force generalisation" were both live and both plausible.
-Both are now measured and false: it is the *fastest* thing in the plan, and the state
-width does not trade against generalisation at all — it trades against nothing, because
-held-out never moves. What is left is what `alu-credit` and `alu-relational` already
-converged on from a completely different direction, and this branch reaches it from the
-expressivity side instead of the credit-assignment side: **the missing ingredient is a
-discrete state, and no amount of capacity, compute, expressivity or wall clock
-substitutes for it.**
+Its value is that it removes variables from the search rather than adding one. Before
+this branch, "the sequential RNN is maximally expressive but too slow", "maybe a narrower
+state would force generalisation", and "Medium-scale models cannot even fit, so the
+Easy diagnosis may not transfer" were all live and all plausible. All three are now
+measured and false: it is the *fastest* thing in the plan; the state width does not trade
+against generalisation at all, because held-out never moves; and Medium fits perfectly
+well once you run past step 5,000.
+
+What is left is what `alu-credit` and `alu-relational` already converged on from a
+completely different direction, and this branch reaches it from the expressivity side
+instead of the credit-assignment side: **the missing ingredient is a discrete state, and
+no amount of capacity, compute, expressivity or wall clock substitutes for it.** The m1
+result matters most because it removes the last place the failure could have been hiding
+as *two* phenomena — it is one phenomenon, at 600 rows and at 27,000.
+
+One thing this branch got wrong and corrected in place, recorded because the reasoning
+error is more reusable than the result: §3.4 initially read m1's `train_exact` 0.0098 as
+"cannot fit at Medium", which is what BRIEF2 §2(d) predicted and therefore what was easy
+to believe. The confound was visible in this branch's *own* §3.3 data — e5 needed ~5,000
+steps to fit — and was only caught by checking the new measurement against the existing
+one rather than against the expectation. **The generalisable lesson is that a null at a
+step count you have not calibrated against a fitting curve is not a null.**
 
 ---
 
