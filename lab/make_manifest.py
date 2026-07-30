@@ -42,6 +42,19 @@ DATA_ROOTS = {
     "hp1": "data/generated/proxy_hard_fixed_n_p2003_q2011_t4816",
     "hp2": "data/generated/proxy_hard_sampled_b3032_t4816",
     "hp3": "data/generated/proxy_hard_sampled_b202428_t8",
+    # PLAN2 Phase-0 probes 2 and 3 grid (see lab/gen_p2_grid.sh).
+    # n<d> = digits of the fixed modulus; e<k> = examples_per_setting.
+    # max_seq_len = 2*d + 5; 256 reserved units per depth rung.
+    "n3_e250": "data/generated/p2grid_n3_e250",      # N=667      seq 11
+    "n4_e250": "data/generated/p2grid_n4_e250",      # N=1147     seq 13
+    "n5_e250": "data/generated/p2grid_n5_e250",      # N=10403    seq 15
+    "n6_e250": "data/generated/p2grid_n6_e250",      # N=111547   seq 17
+    "n7_e250": "data/generated/p2grid_n7_e250",      # N=1022117  seq 19
+    "n5_e1000": "data/generated/p2grid_n5_e1000",
+    "n5_e4000": "data/generated/p2grid_n5_e4000",
+    "n5_e9000": "data/generated/p2grid_n5_e9000",
+    "n7_e1000": "data/generated/p2grid_n7_e1000",
+    "n7_e16000": "data/generated/p2grid_n7_e16000",
 }
 
 TIER_SECONDS = {"e": 60.0, "m": 600.0, "h": 3600.0}

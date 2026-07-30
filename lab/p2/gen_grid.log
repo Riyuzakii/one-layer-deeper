@@ -1,0 +1,20 @@
+skip n3_e250 (exists)
+=== generating n4_e250: p=31 q=37 eps=250 ===
+wrote 2642 examples to data/generated/p2grid_n4_e250
+=== generating n5_e250: p=101 q=103 eps=250 ===
+wrote 2642 examples to data/generated/p2grid_n5_e250
+=== generating n6_e250: p=331 q=337 eps=250 ===
+wrote 2642 examples to data/generated/p2grid_n6_e250
+=== generating n7_e250: p=1009 q=1013 eps=250 ===
+wrote 2642 examples to data/generated/p2grid_n7_e250
+=== generating n5_e1000: p=101 q=103 eps=1000 ===
+wrote 4892 examples to data/generated/p2grid_n5_e1000
+=== generating n5_e4000: p=101 q=103 eps=4000 ===
+wrote 13892 examples to data/generated/p2grid_n5_e4000
+=== generating n5_e9000: p=101 q=103 eps=9000 ===
+wrote 28892 examples to data/generated/p2grid_n5_e9000
+=== generating n7_e1000: p=1009 q=1013 eps=1000 ===
+wrote 4892 examples to data/generated/p2grid_n7_e1000
+=== generating n7_e16000: p=1009 q=1013 eps=16000 ===
+wrote 49892 examples to data/generated/p2grid_n7_e16000
+=== p2 grid complete ===
