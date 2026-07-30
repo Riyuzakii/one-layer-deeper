@@ -409,54 +409,41 @@ class MonoidALU(nn.Module):
     @torch.no_grad()
     def construct_(self) -> None:
         """Write the exact digit tables.  BRIEF §4 rule 2: diagnostic only."""
-        d = self.d
+        d, dev = self.d, self.mul.lo.device
+        pair = torch.arange(100, device=dev)
+        a, b = pair // 10, pair % 10
+        st = torch.arange(d, device=dev)
+        stc = torch.where(st < 2, st, torch.zeros_like(st))  # unused states act as 0
+        pa = pair[:, None].expand(100, d)
+        ps = st[None, :].expand(100, d)
+
         for tbl in (self.mul, self.mul_n):
             tbl.lo.fill_(-BIG)
             tbl.hi.fill_(-BIG)
-            for a in range(10):
-                for b in range(10):
-                    tbl.lo[a * 10 + b, (a * b) % 10] = BIG
-                    tbl.hi[a * 10 + b, (a * b) // 10] = BIG
+            tbl.lo[pair, (a * b) % 10] = BIG
+            tbl.hi[pair, (a * b) // 10] = BIG
             if self.mul_n is self.mul:
                 break
 
         # addition: state = carry in {0, 1}
         self.add.trans.fill_(-BIG)
         self.add.emit.fill_(-BIG)
-        tr = self.add.trans.view(100, d, d)
-        em = self.add.emit.view(100, d, 10)
-        for a in range(10):
-            for b in range(10):
-                for c in range(d):
-                    cc = c if c < 2 else 0
-                    v = a + b + cc
-                    tr[a * 10 + b, min(v // 10, d - 1), c] = BIG
-                    em[a * 10 + b, c, v % 10] = BIG
+        v = a[:, None] + b[:, None] + stc[None, :]
+        self.add.trans.view(100, d, d)[pa, (v // 10).clamp(max=d - 1), ps] = BIG
+        self.add.emit.view(100, d, 10)[pa, ps, v % 10] = BIG
 
         # subtraction: state = borrow in {0, 1}
         self.sub.trans.fill_(-BIG)
         self.sub.emit.fill_(-BIG)
-        tr = self.sub.trans.view(100, d, d)
-        em = self.sub.emit.view(100, d, 10)
-        for a in range(10):
-            for b in range(10):
-                for c in range(d):
-                    cc = c if c < 2 else 0
-                    v = a - b - cc
-                    tr[a * 10 + b, min(1 if v < 0 else 0, d - 1), c] = BIG
-                    em[a * 10 + b, c, v % 10] = BIG
+        v = a[:, None] - b[:, None] - stc[None, :]
+        self.sub.trans.view(100, d, d)[pa, (v < 0).long().clamp(max=d - 1), ps] = BIG
+        self.sub.emit.view(100, d, 10)[pa, ps, v % 10] = BIG
 
         # comparison: state 0 = EQ, 1 = LT, 2 = GT (needs d >= 3)
         self.cmp.trans.fill_(-BIG)
-        tr = self.cmp.trans.view(100, d, d)
-        for a in range(10):
-            for b in range(10):
-                for c in range(d):
-                    if c == 0:
-                        nxt = 0 if a == b else (2 if a > b else 1)
-                    else:
-                        nxt = c
-                    tr[a * 10 + b, min(nxt, d - 1), c] = BIG
+        decide = torch.where(a == b, 0, torch.where(a > b, 2, 1))[:, None].expand(100, d)
+        nxt = torch.where(ps == 0, decide, ps).clamp(max=d - 1)
+        self.cmp.trans.view(100, d, d)[pa, nxt, ps] = BIG
         self.cmp_head.fill_(0.0)
         self.cmp_head[0] = BIG
         if d > 1:
@@ -466,10 +453,9 @@ class MonoidALU(nn.Module):
 
         # quotient selection: logit_q = fits_q - fits_{q+1}
         self.sel.fill_(0.0)
-        for q in range(10):
-            self.sel[q, q] = BIG
-            if q + 1 < 10:
-                self.sel[q, q + 1] = -BIG
+        q = torch.arange(10, device=dev)
+        self.sel[q, q] = BIG
+        self.sel[q[:-1], q[:-1] + 1] = -BIG
 
     @torch.no_grad()
     def corrupt_(self, k: int, generator: torch.Generator | None = None,

@@ -1,0 +1,33 @@
+### A-323-serial-s0 :: --modulus 323 --slots 3 --train-x 250 --scan-mode serial --seed 0
+[A-323-serial-s0] modulus=323 S=3 K=5 W=4 mul=tree scan=serial mode=quotient R=11 Q=10 units=288 train=250 held=38 params=6,820 trainable=6,820 frozen=[]
+[A-323-serial-s0] DEPTH main=39 (adds=18 reduce=20) N-prefix=16 alphabet={'digit': 10, 'carry': 2, 'borrow': 2, 'quotient': 11} true_max_quotient=9 max_register=3221 (W holds < 10000)
+[A-323-serial-s0] step=     1 loss=2.28554 train_exact=0.016 held_exact=0.000 train_ce=2.271 held_ce=2.280 train_exact_hard=0.004 state_sharpness=0.288 q_sharpness=0.093 (4s)
+[A-323-serial-s0] step=   500 loss=0.91757 train_exact=0.136 held_exact=0.000 train_ce=0.917 held_ce=6.011 train_exact_hard=0.012 state_sharpness=0.762 q_sharpness=0.456 (19s)
+[A-323-serial-s0] step=  1000 loss=0.84860 train_exact=0.172 held_exact=0.000 train_ce=0.849 held_ce=7.012 train_exact_hard=0.004 state_sharpness=0.766 q_sharpness=0.472 (35s)
+[A-323-serial-s0] step=  1500 loss=0.68553 train_exact=0.336 held_exact=0.026 train_ce=0.685 held_ce=6.796 train_exact_hard=0.004 state_sharpness=0.763 q_sharpness=0.522 (49s)
+[A-323-serial-s0] step=  2000 loss=0.59891 train_exact=0.380 held_exact=0.026 train_ce=0.599 held_ce=7.169 train_exact_hard=0.004 state_sharpness=0.765 q_sharpness=0.540 (65s)
+[A-323-serial-s0] step=  2500 loss=0.52079 train_exact=0.432 held_exact=0.026 train_ce=0.520 held_ce=7.750 train_exact_hard=0.020 state_sharpness=0.762 q_sharpness=0.581 (80s)
+[A-323-serial-s0] step=  3000 loss=0.53694 train_exact=0.448 held_exact=0.000 train_ce=0.534 held_ce=7.779 train_exact_hard=0.008 state_sharpness=0.767 q_sharpness=0.606 (95s)
+### A-323-serial-s1 :: --modulus 323 --slots 3 --train-x 250 --scan-mode serial --seed 1
+[A-323-serial-s1] modulus=323 S=3 K=5 W=4 mul=tree scan=serial mode=quotient R=11 Q=10 units=288 train=250 held=38 params=6,820 trainable=6,820 frozen=[]
+[A-323-serial-s1] DEPTH main=39 (adds=18 reduce=20) N-prefix=16 alphabet={'digit': 10, 'carry': 2, 'borrow': 2, 'quotient': 11} true_max_quotient=9 max_register=3221 (W holds < 10000)
+[A-323-serial-s1] step=     1 loss=2.30578 train_exact=0.000 held_exact=0.000 train_ce=2.291 held_ce=2.289 train_exact_hard=0.004 state_sharpness=0.298 q_sharpness=0.091 (2s)
+[A-323-serial-s1] step=   500 loss=0.79495 train_exact=0.224 held_exact=0.026 train_ce=0.794 held_ce=4.721 train_exact_hard=0.000 state_sharpness=0.770 q_sharpness=0.651 (17s)
+[A-323-serial-s1] step=  1000 loss=0.65650 train_exact=0.244 held_exact=0.000 train_ce=0.656 held_ce=6.371 train_exact_hard=0.004 state_sharpness=0.773 q_sharpness=0.686 (32s)
+[A-323-serial-s1] step=  1500 loss=0.62492 train_exact=0.272 held_exact=0.000 train_ce=0.625 held_ce=6.989 train_exact_hard=0.004 state_sharpness=0.777 q_sharpness=0.678 (48s)
+[A-323-serial-s1] step=  2000 loss=0.53492 train_exact=0.368 held_exact=0.000 train_ce=0.535 held_ce=8.601 train_exact_hard=0.000 state_sharpness=0.775 q_sharpness=0.858 (65s)
+[A-323-serial-s1] step=  2500 loss=0.49078 train_exact=0.420 held_exact=0.000 train_ce=0.490 held_ce=8.535 train_exact_hard=0.000 state_sharpness=0.777 q_sharpness=0.895 (84s)
+[A-323-serial-s1] step=  3000 loss=0.47152 train_exact=0.436 held_exact=0.000 train_ce=0.471 held_ce=9.175 train_exact_hard=0.000 state_sharpness=0.783 q_sharpness=0.912 (101s)
+### A-323-serial-s2 :: --modulus 323 --slots 3 --train-x 250 --scan-mode serial --seed 2
+[A-323-serial-s2] modulus=323 S=3 K=5 W=4 mul=tree scan=serial mode=quotient R=11 Q=10 units=288 train=250 held=38 params=6,820 trainable=6,820 frozen=[]
+[A-323-serial-s2] DEPTH main=39 (adds=18 reduce=20) N-prefix=16 alphabet={'digit': 10, 'carry': 2, 'borrow': 2, 'quotient': 11} true_max_quotient=9 max_register=3221 (W holds < 10000)
+[A-323-serial-s2] step=     1 loss=2.30508 train_exact=0.000 held_exact=0.000 train_ce=2.290 held_ce=2.290 train_exact_hard=0.000 state_sharpness=0.291 q_sharpness=0.091 (2s)
+[A-323-serial-s2] step=   500 loss=0.82753 train_exact=0.192 held_exact=0.000 train_ce=0.827 held_ce=5.071 train_exact_hard=0.000 state_sharpness=0.770 q_sharpness=0.412 (18s)
+[A-323-serial-s2] step=  1000 loss=0.61979 train_exact=0.340 held_exact=0.000 train_ce=0.619 held_ce=6.063 train_exact_hard=0.004 state_sharpness=0.782 q_sharpness=0.674 (33s)
+[A-323-serial-s2] step=  1500 loss=0.55521 train_exact=0.416 held_exact=0.000 train_ce=0.569 held_ce=6.931 train_exact_hard=0.012 state_sharpness=0.781 q_sharpness=0.803 (50s)
+[A-323-serial-s2] step=  2000 loss=0.52741 train_exact=0.440 held_exact=0.000 train_ce=0.542 held_ce=7.258 train_exact_hard=0.000 state_sharpness=0.775 q_sharpness=0.851 (61s)
+[A-323-serial-s2] step=  2500 loss=0.51952 train_exact=0.456 held_exact=0.000 train_ce=0.516 held_ce=7.480 train_exact_hard=0.004 state_sharpness=0.775 q_sharpness=0.829 (72s)
+[A-323-serial-s2] step=  3000 loss=0.45554 train_exact=0.460 held_exact=0.000 train_ce=0.456 held_ce=8.050 train_exact_hard=0.008 state_sharpness=0.778 q_sharpness=0.830 (84s)
+### A-323-serial-lr0 :: --modulus 323 --slots 3 --train-x 250 --scan-mode serial --seed 0 --lr 0 --steps 1 --log-every 1
+[A-323-serial-lr0] modulus=323 S=3 K=5 W=4 mul=tree scan=serial mode=quotient R=11 Q=10 units=288 train=250 held=38 params=6,820 trainable=6,820 frozen=[]
+[A-323-serial-lr0] DEPTH main=39 (adds=18 reduce=20) N-prefix=16 alphabet={'digit': 10, 'carry': 2, 'borrow': 2, 'quotient': 11} true_max_quotient=9 max_register=3221 (W holds < 10000)

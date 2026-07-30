@@ -85,7 +85,8 @@ def build_operands(args) -> tuple[list[tuple[int, int]], list[tuple[int, int]], 
     rng = random.Random(args.split_seed)
     g = torch.Generator().manual_seed(args.split_seed)
     if args.modulus:
-        mods_tr = mods_he = [args.modulus]
+        # fixed modulus: held-out operands only, no held-out modulus pool
+        mods_tr, mods_he = [args.modulus], []
     else:
         mods = []
         while len(mods) < args.n_mod_train + args.n_mod_held:
@@ -152,6 +153,10 @@ def evaluate(model, xin, nin, tgt, S, T, chunk=1024, hard=False):
                               reduction="sum").item()
         preds.append(lg.argmax(-1))
     pred = torch.cat(preds)
+    # BRIEF2 6.3 collapse detector.  NOTE the reference value is NOT 1.0: the
+    # squaring map on Z*_N is 4-to-1, so even the exact solution has diversity
+    # |image| / n (0.221 for the 326-operand N=323 held set).  A constant map
+    # reads 1/n.  Always compare against `div_ref` from the constructed run.
     div = len({tuple(r.tolist()) for r in pred}) / pred.shape[0]
     return ok / xin.shape[0], ce / (xin.shape[0] * S), div
 
@@ -205,11 +210,10 @@ def main() -> int:
 
     model = MonoidALU(S, d=args.d, family=args.family, impl=args.impl,
                       init_scale=args.init_scale, tie_mul=not args.untie_mul).to(device)
-    ref = None
+    ref = model._reference()  # built ONCE; table_correct/repaired would rebuild it per row
     hit = None
     if args.construct or args.corrupt:
         model.construct_()
-        ref = model._reference()
     if args.corrupt:
         g = torch.Generator().manual_seed(args.seed + 1000)
         hit = model.corrupt_(args.corrupt, g)

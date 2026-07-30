@@ -1,0 +1,11 @@
+### C-lr0-323-d16-colsoftmax :: --modulus 323 --d 16 --family colsoftmax --lr 0 --steps 500
+[C-lr0-323-d16-colsoftmax] mod=323 S=3 L=6 d=16 family=colsoftmax impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[C-lr0-323-d16-colsoftmax] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.040 (2s)
+[C-lr0-323-d16-colsoftmax] step=   500 loss=2.30601 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.040 (20s)
+### C-lr0-323-d16-sthard :: --modulus 323 --d 16 --family sthard --lr 0 --steps 500
+[C-lr0-323-d16-sthard] mod=323 S=3 L=6 d=16 family=sthard impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[C-lr0-323-d16-sthard] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.040 (2s)
+[C-lr0-323-d16-sthard] step=   500 loss=2.29693 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.040 (19s)
+### C-lr0-323-d16-dense :: --modulus 323 --d 16 --family dense --lr 0 --steps 500
+[C-lr0-323-d16-dense] mod=323 S=3 L=6 d=16 family=dense impl=scan T=1 train=250 held=38 params=126,916 op_depth=12 graph_depth=41
+[C-lr0-323-d16-dense] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.684 tbl=0.040 (8s)
