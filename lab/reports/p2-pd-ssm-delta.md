@@ -547,6 +547,31 @@ provably sufficient and nearly free, the gap is unchanged.
 
 ---
 
+## 6b. The submission — do not promote it
+
+`submissions/plan2-pd-ssm-delta/submission.py` exists because BRIEF §6.3 asks
+each branch for one, and it is a real, lint-clean, self-contained submission
+(22.8 KiB; `benchmark.validation.lint_submission_source` passes; runs end-to-end
+through `lab/run_experiment.py` in every cell above). With no `P2_*` environment
+set it is a fixed, deterministic, side-effect-free model: DeltaProduct,
+`n_h = 2`, `eig ∈ (−1,1)`, 2 layers, `D = 128`, `batch_size = 128`.
+
+**It scores `MAX_T = 0` and should not be promoted to any tier.** Its
+`mean_exact_accuracy` (0.004–0.010) is inside or barely outside the `--lr 0`
+band (0.001–0.004), and the mandate's condition was "a submission only if
+something works". Nothing here works on the ranked metric.
+
+The one thing in it worth reusing is the tied-head init fix: `nn.Embedding`'s
+default `N(0,1)` with a tied output head makes the initial loss ≈ 80 instead of
+`ln 17 = 2.83`. Measured on this scaffold, fixing it lifted `train_exact` from
+**0.414 → 0.531** at a matched 1,500 steps, and it costs one line. Every
+submission in this repo that ties `head.weight = token_embedding.weight` without
+re-initialising — including `submissions/baseline_adamw/submission.py` — is
+paying that toll. At a tier-faithful Easy budget (RESUME P3: 14–18 optimizer
+steps) it would consume the entire run.
+
+---
+
 ## 7. Compliance
 
 * Nothing under `data/generated/` was read, printed, sampled, or summarised.
