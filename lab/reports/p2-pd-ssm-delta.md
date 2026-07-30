@@ -135,11 +135,16 @@ freshly-generated held-out sequences, plus a `2×`-length extrapolation eval.
 > implementation. Read it as a locally-matched reference point, never as a
 > statement about their work.
 > (b) The main probe runs PD-SSM at `N = 16`, which **cannot** represent A₅'s
-> 60 states under PD-SSM's own theorem, so its A₅ cells at `τ ≤ 1` are
-> under-provisioned by construction. Probe F re-runs A₅ at `N ≥ 60` to make the
-> comparison fair. (As it turns out `N = 16` at `τ = 3` already reaches 1.000,
-> because the readout is not restricted to the state — but the fair cells are
-> reported anyway.)
+> 60 states under PD-SSM's own theorem, so its A₅ cells are under-provisioned by
+> construction. Probe F re-runs A₅ at `N = 32` and `N = 64`, and the theorem is
+> confirmed: at `τ = 1`, `N = 16` reads **0.050** while `N = 32` reads **1.000**
+> and `N = 64` reads **0.987**. (`N = 16` can still reach 1.000 at a lucky
+> temperature, because the readout is not restricted to the state — but the
+> state-size dependence is real and it is where the theorem says it is.)
+> (c) The main probe process was killed by harness cleanup at cell 93 of 96; the
+> three lost cells (seed-1 A₅ at `τ=10`, the seed-1 soft control, and the seed-1
+> §3.1 reference) were re-run separately via `lab/p2_probe_finish.py`. No cell
+> was dropped for being inconvenient.
 
 RESULTS_PROBE_A
 
