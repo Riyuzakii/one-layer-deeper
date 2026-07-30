@@ -145,6 +145,15 @@ def _note_for(rec: dict) -> str:
     if tag == "S5-lr0":
         # note format changed mid-branch; the older cells used this string
         return "CONTROL --lr 0 (BRIEF2 §6.1): random init, no training"
+    if tag == "S6-rep":
+        return (f"LEGAL §3.3 tied unrolled internal depth R={c['P2_REPEAT']} "
+                f"(composition depth R*L, not the token axis alone)")
+    if tag == "S7-small":
+        return (f"LEGAL §3.2 PD-SSM with a small state alphabet "
+                f"N={c['P2_STATE']} (learned FSA at carry granularity)")
+    if tag == "S8-size":
+        return (f"LEGAL §3.3 continuous state-size control "
+                f"head_dim={c['P2_HEADDIM']} {m}")
     return ""
 
 
