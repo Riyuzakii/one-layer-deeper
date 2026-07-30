@@ -473,6 +473,56 @@ RNN also gets nothing, which by PLAN2's own text means the expressivity diagnosi
 wrong and the harness, loss and label alignment should be audited before more
 architectures are written.
 
+### PLAN2 — the expressivity premise is REFUTED (`plan2/pd-ssm-delta`, complete)
+
+33 evaluator runs, 25 grid cells, 102 probe cells. **All MAX_T = 0.** The branch is
+decisive because it ran a **positive control** rather than only a null.
+
+**The `n_h` falsifier fires (PLAN2 §3.3).**
+
+| `n_h` | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|
+| real task `train_exact` | 0.332 | 0.527 | 0.582 | 0.652 |
+| real task rung-1 held | 0.002 | 0.003 | 0.005 | 0.005 |
+| **A5 (same code, same budget)** | chance | chance | **1.000** | **1.000** |
+
+The identical sweep goes chance -> exact on **A5, a non-solvable NC1-complete word
+problem**, including 2x-length extrapolation, and does nothing on the real task.
+**Non-commutativity is available, is used, and is not what is missing.** With
+`plan2/sequential-rnn`'s null on a maximally expressive LSTM, **PLAN2 §0's expressivity
+reframe is refuted, not merely unsupported.** Retire the expressivity axis; keep only
+its discreteness corollary.
+
+**The eigenvalue trap was run as a named control, not stepped into.** `beta = 2*sigmoid`
+gives `1-beta in (-1,1)`; verified at init (`[-0.689, +0.684]`) and after training
+(`eig_min = -0.988`, 69-75% negative). The `[0,1]` control reads exactly 0.000 minimum
+and fails parity (0.521 vs 0.500) and A5 (0.019 vs 0.017) where `[-1,1]` reads 1.000.
+
+**STE: the prior from the ALU family INVERTS for structured recurrences.** Hard
+straight-through beats soft decisively. Controlled pair, identical params, only
+discretisation differs: **soft fits 3.0x better (0.430 vs 0.141) and generalises 6x
+worse (0.002 vs 0.012)**. `p_max_prob` climbs 0.071 -> 0.979 — the estimator gets *more*
+accurate during training. **Where a discretisation choice exists, test the hard version
+and expect it to fit worse and generalise better.** This is now the most reproducible
+directional signal in PLAN2.
+
+**PD-SSM's temperature is basin selection, not tuning.** No single `tau` works for both
+seeds (seed 0 solves only at `tau=3`, seed 1 only at `tau=0.3`), and each working `tau`
+gives an *exact* solution. Same signature `alu-population` characterised; the proposed
+follow-up is a replica population over `tau` screened on 2x-length extrapolation.
+
+**Cost (re-measured at Hard's shape after the tier-shape correction, retracting the
+branch's own earlier "n_h is free" claim):** PD-SSM affords **0.26x** the §3.1 scan
+baseline's steps, so **§3.2's falsifier fires on cost before accuracy**. Matched-*steps*
+comparisons are generous to PD-SSM by 3.8x.
+
+**A one-line init bug worth fixing everywhere.** `nn.Embedding`'s default `N(0,1)` with
+a tied head gives **initial loss ~80** instead of `ln 17 = 2.83`; fixing it lifted
+`train_exact` 0.414 -> 0.531 at matched steps. **Confirmed on the real evaluator**: the
+hosted Hard run's `metric.jsonl` shows step-1 loss **79.936**.
+**`submissions/baseline_adamw/submission.py` pays this toll**, and at Easy's 14-18 steps
+it would consume most of a run.
+
 ### Corrections to earlier entries in this log
 
 - **`batch_size` 512→32 is 1.2× for the ALU model, not 5.8×.** The DataLoader lever
@@ -564,6 +614,7 @@ session has a measured configuration that fools it:
 | `train_exact_hard` alone | short chain | 0.183 | `held_exact_hard` 0.000 |
 | `mul_fn` (structure) | a constant map | 1.000 | `mul_gauge` 0.100 |
 | algebraic objective | basin hopping, 38x compute | 0.786 -> 0.211 | `add_shift` driven *below* chance, 0.285 -> 0.205 |
+| in-distribution accuracy | length extrapolation | 0.941 on mod-3 | **0.328 at 2x length** |
 | `local_ce` | SOAP on the legal objective | 14/32 replicas below the 0.006 cliff | only **1** actually in basin; one cell reads 5e-05 with `train_exact_hard` 0.120 |
 | any leftward `local_ce` shift | the legal objective itself | 3.5 -> 2.3 looks like progress | **random init is 2.08-2.24** — it is regression toward init |
 
