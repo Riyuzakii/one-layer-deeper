@@ -31,3 +31,29 @@
 ### A-323-serial-lr0 :: --modulus 323 --slots 3 --train-x 250 --scan-mode serial --seed 0 --lr 0 --steps 1 --log-every 1
 [A-323-serial-lr0] modulus=323 S=3 K=5 W=4 mul=tree scan=serial mode=quotient R=11 Q=10 units=288 train=250 held=38 params=6,820 trainable=6,820 frozen=[]
 [A-323-serial-lr0] DEPTH main=39 (adds=18 reduce=20) N-prefix=16 alphabet={'digit': 10, 'carry': 2, 'borrow': 2, 'quotient': 11} true_max_quotient=9 max_register=3221 (W holds < 10000)
+[A-323-serial-lr0] step=     1 loss=2.28554 train_exact=0.016 held_exact=0.000 train_ce=2.286 held_ce=2.291 train_exact_hard=0.004 state_sharpness=0.291 q_sharpness=0.093 (4s)
+### A-323-prefix-s0 :: --modulus 323 --slots 3 --train-x 250 --scan-mode prefix --seed 0
+[A-323-prefix-s0] modulus=323 S=3 K=5 W=4 mul=tree scan=prefix mode=quotient R=11 Q=10 units=288 train=250 held=38 params=7,471 trainable=7,471 frozen=[]
+[A-323-prefix-s0] DEPTH main=43 (adds=18 reduce=24) N-prefix=20 alphabet={'digit': 10, 'carry': 2, 'borrow': 2, 'quotient': 11, 'propagate': 3} true_max_quotient=9 max_register=3221 (W holds < 10000)
+[A-323-prefix-s0] step=     1 loss=2.28498 train_exact=0.016 held_exact=0.000 train_ce=2.271 held_ce=2.280 train_exact_hard=0.000 state_sharpness=0.333 q_sharpness=0.091 (2s)
+[A-323-prefix-s0] step=   500 loss=1.04855 train_exact=0.072 held_exact=0.000 train_ce=1.048 held_ce=4.876 train_exact_hard=0.000 state_sharpness=0.786 q_sharpness=0.091 (17s)
+[A-323-prefix-s0] step=  1000 loss=1.01246 train_exact=0.088 held_exact=0.000 train_ce=1.013 held_ce=6.792 train_exact_hard=0.004 state_sharpness=0.776 q_sharpness=0.091 (30s)
+[A-323-prefix-s0] step=  1500 loss=1.00798 train_exact=0.092 held_exact=0.000 train_ce=1.008 held_ce=7.071 train_exact_hard=0.004 state_sharpness=0.784 q_sharpness=0.091 (41s)
+[A-323-prefix-s0] step=  2000 loss=1.00654 train_exact=0.084 held_exact=0.000 train_ce=1.007 held_ce=7.284 train_exact_hard=0.004 state_sharpness=0.780 q_sharpness=0.091 (53s)
+[A-323-prefix-s0] step=  2500 loss=1.00543 train_exact=0.072 held_exact=0.000 train_ce=1.006 held_ce=7.499 train_exact_hard=0.004 state_sharpness=0.776 q_sharpness=0.091 (65s)
+[A-323-prefix-s0] step=  3000 loss=1.00512 train_exact=0.076 held_exact=0.000 train_ce=1.005 held_ce=7.619 train_exact_hard=0.000 state_sharpness=0.781 q_sharpness=0.091 (77s)
+### A-323-prefix-s1 :: --modulus 323 --slots 3 --train-x 250 --scan-mode prefix --seed 1
+[A-323-prefix-s1] modulus=323 S=3 K=5 W=4 mul=tree scan=prefix mode=quotient R=11 Q=10 units=288 train=250 held=38 params=7,471 trainable=7,471 frozen=[]
+[A-323-prefix-s1] DEPTH main=43 (adds=18 reduce=24) N-prefix=20 alphabet={'digit': 10, 'carry': 2, 'borrow': 2, 'quotient': 11, 'propagate': 3} true_max_quotient=9 max_register=3221 (W holds < 10000)
+[A-323-prefix-s1] step=     1 loss=2.30569 train_exact=0.000 held_exact=0.000 train_ce=2.290 held_ce=2.289 train_exact_hard=0.004 state_sharpness=0.339 q_sharpness=0.091 (3s)
+[A-323-prefix-s1] step=   500 loss=1.01768 train_exact=0.076 held_exact=0.000 train_ce=1.018 held_ce=5.723 train_exact_hard=0.004 state_sharpness=0.735 q_sharpness=0.091 (15s)
+[A-323-prefix-s1] step=  1000 loss=0.76897 train_exact=0.264 held_exact=0.000 train_ce=0.777 held_ce=5.304 train_exact_hard=0.008 state_sharpness=0.764 q_sharpness=0.490 (26s)
+[A-323-prefix-s1] step=  1500 loss=0.72703 train_exact=0.336 held_exact=0.000 train_ce=0.722 held_ce=5.403 train_exact_hard=0.008 state_sharpness=0.773 q_sharpness=0.522 (38s)
+[A-323-prefix-s1] step=  2000 loss=0.70400 train_exact=0.312 held_exact=0.000 train_ce=0.710 held_ce=5.877 train_exact_hard=0.004 state_sharpness=0.773 q_sharpness=0.565 (51s)
+[A-323-prefix-s1] step=  2500 loss=0.73651 train_exact=0.340 held_exact=0.000 train_ce=0.733 held_ce=5.303 train_exact_hard=0.012 state_sharpness=0.781 q_sharpness=0.532 (65s)
+[A-323-prefix-s1] step=  3000 loss=0.70345 train_exact=0.356 held_exact=0.000 train_ce=0.696 held_ce=5.979 train_exact_hard=0.004 state_sharpness=0.788 q_sharpness=0.534 (78s)
+### A-323-prefix-s2 :: --modulus 323 --slots 3 --train-x 250 --scan-mode prefix --seed 2
+[A-323-prefix-s2] modulus=323 S=3 K=5 W=4 mul=tree scan=prefix mode=quotient R=11 Q=10 units=288 train=250 held=38 params=7,471 trainable=7,471 frozen=[]
+[A-323-prefix-s2] DEPTH main=43 (adds=18 reduce=24) N-prefix=20 alphabet={'digit': 10, 'carry': 2, 'borrow': 2, 'quotient': 11, 'propagate': 3} true_max_quotient=9 max_register=3221 (W holds < 10000)
+[A-323-prefix-s2] step=     1 loss=2.30457 train_exact=0.000 held_exact=0.000 train_ce=2.289 held_ce=2.289 train_exact_hard=0.000 state_sharpness=0.359 q_sharpness=0.091 (6s)
+[A-323-prefix-s2] step=   500 loss=1.04144 train_exact=0.096 held_exact=0.000 train_ce=1.041 held_ce=6.540 train_exact_hard=0.000 state_sharpness=0.793 q_sharpness=0.091 (20s)
