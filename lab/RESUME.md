@@ -357,8 +357,31 @@ is produced only by `_generate_modulus_grouped_records`. Therefore:
   merely to unseen `x`.
 - `ood_t` = training-pool moduli at unseen T; `ood_n_t` = held-out moduli at unseen T.
 
-**This invalidates our Hard proxies as models of h1.** `hp1`/`hp2`/`hp3` were all
-generated with `--split_group prompt`, where train and test share moduli. Hard is
+**This invalidated our Hard proxies as models of h1 — and they have now been REPLACED.**
+`hp1`/`hp2`/`hp3` were all generated with `--split_group prompt`, where train and test
+share moduli.
+
+> **Use `hf1` / `hf1s` instead** (`lab/gen_hard_faithful.sh`, registered in
+> `lab/make_manifest.py`). `split_group=modulus` + `separate_ood_splits`; ID bits
+> **[16,18,20]**, OOD-N bits **[17,19,21]**; train T {4,8,16}, OOD T 32; full 7-rung
+> ladder on both sides; `max_seq_len` **19**; 298,752 rows (`hf1`) / 49,152 (`hf1s`).
+> Verified end-to-end through the real runner: scoring splits `test`/`ood_t`/`ood_n_t`,
+> matching h1. Test pools are 15/54/172 **unseen** moduli.
+>
+> **Generator constraints found while building it.** (i) `split_group=modulus` is
+> **hard-capped at 20-bit** in-distribution moduli: `_enumerate_sampled_factor_pairs`
+> returns `None` once `max(p_bits,q_bits) > 10` and the modulus path raises. m4 reaches
+> 22 bits only because it uses `split_group=prompt`. **So h1's in-distribution moduli
+> are <= 20 bits if it uses the public generator.** (ii) OOD-N moduli are
+> *rejection-sampled*, not enumerated, so they may exceed 20 bits — hence OOD-N 21 is
+> legal. (iii) Ladder degeneracy (the e1 trap) by bit size, fraction of moduli with all
+> 7 rungs distinct: **12b 43%, 14b 52%, 16b 82%, 18b 91%, 20b 91%** — [16,18,20] is the
+> non-degenerate end of the enumerable range.
+>
+> `hf1s` has fewer rows, which makes memorisation *easier*; use it for step-count and
+> fitting-curve calibration, not for accuracy claims.
+
+Hard is
 strictly harder. Anyone regenerating proxies should use `--split_group modulus
 --separate_ood_splits true`.
 
@@ -935,7 +958,8 @@ this takes a few minutes and must use the venv on PATH:
 
 ```bash
 PATH=$VENV_DIR:$PATH bash scripts/generate_datasets.sh   # the 10 public datasets
-PATH=$VENV_DIR:$PATH bash lab/gen_hard_proxy.sh          # hp1/hp2/hp3 Hard proxies
+PATH=$VENV_DIR:$PATH bash lab/gen_hard_faithful.sh       # hf1/hf1s -- USE THESE for Hard
+PATH=$VENV_DIR:$PATH bash lab/gen_hard_proxy.sh          # hp1/hp2/hp3 -- SUPERSEDED
 ```
 
 Each worktree needs `data/generated` symlinked, since it is gitignored:
