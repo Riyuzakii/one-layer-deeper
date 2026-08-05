@@ -38,7 +38,14 @@ DATA_ROOTS = {
     "m3": "data/generated/squaring_mod_new11_medium_bidirectional_fixed_t_b111315_t2",
     "m4": "data/generated/squaring_mod_new11_medium_bidirectional_fixed_t_b141822_t8",
     "m5": "data/generated/squaring_mod_new11_medium_bidirectional_variable_b121416_t248",
-    # hard proxies (see lab/gen_hard_proxy.sh)
+    # Hard-FAITHFUL proxies (see lab/gen_hard_faithful.sh) -- split_group=modulus with
+    # separate_ood_splits, which is the structure the hosted h1 run revealed. Train and
+    # test moduli are DISJOINT. These are the ones to use for Hard.
+    "hf1": "data/generated/proxy_hard_modulus_b161820_t4816",
+    "hf1s": "data/generated/proxy_hard_modulus_b161820_t4816_small",
+    # SUPERSEDED hard proxies (see lab/gen_hard_proxy.sh). These use split_group=prompt,
+    # where train and test SHARE moduli, so they do not model h1. Kept for continuity
+    # with earlier results only -- do not use for new Hard work.
     "hp1": "data/generated/proxy_hard_fixed_n_p2003_q2011_t4816",
     "hp2": "data/generated/proxy_hard_sampled_b3032_t4816",
     "hp3": "data/generated/proxy_hard_sampled_b202428_t8",

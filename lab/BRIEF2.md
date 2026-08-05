@@ -102,9 +102,24 @@ is the single most valuable untested question, and it is what this plan should a
   even `test` demands **unseen-modulus** generalisation. Any per-modulus lookup or
   per-modulus table is dead on Hard by construction. Modulus-independent parameters are
   mandatory.
-- Our `hp1`/`hp2`/`hp3` proxies used `--split_group prompt` and therefore model the
-  wrong thing. Regenerate with `--split_group modulus --separate_ood_splits true` if you
-  need a Hard proxy.
+- **Hard-FAITHFUL proxies now exist: `hf1` / `hf1s`** (`lab/gen_hard_faithful.sh`).
+  `split_group=modulus` + `separate_ood_splits`, ID bits **[16,18,20]**, OOD-N bits
+  **[17,19,21]**, train T {4,8,16}, OOD T 32, full 7-rung ladder on both sides,
+  `max_seq_len` 19. Verified through the real runner: scoring splits are
+  `test`/`ood_t`/`ood_n_t`, matching h1 exactly. 298,752 rows (`hf1`) and 49,152
+  (`hf1s`, for cheap fitting-curve calibration — note fewer rows makes memorisation
+  *easier*, so use it for step calibration, not accuracy claims).
+  **Two generator constraints worth knowing:** (i) `split_group=modulus` is **capped at
+  20-bit** in-distribution moduli — `_enumerate_sampled_factor_pairs` returns `None`
+  past `max(p_bits,q_bits)=10` and the modulus path raises; m4 reaches 22 bits only
+  because it uses `split_group=prompt`. (ii) OOD-N moduli are *rejection-sampled*, not
+  enumerated, so they may exceed 20 bits — which is why OOD-N 21 is legal.
+  **Ladder degeneracy by bit size** (fraction of moduli with all 7 rungs distinct, the
+  e1 trap): 12b 43%, 14b 52%, 16b 82%, 18b 91%, 20b 91% — [16,18,20] is the
+  non-degenerate end of the enumerable range. Test pools: 15/54/172 unseen moduli.
+- `hp1`/`hp2`/`hp3` are **SUPERSEDED** — they use `--split_group prompt`, where train and
+  test share moduli, so they do not model h1. Kept only for continuity with earlier
+  results.
 - **H100 calibration (real, from the hosted run):** 3.9 s startup (import + construct +
   `.to(device)` + optimizer + first step), **~38.6 ms/step** at batch 512 for a D=128
   recurrent stack → **~93,000 steps** in a full 3600 s Hard run. Far more generous than
