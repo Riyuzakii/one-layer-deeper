@@ -30,8 +30,8 @@ help; the difficulty is concentrated entirely in the single step.
 | # | method | evidence | status |
 |---|---|---|---|
 | ~~1~~ | ~~Addition-only transducer~~ | **STRUCK — the ranking premise was a substitution error.** The 50/400 belonged to an **O(1) algebraic objective**, not to the adder as a table. Module-restricted with everything else at truth, the label leaves the **adder at chance** (0.008-0.016) while `Tmul` scores **higher** (0.028-0.052) — the adder is the *less* identifiable table. Constructed ceiling 36/36 at 1.000 soft+hard; basin advantage real at 4.2% corruption (8/25 vs 0/20, p=0.0056) but only in *rate*, not *radius* (5.9% both sides), and only radius is reachable from init. Best legal `train_exact_hard` 0.002 vs `--lr 0` 0.000 | **closed** |
-| **1** | **`DigitALU` at hf1 scale, fully corrected** — `tree:quotient` (39 steps), `EMB_INIT=0.02`, ~93k-step budget, replica population, calibrated fitting curve | never run on a modulus-split dataset; applies every earned correction at once; supplies the reference and `--lr 0` floor | **untested at Hard-faithful** |
-| **2** | **Modular reduction at O(1) learned-op depth** — and make it **SEPARABLE**, see below | `matrix-scan` named it the one well-posed remaining target; the conditioning law is measured and correct (0/5 @39 ops, 14/400 @12, 50/400 @1) — this is where its coefficient is largest | **untested** |
+| ~~1~~ | ~~`DigitALU` at hf1 scale, fully corrected** — `tree:quotient` (39 steps), `EMB_INIT=0.02`, ~93k-step budget, replica population, calibrated fitting curve | **CLOSED at the ranked tier.** All corrections at once (`tree:quotient`, `EMB_INIT=0.02`, S=7, 1,725 moduli, P=32): `train_exact_hard` 0.000, `local_ce` trains *away* 2.14 -> 3.12, 64 replicas and not one correct answer. Modulus-split changes nothing (1,725 moduli vs 8 agree to 3 dp). Cost does NOT close it (~2,100 steps available vs an illegal ceiling reached by ~1,200) | **closed** |
+| ~~2~~ | ~~Modular reduction at O(1) learned-op depth~~ | **CLOSED — the scaling REVERSES.** Barrett reduction at total depth **7** (reduction depth a constant 5) repairs **0 of 1,802** corrupted cells, and **0/1200 at k=400** where depth-12 `MonoidALU` repaired 14/400. Instrument validated. Ceiling 1.000 soft+hard per modulus size at all six hf1 bit sizes. hf1 legal: `train_exact` 0.725 (past onset), `train_exact_hard` **0.000**, `--lr 0` *better* on held-out | **closed** |
 | 4 | ~~Loss-side curriculum over modulus size / operand magnitude~~ | **CLOSED — null on hf1.** 10 cells x 4 schedule shapes x 4 strengths x 3 axes x 3 seeds: `train_exact_hard` 0.000 everywhere, held-out 0.000 per size; all six evaluator arms within **one example in 27,000** of the `--lr 0` control | **closed** |
 | 5 | **Replica population** as a standard instrument on whichever of 1-3 shows any tail | validated: 1-in-7 -> 6-of-6, legal, +29% wall clock, eval at P=1 cost | instrument |
 
@@ -113,3 +113,45 @@ The 0/5 @39 ops -> 14/400 @12 -> 50/400 @1 scaling is valid *for a fixed objecti
 50/400 came from an O(1) algebraic objective evaluated next to a table. Carrying that
 number to a different architecture by deleting a table is a **substitution error**, and
 it is what put add-only at #1. Recorded so it is not repeated.
+
+---
+
+# FINAL STATE — all five ranked methods are closed
+
+| # | method | outcome |
+|---|---|---|
+| 1 | addition-only transducer | **struck** — the ranking premise was a substitution error; the adder is the *less* identifiable table |
+| 2 | `DigitALU` at hf1, fully corrected | **closed** — hard zero, gradient away from the solution, cost is not the obstacle |
+| 3 | O(1)-depth modular reduction | **closed** — the conditioning scaling *reverses* at depth 7 |
+| 4 | loss-side curriculum | **closed** — null; transfer works, the source does not exist |
+| 5 | replica population (instrument) | works mechanically; nothing for it to find |
+
+## Two design criteria of mine, both now refuted by measurement
+
+1. **"Reduce learned-op depth"** — refuted. The scaling reverses at depth 7, and the
+   middle data point was an artifact: `MonoidALU`'s tables are **shared across all S
+   reduce steps**, so its "depth 12" was a *maximum*, not a uniform depth. The metric was
+   mis-specified.
+2. **"Prefer separable components"** — refined into uselessness for discovery. Separable
+   9/19 vs non-separable 0/18 at matched depth is real, but the threshold is **<=2
+   competing wrong rows**, decaying from 4 and **gone by 16**; random init is ~176 wrong.
+   **Separability is a CONVERGENCE property, not a DISCOVERY property.**
+
+## What is actually established, and it is one sentence
+
+A k=0 control shows the exact solution is a **stable fixed point** (loss 0.00000). Any
+wrong cell produces a gradient that **repairs none and breaks others**. The legal
+objective does not transmit information about modular squaring to the parameters — at
+any depth, any separability, any architecture, any optimizer, any scale, and on a
+dataset that is structurally identical to the ranked tier.
+
+## Engineering notes worth keeping
+
+- **Barrett reduction sidesteps the mixed-modulus quotient-alphabet overflow entirely**
+  (it never emits quotient digits); the fix is widening `mu`, costing **+0 sequential
+  steps** versus `redall`'s +54.
+- `tree:quotient` fixes the Hard eval budget: **265 s of 1,800 s (6.8x)** where the
+  serial graph had 1.1x and threw `TimeoutError`.
+- `EMB_INIT=0.02` puts step-1 loss at 2.86 instead of 79.936 (the official baseline pays
+  the 79.936).
+- **`hf1` never fits at baseline-class capacity within 40k steps** — calibrate on `hf1s`.
