@@ -135,6 +135,44 @@ def sample_semiprimes(bits, k, seed=7):
     return out
 
 
+def test_basin_instrument():
+    """POSITIVE CONTROL: `repaired` must register a repair when one happens.
+
+    Every basin cell in this branch reads 0, so the instrument has to be shown
+    not to be blind.  Corrupt k cells, hand half of them back their true values,
+    and check the count is exactly that half -- and that the untouched half
+    still reads as unrepaired.
+    """
+    m = O1ReduceALU(3, recip="oracle").to(DEV)
+    m.construct_()
+    ref = m._reference()
+    g = torch.Generator().manual_seed(3)
+    hit = m.corrupt_(40, g, 0.5, "uniform")
+    pre = m.cell_correct(ref)
+    ok0, tot0, _ = m.repaired(hit, ref, pre)
+    check("instrument: nothing repaired before repairing", ok0 == 0, f"({ok0}/{tot0})")
+
+    want, n_put = 0, {}
+    with torch.no_grad():
+        rc = {n: p for n, p, _, _, _ in ref._cells()}
+        for name, p, shape, dim, b in m._cells():
+            if name not in hit:
+                continue
+            idx = hit[name]
+            wrong = idx[~pre[name][idx.to(p.device)].cpu()]
+            half = wrong[: len(wrong) // 2]
+            if len(half):
+                p.data.view(*shape)[half.to(p.device)] = rc[name].view(*shape)[half.to(p.device)]
+                want += len(half)
+                n_put[name] = len(half)
+    ok, tot, by_depth = m.repaired(hit, ref, pre)
+    check("instrument: registers exactly the cells handed back",
+          ok == want and tot == tot0, f"({ok} repaired of {tot}, expected {want} of {tot0})")
+    check("instrument: resolves them by depth",
+          sum(v[0] for v in by_depth.values()) == want,
+          f"(by_depth={ {k: v for k, v in by_depth.items()} })")
+
+
 def main():
     torch.manual_seed(0)
     # hf1: ID bits [16,18,20], OOD-N [17,19,21]; S is set by the widest (7 digits)
@@ -167,6 +205,9 @@ def main():
     test_construct(hf_id, "div", hard=False, S=S_HF, amp=True, n_ops=180)
     test_construct(hf_id, "div", hard=True, S=S_HF, amp=True, n_ops=180)
     test_construct(hf_id, "div", hard=False, S=S_HF, T=4, n_ops=120)
+
+    print("== basin instrument (positive control) ==")
+    test_basin_instrument()
 
     print("== depths ==")
     test_depths()

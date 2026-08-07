@@ -1,0 +1,16 @@
+[e1-323] S=3 rows=250
+   sq_carry_t     rows=  52  exercised=  34 (0.65)  max_row_mass=0.306
+   sq_carry_e     rows=  52  exercised=  34 (0.65)  max_row_mass=0.306
+   qm_carry_t     rows= 103  exercised=  31 (0.30)  max_row_mass=0.391
+   qm_carry_e     rows= 103  exercised=  31 (0.30)  max_row_mass=0.391
+   rs_carry_t     rows=  70  exercised=  32 (0.46)  max_row_mass=0.523
+   rs_carry_e     rows=  70  exercised=  32 (0.46)  max_row_mass=0.523
+   sel            rows=   2  exercised=   2 (1.00)  max_row_mass=0.500
+[hf1] S=7 rows=2400
+   sq_carry_t     rows= 120  exercised=  64 (0.53)  max_row_mass=0.325
+   sq_carry_e     rows= 120  exercised=  64 (0.53)  max_row_mass=0.325
+   qm_carry_t     rows= 239  exercised=  85 (0.36)  max_row_mass=0.347
+   qm_carry_e     rows= 239  exercised=  85 (0.36)  max_row_mass=0.347
+   rs_carry_t     rows= 138  exercised=  62 (0.45)  max_row_mass=0.418
+   rs_carry_e     rows= 138  exercised=  62 (0.45)  max_row_mass=0.418
+   sel            rows=   2  exercised=   2 (1.00)  max_row_mass=0.500

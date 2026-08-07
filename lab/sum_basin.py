@@ -36,17 +36,18 @@ def main(paths):
         by_k[(recip, mode, k, lr == 0)].append(r)
 
     print(f"{'recip':7} {'mode':10} {'k':>4} {'lr0':>4} | "
-          f"{'repaired':>9} {'naive':>9} | {'tbl':>6} {'tr_hard':>8} {'he_hard':>8} {'he_div':>7}")
+          f"{'repaired':>10} {'exercised':>10} | {'tbl':>6} {'tr_hard':>8} {'he_hard':>8} {'he_div':>7}")
     for (recip, mode, k, lr0), rs in sorted(by_k.items(), key=lambda x: (x[0][0], x[0][1], x[0][2] or 0)):
-        rep = "/".join(str(r["repaired"]) for r in rs)
-        den = rs[0]["corrupted"]
-        nai = "/".join(str(r.get("repaired_naive", -1)) for r in rs)
-        nden = rs[0].get("touched", -1)
-        print(f"{recip:7} {mode:10} {k:>4} {str(lr0):>4} | {rep:>6}/{den:<3} {nai:>6}/{nden:<3} | "
+        rep = f"{sum(r['repaired'] for r in rs)}"
+        den = sum(r["corrupted"] for r in rs)
+        nai = f"{sum(r.get('repaired_live', 0) for r in rs)}"
+        nden = sum(r.get("live", 0) for r in rs)
+        print(f"{recip:7} {mode:10} {k:>4} {str(lr0):>4} | {rep:>5}/{den:<4} {nai:>5}/{nden:<4} | "
               f"{min(r['tbl_all'] for r in rs):.3f}-{max(r['tbl_all'] for r in rs):.3f} "
               f"{min(r['train_exact_hard'] for r in rs):.3f}-{max(r['train_exact_hard'] for r in rs):.3f} "
               f"{min(r['held_exact_hard'] for r in rs):.3f}-{max(r['held_exact_hard'] for r in rs):.3f} "
-              f"{min(r['held_div'] for r in rs):.3f}")
+              f"{min(r['held_div'] for r in rs):.2f}-{max(r['held_div'] for r in rs):.2f}"
+              f"  n={len(rs)}")
 
     # --- the new measurement: repair resolved by learned-op depth ---------- #
     print("\nrepair by LEARNED-OP DEPTH from the loss (pooled over seeds)")
@@ -55,7 +56,7 @@ def main(paths):
         a = r.get("args", {})
         grp = (a.get("recip", "?"), a.get("corrupt_mode", "uniform"),
                a.get("corrupt"), a.get("lr") == 0)
-        for d, (ok, tot) in r.get("by_depth", {}).items():
+        for d, (ok, tot) in r.get("by_depth_live", r.get("by_depth", {})).items():
             pooled[grp][int(d)][0] += ok
             pooled[grp][int(d)][1] += tot
     for grp, d in sorted(pooled.items(), key=lambda x: (x[0][0], x[0][1], x[0][2] or 0)):

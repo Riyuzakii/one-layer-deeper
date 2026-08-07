@@ -192,6 +192,7 @@ def main(argv=None) -> int:
               f"{sum(used.values())}/{sum(len(i) for i in hit.values())} "
               + " ".join(f"{k}:{v}/{len(hit[k])}" for k, v in sorted(used.items())),
               flush=True)
+        # usage() is forward-only under no_grad, so the start point is untouched
 
     n_par = sum(p.numel() for p in model.parameters())
     n_cells = ref.table_correct(ref)["_n_cells"]
@@ -220,10 +221,13 @@ def main(argv=None) -> int:
             # `naive` uses every touched cell as the denominator, which is what
             # `plan2/matrix-scan` §5 reported -- kept so the rows are comparable.
             nok, ntot, _ = model.repaired(hit, ref, None)
+            lok, ltot, lby = model.repaired(hit, ref, pre, use)
             rec["repaired"], rec["corrupted"] = ok, tot
             rec["repaired_naive"], rec["touched"] = nok, ntot
+            rec["repaired_live"], rec["live"] = lok, ltot
+            rec["by_depth_live"] = {str(k): list(v) for k, v in lby.items()}
             rec["by_depth"] = {str(k): list(v) for k, v in by_depth.items()}
-            extra = (f" repaired={ok}/{tot} naive={nok}/{ntot} by_depth="
+            extra = (f" repaired={ok}/{tot} live={lok}/{ltot} naive={nok}/{ntot} by_depth="
                      + ",".join(f"{k}:{v[0]}/{v[1]}" for k, v in by_depth.items()))
         print(f"[{args.tag}] step={step:>6} loss={loss:.5f} train_exact={tr:.3f} "
               f"held_exact={he:.3f} train_exact_hard={trh:.3f} held_exact_hard={heh:.3f} "

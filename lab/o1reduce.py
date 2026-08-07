@@ -716,7 +716,7 @@ class O1ReduceALU(nn.Module):
         return out
 
     @torch.no_grad()
-    def repaired(self, hit, ref=None, pre=None):
+    def repaired(self, hit, ref=None, pre=None, live=None):
         """Cells that were WRONG right after corruption and are right now.
 
         Counting against the post-corruption state rather than against the set
@@ -731,6 +731,11 @@ class O1ReduceALU(nn.Module):
         for name, idx in hit.items():
             idx = idx.to(now[name].device)
             was_wrong = ~pre[name][idx] if pre is not None else torch.ones_like(now[name][idx])
+            if live is not None and name in live:
+                # a cell the training set never exercises gets no gradient, so it
+                # cannot be repaired at any conditioning; excluding it gives the
+                # honest denominator
+                was_wrong = was_wrong & (live[name][idx] > 1e-6)
             fixed = now[name][idx] & was_wrong
             ok += int(fixed.sum())
             tot += int(was_wrong.sum())

@@ -11,3 +11,21 @@
 === o1-k5-s2 ===
 [o1-k5-s2] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
 [o1-k5-s2] step=     0 loss=nan train_exact=0.896 held_exact=0.868 train_exact_hard=0.844 held_exact_hard=0.816 held_div=0.895 tbl=0.995 repaired=0/5 naive=0/5 by_depth=1:0/3,5:0/2 (1s)
+[o1-k5-s2] step=  2000 loss=1.02323 train_exact=0.916 held_exact=0.895 train_exact_hard=0.844 held_exact_hard=0.868 held_div=0.895 tbl=0.995 repaired=0/5 naive=0/5 by_depth=1:0/3,5:0/2 (44s)
+--- o1-k5-s2 done in 61s
+=== o1-k20-s0 ===
+[o1-k20-s0] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[o1-k20-s0] step=     0 loss=nan train_exact=0.232 held_exact=0.132 train_exact_hard=0.232 held_exact_hard=0.132 held_div=0.974 tbl=0.981 repaired=0/20 naive=0/20 by_depth=1:0/9,3:0/9,5:0/2 (2s)
+[o1-k20-s0] step=  2000 loss=0.79335 train_exact=0.460 held_exact=0.053 train_exact_hard=0.224 held_exact_hard=0.053 held_div=0.974 tbl=0.956 repaired=0/20 naive=0/20 by_depth=1:0/9,3:0/9,5:0/2 (46s)
+--- o1-k20-s0 done in 64s
+=== o1-k20-s1 ===
+[o1-k20-s1] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[o1-k20-s1] step=     0 loss=nan train_exact=0.536 held_exact=0.474 train_exact_hard=0.528 held_exact_hard=0.474 held_div=0.868 tbl=0.981 repaired=0/20 naive=0/20 by_depth=1:0/3,3:0/10,5:0/7 (2s)
+[o1-k20-s1] step=  2000 loss=0.77076 train_exact=0.656 held_exact=0.211 train_exact_hard=0.504 held_exact_hard=0.263 held_div=0.921 tbl=0.967 repaired=0/20 naive=0/20 by_depth=1:0/3,3:0/10,5:0/7 (46s)
+--- o1-k20-s1 done in 66s
+=== o1-k20-s2 ===
+[o1-k20-s2] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[o1-k20-s2] step=     0 loss=nan train_exact=0.516 held_exact=0.474 train_exact_hard=0.552 held_exact_hard=0.500 held_div=0.868 tbl=0.981 repaired=0/20 naive=0/20 by_depth=1:0/6,3:0/9,5:0/5 (2s)
+[o1-k20-s2] step=  2000 loss=0.76136 train_exact=0.644 held_exact=0.237 train_exact_hard=0.452 held_exact_hard=0.184 held_div=0.974 tbl=0.958 repaired=0/20 naive=0/20 by_depth=1:0/6,3:0/9,5:0/5 (45s)
+--- o1-k20-s2 done in 64s
+=== o1-k50-s0 ===

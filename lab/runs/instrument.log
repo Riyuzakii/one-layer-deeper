@@ -1,0 +1,4 @@
+  PASS  instrument: nothing repaired before repairing (0/40)
+  PASS  instrument: registers exactly the cells handed back (19 repaired of 40, expected 19 of 40)
+  PASS  instrument: resolves them by depth (by_depth={1: (7, 15), 3: (8, 17), 5: (4, 8)})
+FAILED: []
