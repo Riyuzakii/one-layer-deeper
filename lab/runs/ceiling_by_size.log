@@ -1,0 +1,13 @@
+  recip=div     bits=16 (ID   ) digits=5 mods=6 x=64  soft=1.000  hard=1.000
+  recip=div     bits=18 (ID   ) digits=6 mods=6 x=64  soft=1.000  hard=1.000
+  recip=div     bits=20 (ID   ) digits=6 mods=6 x=64  soft=1.000  hard=1.000
+  recip=div     bits=17 (OOD-N) digits=5 mods=6 x=64  soft=1.000  hard=1.000
+  recip=div     bits=19 (OOD-N) digits=6 mods=6 x=64  soft=1.000  hard=1.000
+  recip=div     bits=21 (OOD-N) digits=7 mods=6 x=64  soft=1.000  hard=1.000
+  recip=oracle  bits=16 (ID   ) digits=5 mods=6 x=64  soft=1.000  hard=1.000
+  recip=oracle  bits=18 (ID   ) digits=6 mods=6 x=64  soft=1.000  hard=1.000
+  recip=oracle  bits=20 (ID   ) digits=6 mods=6 x=64  soft=1.000  hard=1.000
+  recip=oracle  bits=17 (OOD-N) digits=5 mods=6 x=64  soft=1.000  hard=1.000
+  recip=oracle  bits=19 (OOD-N) digits=6 mods=6 x=64  soft=1.000  hard=1.000
+  recip=oracle  bits=21 (OOD-N) digits=7 mods=6 x=64  soft=1.000  hard=1.000
+ALL SIZES EXACT

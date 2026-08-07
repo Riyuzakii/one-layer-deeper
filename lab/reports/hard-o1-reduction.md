@@ -97,12 +97,19 @@ both pieces are linear in the bag plus a bias.
 |---|---|---|---|
 | `DigitALU` `horner:serial` | — | 257 | yes |
 | `alu-depth` `tree:quotient` | — | 39 | yes |
-| `MonoidALU` (S=3 / S=7) | 6 / **14** | 12 / **21** | yes (`2S`) |
+| `MonoidALU` (S=3 / S=7) | 8 / **16** | 12 / **21** | yes (`2 + 2S`) |
 | **`O1ReduceALU` (any S)** | **5** | **7** | **no** |
 
 `model.reduce_op_depth` and `model.op_depth` are asserted in the gate at S=3 and
-S=7. At `hf1`'s S=7 that is **21 → 7 overall and 14 → 5 on the reduction**, and
+S=7. At `hf1`'s S=7 that is **21 → 7 overall and 16 → 5 on the reduction**, and
 the reduction figure is now a constant.
+
+Depth is counted the way `plan2/matrix-scan` counts it: the number of learned
+**table applications** on the critical path, inclusive of the table itself, with
+prefix products of learned matrices counting once (the composition is fixed
+matmul, so the nonlinearity is paid once however long the digit string is). So
+`rs_carry` = 1, `rs_cols` = 2, `qm_carry` = 3, `qm_cols` = 4, `sq_carry` = 5,
+`sq_cols` = 6, and the correction selector = 1.
 
 ### 1d. What is *not* O(1), and it is a result
 
@@ -232,11 +239,35 @@ AdamW lr 3e-2, 3 seeds, corruption pool 452 cells.
 |---|---|---|---|---|
 | `DigitALU` (matrix-scan) | 39 | — | **0/5** | — |
 | `MonoidALU` (matrix-scan) | 12 | 1/0/0 | **0/1/1** | **14/19/9 of 400** |
-| **`O1ReduceALU` (this branch)** | **7 (reduction 5)** | *(§4b)* | *(§4b)* | *(§4b)* |
+| **`O1ReduceALU` (this branch)** | **7 (reduction 5)** | **0/0/0** | **0/0/0** | **0 of 400, 3/3 seeds** |
 
-### 4b. Measured
+### 4b. Measured — LEGAL objective, 3 seeds, N=323
 
-*(final table from `lab/runs/basin.jsonl` — see §4e)*
+| k corrupted (of 452) | **repaired** (pooled, 3 seeds) | `tbl` step 0 → 2000 | `train_exact_hard` | `held_exact_hard` |
+|---|---|---|---|---|
+| 5 | **0 / 15** | 0.995 → 0.980-0.995 | 0.612-0.936 | 0.342-0.947 |
+| 20 | **0 / 60** | 0.981 → 0.956-0.967 | 0.224-0.504 | 0.053-0.263 |
+| 50 | **1 / 150** | 0.953 → 0.918-0.931 | 0.016-0.192 | 0.000-0.079 |
+| 100 | **0 / 300** | 0.907 → 0.871-0.877 | 0.008-0.100 | 0.000-0.053 |
+| 400 | **0 / 1200** | 0.627 → 0.610-0.620 | 0.000-0.004 | 0.000 |
+| 4 per table (balanced) | **0 / 77** | 0.977 → 0.952-0.955 | 0.376-0.472 | 0.210-0.395 |
+
+**One repair in 1,802 corrupted cells**, and `tbl` falls in every single row.
+Against `MonoidALU` at depth 12: **14/400 (3.5%)** at the matched k. Against
+`DigitALU` at depth 39: 0/5. **Cutting learned-op depth 12 → 7 took the basin
+from 3.5% back to 0.0%.**
+
+The balanced (`per_table`) read is the cleanest, because it gives each depth a
+comparable number of cells rather than letting the largest table dominate:
+
+| learned-op depth from the loss | corrupted | repaired |
+|---|---|---|
+| 1 (`rs_carry`, correction selector) | 29 | **0** |
+| 3 (`qm_carry`) | 24 | **0** |
+| 5 (`sq_carry`) | 24 | **0** |
+
+**Zero at depth 1.** The instrument is validated (§3a) and the cells are
+exercised (§3b), so this is a real zero.
 
 ### 4c. The finding: conditioning behaves exactly as the law says, with the wrong sign
 
