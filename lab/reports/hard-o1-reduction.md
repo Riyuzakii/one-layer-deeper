@@ -301,6 +301,22 @@ from the discrete solution" — but now *localised*: it is not diffuse, it happe
 in the one table the gradient actually reaches, and it happens because the
 gradient reaches it.
 
+**k=0 — the control that makes the claim precise.** Start at the exact solution
+with *nothing* corrupted and train the same legal label for 2,000 steps
+(`--from-construct`, `lab/runs/k0.log`): loss **0.00000**, `train_exact` /
+`held_exact` / `train_exact_hard` / `held_exact_hard` / `tbl` all **1.000** at
+every checkpoint, 3 seeds. **The exact solution is a stable fixed point of the
+legal objective.**
+
+So the correct statement is *not* "the objective destroys correct tables". It is
+sharper than that:
+
+> The solution is stable when it is exact. The moment **any** cell is wrong the
+> loss is non-zero, and the gradient that non-zero loss produces repairs none of
+> the wrong cells and breaks correct ones — and it does so **entirely in the
+> table one learned op from the loss**, because that is the only table it
+> reaches.
+
 **The one alternative explanation, and it is ruled out.** The carry-state index
 is a *gauge*: permuting carry states consistently in `trans` and `emit` leaves
 the function unchanged while breaking an argmax match against the reference.
@@ -335,13 +351,160 @@ The correct statement of the law after this branch is: **learned-op depth
 predicts how much a table moves, and predicts nothing about which direction it
 moves.**
 
+*(The coordinator reached the first half of this independently from
+`hard/add-only`: the 50/400 row belongs to an O(1) **algebraic objective**
+evaluated next to a table, not to the label, and the number does not carry
+across a change of architecture. The two derivations agree.)*
+
+### 4e. SEPARABILITY is the variable, and it shows up in the one cell that repaired
+
+`hard/add-only` measured that the label's exact-repair radius on an *arithmetic*
+table is 5-10 cells, while a 10-cell **separable** selector is recovered exactly
+every seed. This branch reproduces that on a different architecture — and it
+was already visible before I went looking.
+
+**Of the 1,802 corrupted cells in §4b, exactly one was repaired, and it is the
+correction selector** (`o1-k50-s1`: `sel` 0.50 → **1.00**, while in the same run
+`rs_carry_e` fell 0.90 → 0.53, `rs_carry_t` 0.914 → 0.829 and both `rs_cols`
+tables fell). The single repair in the whole grid is the one separable table in
+the architecture.
+
+The controlled version, at **matched learned-op depth 1**, matched protocol,
+10 seeds each (`lab/runs/sep.log`):
+
+| corrupted table | separable? | depth | **repaired** | exercised-only |
+|---|---|---|---|---|
+| `sel` (Barrett correction selector) | **yes** — each row's answer is fixed by the label independently | 1 | **9 / 19** | **9 / 19** |
+| `rs_carry_t` + `rs_carry_e` (carry/borrow + digit emission) | **no** — rows must agree across every carry state and interact through the carry chain | 1 | **0 / 18** | **0 / 8** |
+
+Same depth, same objective, same optimiser, same number of steps: **9/19 versus
+0/18.** In the `sel` arm the loss returns to 0.00000 and `held_exact_hard`
+returns to 0.921-1.000 — a full recovery. In the arithmetic arm the loss also
+returns to 0 and the model reaches `held_exact_hard` 0.974-1.000 **without
+repairing the cell** — it routes around it instead.
+
+**One qualification that matters, and it limits how far this can be pushed.**
+The selector is repaired when it is *the only thing wrong*. In the balanced
+`per_table` runs, where every table is corrupted at once, `sel` goes
+0.50 → **0.00** (seed 0) or stays at 0.00 — it is not repaired. Separability
+buys repair only when the residual error is attributable to the separable
+parameter; it does not survive competing error elsewhere. So separability is a
+real axis and it is **not** a route to training the whole transducer from random
+init, where everything is wrong at once.
+
+*(First attempt kept at `lab/runs/sep_k1.log`: at 1 corrupted row per arithmetic
+table the exercised-only denominator came out 0 — a random carry row is
+exercised only ~46% of the time (§3b) — so the arm was rerun at 4 rows. Recorded
+because the first version would have compared 0/0 against 9/19 and looked like
+the same result for the wrong reason.)*
+
 ---
 
-## 5. Legal training on `hf1`
+## 5. Legal training from random init — **LEGAL**, and calibrated
 
----
+`lab/runs/fit.log`, `lab/runs/hf1long.log`. Two scales: N=323 (where the class
+provably converges, so the null is not a step-count artefact) and an `hf1`-shaped
+synthetic set — `--bits-list 16,18,20`, 8 train + 4 held moduli per size,
+**disjoint train/held modulus pools**, 6,000 train / 4,608 held operands, so
+parameters must be modulus-independent exactly as on `hf1`.
 
-## 6. Evaluator
+### 5a. N=323 — fully converged, and this is the load-bearing null
+
+| step | loss | `train_exact` | `held_exact` | **`train_exact_hard`** | **`held_exact_hard`** | `tbl` |
+|---|---|---|---|---|---|---|
+| 0 | — | 0.008 | 0.053 | 0.000 | 0.000 | 0.021 |
+| 1000 | 0.040 | 0.976 | 0.000 | 0.028 | 0.000 | 0.026 |
+| 2000 | 0.00048 | **1.000** | 0.000 | 0.032 | 0.000 | 0.023 |
+| 3000 | 0.00006 | 1.000 | 0.000 | 0.008 | 0.026 | 0.020 |
+| 8000 | 0.00000 | 0.996 | 0.026 | 0.044 | 0.000 | **0.019** |
+| **`--lr 0` (CONTROL)** | 2.299 | 0.008 | **0.053** | 0.000 | 0.000 | 0.021 |
+
+**`train_exact` reaches 1.000 and the loss reaches 0.00000 — there is no
+pre-fitting excuse available — while `train_exact_hard` never exceeds 0.044 and
+the tables sit at chance (0.019-0.026 against 0.021 at init).** Fully legal, no
+oracle in the loss.
+
+Two rows deserve their own line. **`tbl` ends *below* its own initialisation**
+(0.019 vs 0.021): 8,000 steps of the legal objective moved the tables backwards,
+which is `alu-optimizer`'s "regression toward init" with the sign made explicit.
+And **`held_exact` at `lr = 0` is 0.053 (2/38), higher than any trained
+checkpoint reaches** — `matrix-scan`'s inversion, reproduced on this
+architecture at O(1) depth.
+
+The same run with the reciprocal learned too (`--recip div`, nothing oracular
+anywhere) is identical: `train_exact` 0.988 → 0.996, `train_exact_hard`
+0.028-0.044, `held_exact_hard` 0.000, `tbl` **0.048 → 0.019**.
+
+### 5b. `hf1` shape and scale
+
+| step | loss | `train_exact` | `held_exact` | **`train_exact_hard`** | **`held_exact_hard`** | `tbl` | `held_div` |
+|---|---|---|---|---|---|---|---|
+| 0 | — | 0.000 | 0.000 | 0.000 | 0.000 | 0.005 | 0.996 |
+| 2000 | 1.031 | 0.047 | 0.000 | 0.000 | 0.000 | 0.004 | 0.990 |
+| 8000 | 0.481 | **0.266** | 0.000 | 0.000 | 0.000 | 0.005 | 0.997 |
+| **`--lr 0` (CONTROL)** | 2.303 | 0.000 | 0.000 | 0.000 | 0.000 | 0.005 | 0.996 |
+
+**Fitting has demonstrably begun** — `train_exact` 0.000 → 0.266 and loss
+2.30 → 0.48, against a frozen `lr = 0` control — so this is past the onset the
+pre-fitting rule is about, though not converged (see §5c). **`held_exact_hard`
+is 0.000 at every checkpoint**, and `tbl` does not leave chance.
+
+**Best `train_exact_hard` / `held_exact_hard` on `hf1` from random init: 0.000 /
+0.000**, against `--lr 0` at 0.000 / 0.000.
+
+**Collapse detector, against a MEASURED reference** (BRIEF2 §6.5 — the exact
+solution's diversity is not 1.0): running the *constructed* solution through the
+same detector gives `held_div` **0.816** at N=323 (38 held operands) and
+**0.988** at hf1 scale (4,608 held operands). The trained models read 0.79-0.87
+and 0.985-0.997 respectively. **Diverse and wrong, not collapsed** — so the null
+is a genuine null, not a constant map.
+
+### 5c. Scope, stated plainly
+
+`hard/curriculum-hf1` measured that a reference-width model has not left the
+pre-fitting region on the *real* `hf1` (243k rows) at **40,000** steps. My
+`hf1`-shaped set is 6,000 rows, which is why fitting starts within 8,000 steps
+here; it is a *shape* replica (modulus-split, three sizes, S=6-7,
+modulus-independent parameters), not a size replica, and fewer rows make
+memorisation easier. The converged claim rests on §5a; §5b establishes that the
+same behaviour appears at `hf1`'s split structure and modulus sizes.
+
+## 6. Evaluator — **LEGAL**, and read as uncalibrated
+
+`--mode fixed_step` so the clock never binds and the rows are contention-immune
+(six jobs shared this GPU). `submissions/hard-o1-reduction/` (learned
+long-division reciprocal, the variant whose ceiling is certified) and
+`-head` (shallow reciprocal). Each `-lr0` twin is byte-identical except
+`lr 1e-2 → 0.0`.
+
+| run | manifest | MAX_T | OOD_N | rung-1 | mean | steps | train s |
+|---|---|---|---|---|---|---|---|
+| `hf1-o1-div400` | `lab_hf1_fs400_s74` | **0** | 0 | 0.000 | 0.0001 | 400 | 179 |
+| `hf1-o1-head` | `lab_hf1_fs2000_s74` | **0** | 0 | 0.000 | 0.0001 | 2000 | 270 |
+| `hf1-o1-head-lr0` (**CONTROL**) | `lab_hf1_fs2000_s74` | **0** | 0 | 0.000 | 0.0000 | 2000 | 139 |
+| `smoke_o1` (plumbing) | `smoke_hf1s` | 0 | 0 | 0.000 | 0.0000 | 30 | 72 |
+
+Trained and `lr=0` are **indistinguishable** — mean 0.0001 vs 0.0000, every rung
+0.000, the two non-zero cells anywhere are one example out of ~1,000. The
+submission lints and scores end to end through the real runner on both `hf1` and
+`hf1s`, so the pipeline is sound.
+
+**These rows are NOT a null and I am not reporting them as one.** Per
+`hard/curriculum-hf1`, a reference-width model does not leave the pre-fitting
+region on `hf1` at **40,000** steps (243k train rows, 768-example rungs);
+400-2,000 steps is far inside it. They establish compliance, plumbing and cost,
+nothing about learnability. The learnability claims in this report rest on the
+basin measurement (§4), which starts *at* the solution and therefore needs no
+fitting-curve calibration at all, and on §5.
+
+**Cost, at hf1's shape (batch 128, S=7), as a ratio to the `-head` variant:**
+the learned long-division reciprocal costs **~3.4x** per step (0.45 vs
+0.135 s/step) because its 14 quotient positions are 14 sequential
+`AccStage` applications over 10 candidates each — kernel-launch bound, exactly
+`plan2/sequential-rnn`'s finding. Two 2,000-step `div` runs **exceeded the lab
+harness's 1,200 s timeout** and were rerun shorter. This is the price of the one
+part of the architecture that is *not* O(1), and it is another argument for
+isolating the division onto an N-only branch rather than leaving it inline.
 
 ---
 

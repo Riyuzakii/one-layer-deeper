@@ -1,0 +1,5 @@
+=== hf1-legal-orac-40k ===
+[hf1-legal-orac-40k] mod=16,18,20 S=6 L=12 recip=oracle T=1 train=6000 held=4608 params=335,211 cells=1480 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[hf1-legal-orac-40k] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.996 tbl=0.005 (3s)
+[hf1-legal-orac-40k] step=  5000 loss=0.65902 train_exact=0.170 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.997 tbl=0.011 (50s)
+[hf1-legal-orac-40k] step= 10000 loss=0.44452 train_exact=0.331 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.996 tbl=0.006 (98s)

@@ -631,8 +631,25 @@ class O1ReduceALU(nn.Module):
     # reported on this set and the ColSum rows are reported separately.
     LOGIT_TABLES = ("carry_t", "carry_e", "sel")
 
+    # `hard/add-only` measured that SEPARABILITY, not size, is what the legal
+    # label can exploit: a 10-cell separable selector is recovered exactly every
+    # seed, while an arithmetic table's repair radius is 5-10 cells.  These two
+    # sets isolate that axis at matched learned-op depth 1: `sel` is separable
+    # (each row's answer is fixed by the label independently of the others),
+    # `rs_carry_*` is not (its rows must agree across every carry state and they
+    # interact through the carry chain).
+    SEL_TABLES = ("sel",)
+    D1_ARITH_TABLES = ("rs_carry_t", "rs_carry_e")
+
     def _cells_logit(self):
         return [c for c in self._cells() if c[0].endswith(self.LOGIT_TABLES)]
+
+    def _cells_named(self, which: str):
+        if which == "sel":
+            return [c for c in self._cells() if c[0].endswith(self.SEL_TABLES)]
+        if which == "d1arith":
+            return [c for c in self._cells() if c[0] in self.D1_ARITH_TABLES]
+        return self._cells() if which == "all" else self._cells_logit()
 
     @torch.no_grad()
     def corrupt_(self, k: int, generator=None, scale: float = 0.5,
@@ -646,8 +663,7 @@ class O1ReduceALU(nn.Module):
         experiments).  `per_table` is what makes the depth-stratified read
         balanced -- the tables differ in size by 10x.
         """
-        src = self._cells() if tables == "all" else self._cells_logit()
-        cells = [(n, p, s) for n, p, s, _, _ in src]
+        cells = [(n, p, s) for n, p, s, _, _ in self._cells_named(tables)]
         hit = {}
         if mode == "uniform":
             total = sum(s[0] for _, _, s in cells)

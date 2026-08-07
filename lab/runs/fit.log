@@ -1,0 +1,67 @@
+=== s3-legal-orac-s0 ===
+[s3-legal-orac-s0] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[s3-legal-orac-s0] step=     0 loss=nan train_exact=0.008 held_exact=0.053 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.868 tbl=0.021 (2s)
+[s3-legal-orac-s0] step=  1000 loss=0.04017 train_exact=0.976 held_exact=0.000 train_exact_hard=0.028 held_exact_hard=0.000 held_div=0.789 tbl=0.026 (10s)
+[s3-legal-orac-s0] step=  2000 loss=0.00048 train_exact=1.000 held_exact=0.000 train_exact_hard=0.032 held_exact_hard=0.000 held_div=0.789 tbl=0.023 (17s)
+[s3-legal-orac-s0] step=  3000 loss=0.00006 train_exact=1.000 held_exact=0.000 train_exact_hard=0.008 held_exact_hard=0.026 held_div=0.816 tbl=0.020 (25s)
+[s3-legal-orac-s0] step=  4000 loss=0.02765 train_exact=0.996 held_exact=0.000 train_exact_hard=0.028 held_exact_hard=0.026 held_div=0.842 tbl=0.022 (33s)
+[s3-legal-orac-s0] step=  5000 loss=0.02801 train_exact=0.996 held_exact=0.000 train_exact_hard=0.028 held_exact_hard=0.000 held_div=0.842 tbl=0.024 (40s)
+[s3-legal-orac-s0] step=  6000 loss=0.05526 train_exact=0.996 held_exact=0.026 train_exact_hard=0.016 held_exact_hard=0.026 held_div=0.868 tbl=0.022 (47s)
+[s3-legal-orac-s0] step=  7000 loss=0.02764 train_exact=0.996 held_exact=0.026 train_exact_hard=0.012 held_exact_hard=0.000 held_div=0.816 tbl=0.021 (54s)
+[s3-legal-orac-s0] step=  8000 loss=0.00000 train_exact=0.996 held_exact=0.026 train_exact_hard=0.044 held_exact_hard=0.000 held_div=0.816 tbl=0.019 (62s)
+--- s3-legal-orac-s0 done in 64s
+=== s3-legal-div-s0 ===
+[s3-legal-div-s0] mod=323 S=3 L=6 recip=div T=1 train=250 held=38 params=104,664 cells=1348 reduce_op_depth=5 op_depth=7 full_op_depth=23
+[s3-legal-div-s0] step=     0 loss=nan train_exact=0.008 held_exact=0.053 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.921 tbl=0.048 (0s)
+[s3-legal-div-s0] step=  1000 loss=0.17439 train_exact=0.848 held_exact=0.000 train_exact_hard=0.016 held_exact_hard=0.000 held_div=0.895 tbl=0.030 (19s)
+[s3-legal-div-s0] step=  2000 loss=0.01679 train_exact=0.988 held_exact=0.000 train_exact_hard=0.028 held_exact_hard=0.000 held_div=0.763 tbl=0.027 (38s)
+[s3-legal-div-s0] step=  3000 loss=0.00110 train_exact=0.996 held_exact=0.000 train_exact_hard=0.012 held_exact_hard=0.000 held_div=0.921 tbl=0.022 (56s)
+[s3-legal-div-s0] step=  4000 loss=0.00019 train_exact=0.996 held_exact=0.000 train_exact_hard=0.016 held_exact_hard=0.000 held_div=0.816 tbl=0.026 (75s)
+[s3-legal-div-s0] step=  5000 loss=0.02770 train_exact=0.996 held_exact=0.026 train_exact_hard=0.036 held_exact_hard=0.000 held_div=0.816 tbl=0.022 (95s)
+[s3-legal-div-s0] step=  6000 loss=0.08292 train_exact=0.996 held_exact=0.000 train_exact_hard=0.044 held_exact_hard=0.000 held_div=0.789 tbl=0.022 (114s)
+[s3-legal-div-s0] step=  7000 loss=0.05617 train_exact=0.996 held_exact=0.000 train_exact_hard=0.020 held_exact_hard=0.026 held_div=0.789 tbl=0.020 (133s)
+[s3-legal-div-s0] step=  8000 loss=0.05526 train_exact=0.996 held_exact=0.026 train_exact_hard=0.044 held_exact_hard=0.000 held_div=0.816 tbl=0.019 (151s)
+--- s3-legal-div-s0 done in 152s
+=== s3-legal-orac-lr0 ===
+[s3-legal-orac-lr0] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[s3-legal-orac-lr0] step=     0 loss=nan train_exact=0.008 held_exact=0.053 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.868 tbl=0.021 (0s)
+[s3-legal-orac-lr0] step=  1000 loss=2.29917 train_exact=0.008 held_exact=0.053 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.868 tbl=0.021 (8s)
+--- s3-legal-orac-lr0 done in 8s
+=== s3-ceiling ===
+[s3-ceiling] mod=323 S=3 L=6 recip=div T=1 train=250 held=38 params=104,664 cells=1348 reduce_op_depth=5 op_depth=7 full_op_depth=23
+[s3-ceiling] step=     0 loss=nan train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=1.000 (0s)
+--- s3-ceiling done in 1s
+=== hf1-legal-orac-s0 ===
+[hf1-legal-orac-s0] mod=323 S=6 L=12 recip=oracle T=1 train=6000 held=4608 params=335,211 cells=1480 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[hf1-legal-orac-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.996 tbl=0.005 (1s)
+[hf1-legal-orac-s0] step=  1000 loss=1.50167 train_exact=0.006 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.985 tbl=0.003 (11s)
+[hf1-legal-orac-s0] step=  2000 loss=1.03126 train_exact=0.047 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.990 tbl=0.004 (20s)
+[hf1-legal-orac-s0] step=  3000 loss=0.81692 train_exact=0.097 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.993 tbl=0.005 (29s)
+[hf1-legal-orac-s0] step=  4000 loss=0.70891 train_exact=0.138 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.994 tbl=0.007 (40s)
+[hf1-legal-orac-s0] step=  5000 loss=0.65902 train_exact=0.170 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.997 tbl=0.011 (50s)
+[hf1-legal-orac-s0] step=  6000 loss=0.58714 train_exact=0.215 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.996 tbl=0.005 (60s)
+[hf1-legal-orac-s0] step=  7000 loss=0.53438 train_exact=0.249 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.995 tbl=0.005 (70s)
+[hf1-legal-orac-s0] step=  8000 loss=0.48119 train_exact=0.266 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.997 tbl=0.005 (80s)
+--- hf1-legal-orac-s0 done in 147s
+=== hf1-legal-orac-lr0 ===
+[hf1-legal-orac-lr0] mod=323 S=6 L=12 recip=oracle T=1 train=6000 held=4608 params=335,211 cells=1480 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[hf1-legal-orac-lr0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.996 tbl=0.005 (1s)
+[hf1-legal-orac-lr0] step=  1000 loss=2.30280 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.996 tbl=0.005 (11s)
+--- hf1-legal-orac-lr0 done in 95s
+=== hf1-legal-head-s0 ===
+[hf1-legal-head-s0] mod=323 S=6 L=12 recip=head T=1 train=6000 held=4608 params=381,291 cells=1480 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[hf1-legal-head-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.994 tbl=0.005 (1s)
+[hf1-legal-head-s0] step=  1000 loss=1.52018 train_exact=0.005 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.967 tbl=0.007 (11s)
+[hf1-legal-head-s0] step=  2000 loss=1.10119 train_exact=0.035 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.987 tbl=0.005 (20s)
+[hf1-legal-head-s0] step=  3000 loss=0.89650 train_exact=0.088 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.992 tbl=0.005 (30s)
+[hf1-legal-head-s0] step=  4000 loss=0.73155 train_exact=0.135 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.994 tbl=0.005 (39s)
+[hf1-legal-head-s0] step=  5000 loss=0.66818 train_exact=0.171 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.996 tbl=0.005 (48s)
+[hf1-legal-head-s0] step=  6000 loss=0.59062 train_exact=0.217 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.995 tbl=0.007 (58s)
+[hf1-legal-head-s0] step=  7000 loss=0.53573 train_exact=0.238 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.996 tbl=0.005 (68s)
+[hf1-legal-head-s0] step=  8000 loss=0.52230 train_exact=0.283 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.997 tbl=0.006 (78s)
+--- hf1-legal-head-s0 done in 130s
+=== hf1-legal-div-s0 ===
+[hf1-legal-div-s0] mod=323 S=6 L=12 recip=div T=1 train=6000 held=4608 params=342,727 cells=1756 reduce_op_depth=5 op_depth=7 full_op_depth=41
+[hf1-legal-div-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.995 tbl=0.013 (1s)
+[hf1-legal-div-s0] step=   500 loss=1.85401 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.786 tbl=0.013 (24s)
+[hf1-legal-div-s0] step=  1000 loss=1.55382 train_exact=0.003 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.948 tbl=0.009 (44s)

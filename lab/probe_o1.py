@@ -115,7 +115,7 @@ def main(argv=None) -> int:
                          "(k=0) and train on the LEGAL label.  Asks whether the "
                          "objective destroys a solution that already scores 1.000.")
     ap.add_argument("--corrupt-scale", type=float, default=0.5)
-    ap.add_argument("--corrupt-tables", default="logit", choices=["logit", "all"],
+    ap.add_argument("--corrupt-tables", default="logit", choices=["logit", "all", "sel", "d1arith"],
                     help="logit = only the +/-BIG tables, which are on exactly the scale "
                          "alu-relational and matrix-scan measured; all = include ColSum")
     ap.add_argument("--corrupt-mode", default="uniform", choices=["uniform", "per_table"],
@@ -200,7 +200,7 @@ def main(argv=None) -> int:
 
     n_par = sum(p.numel() for p in model.parameters())
     n_cells = ref.table_correct(ref)["_n_cells"]
-    print(f"[{args.tag}] mod={args.modulus or args.bits_list or f'sampled{args.bits}'} "
+    print(f"[{args.tag}] mod={args.bits_list or args.modulus or f'sampled{args.bits}'} "
           f"S={S} L={L} recip={args.recip} T={T} train={len(train)} held={len(held)} "
           f"params={n_par:,} cells={n_cells} reduce_op_depth={model.reduce_op_depth} "
           f"op_depth={model.op_depth} full_op_depth={model.full_op_depth}", flush=True)

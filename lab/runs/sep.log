@@ -1,0 +1,120 @@
+=== sep-sel-s0 ===
+[sep-sel-s0] corrupted cells exercised by the training set: 2/2 sel:2/2
+[sep-sel-s0] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-sel-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/2 naive=0/2 by_depth=1:0/2 (2s)
+[sep-sel-s0] step=  2000 loss=0.00000 train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.999 repaired=1/2 live=1/2 naive=1/2 by_depth=1:1/2 (17s)
+--- sep-sel-s0 done in 21s
+=== sep-arith-s0 ===
+[sep-arith-s0] corrupted cells exercised by the training set: 0/2 rs_carry_e:0/1 rs_carry_t:0/1
+[sep-arith-s0] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-arith-s0] step=     0 loss=nan train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/0 naive=0/2 by_depth=1:0/2 (0s)
+[sep-arith-s0] step=  2000 loss=0.00000 train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/0 naive=0/2 by_depth=1:0/2 (14s)
+--- sep-arith-s0 done in 15s
+=== sep-sel-s1 ===
+[sep-sel-s1] corrupted cells exercised by the training set: 2/2 sel:2/2
+[sep-sel-s1] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-sel-s1] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/2 naive=0/2 by_depth=1:0/2 (0s)
+[sep-sel-s1] step=  2000 loss=0.00000 train_exact=1.000 held_exact=0.921 train_exact_hard=1.000 held_exact_hard=0.921 held_div=0.816 tbl=0.999 repaired=1/2 live=1/2 naive=1/2 by_depth=1:1/2 (14s)
+--- sep-sel-s1 done in 15s
+=== sep-arith-s1 ===
+[sep-arith-s1] corrupted cells exercised by the training set: 0/2 rs_carry_e:0/1 rs_carry_t:0/1
+[sep-arith-s1] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-arith-s1] step=     0 loss=nan train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/0 naive=0/2 by_depth=1:0/2 (0s)
+[sep-arith-s1] step=  2000 loss=0.00000 train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/0 naive=0/2 by_depth=1:0/2 (15s)
+--- sep-arith-s1 done in 16s
+=== sep-sel-s2 ===
+[sep-sel-s2] corrupted cells exercised by the training set: 2/2 sel:2/2
+[sep-sel-s2] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-sel-s2] step=     0 loss=nan train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/2 naive=0/2 by_depth=1:0/2 (0s)
+[sep-sel-s2] step=  2000 loss=0.00000 train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.999 repaired=1/2 live=1/2 naive=1/2 by_depth=1:1/2 (15s)
+--- sep-sel-s2 done in 16s
+=== sep-arith-s2 ===
+[sep-arith-s2] corrupted cells exercised by the training set: 1/2 rs_carry_e:0/1 rs_carry_t:1/1
+[sep-arith-s2] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-arith-s2] step=     0 loss=nan train_exact=0.912 held_exact=0.974 train_exact_hard=0.912 held_exact_hard=0.974 held_div=0.816 tbl=0.998 repaired=0/2 live=0/1 naive=0/2 by_depth=1:0/2 (0s)
+[sep-arith-s2] step=  2000 loss=0.00000 train_exact=1.000 held_exact=0.974 train_exact_hard=0.944 held_exact_hard=0.974 held_div=0.816 tbl=0.998 repaired=0/2 live=0/1 naive=0/2 by_depth=1:0/2 (14s)
+--- sep-arith-s2 done in 15s
+=== sep-sel-s3 ===
+[sep-sel-s3] corrupted cells exercised by the training set: 2/2 sel:2/2
+[sep-sel-s3] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-sel-s3] step=     0 loss=nan train_exact=0.964 held_exact=1.000 train_exact_hard=0.964 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/2 naive=0/2 by_depth=1:0/2 (0s)
+[sep-sel-s3] step=  2000 loss=0.00000 train_exact=1.000 held_exact=0.974 train_exact_hard=1.000 held_exact_hard=0.974 held_div=0.816 tbl=0.999 repaired=1/2 live=1/2 naive=1/2 by_depth=1:1/2 (13s)
+--- sep-sel-s3 done in 14s
+=== sep-arith-s3 ===
+[sep-arith-s3] corrupted cells exercised by the training set: 1/2 rs_carry_e:0/1 rs_carry_t:1/1
+[sep-arith-s3] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-arith-s3] step=     0 loss=nan train_exact=0.268 held_exact=0.342 train_exact_hard=0.792 held_exact_hard=0.895 held_div=0.816 tbl=0.998 repaired=0/2 live=0/1 naive=0/2 by_depth=1:0/2 (0s)
+[sep-arith-s3] step=  2000 loss=0.00000 train_exact=1.000 held_exact=1.000 train_exact_hard=0.988 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/1 naive=0/2 by_depth=1:0/2 (13s)
+--- sep-arith-s3 done in 14s
+=== sep-sel-s4 ===
+[sep-sel-s4] corrupted cells exercised by the training set: 2/2 sel:2/2
+[sep-sel-s4] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-sel-s4] step=     0 loss=nan train_exact=0.964 held_exact=1.000 train_exact_hard=0.964 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/2 naive=0/2 by_depth=1:0/2 (0s)
+[sep-sel-s4] step=  2000 loss=0.00000 train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.999 repaired=1/2 live=1/2 naive=1/2 by_depth=1:1/2 (13s)
+--- sep-sel-s4 done in 14s
+=== sep-arith-s4 ===
+[sep-arith-s4] corrupted cells exercised by the training set: 2/2 rs_carry_e:1/1 rs_carry_t:1/1
+[sep-arith-s4] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-arith-s4] step=     0 loss=nan train_exact=0.772 held_exact=0.684 train_exact_hard=0.800 held_exact_hard=0.789 held_div=0.763 tbl=0.998 repaired=0/2 live=0/2 naive=0/2 by_depth=1:0/2 (0s)
+[sep-arith-s4] step=  2000 loss=0.00000 train_exact=0.988 held_exact=1.000 train_exact_hard=0.988 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/2 naive=0/2 by_depth=1:0/2 (15s)
+--- sep-arith-s4 done in 16s
+=== sep-sel-s5 ===
+[sep-sel-s5] corrupted cells exercised by the training set: 2/2 sel:2/2
+[sep-sel-s5] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-sel-s5] step=     0 loss=nan train_exact=0.964 held_exact=1.000 train_exact_hard=0.964 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/2 naive=0/2 by_depth=1:0/2 (0s)
+[sep-sel-s5] step=  2000 loss=0.00000 train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.999 repaired=1/2 live=1/2 naive=1/2 by_depth=1:1/2 (15s)
+--- sep-sel-s5 done in 15s
+=== sep-arith-s5 ===
+[sep-arith-s5] corrupted cells exercised by the training set: 2/2 rs_carry_e:1/1 rs_carry_t:1/1
+[sep-arith-s5] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-arith-s5] step=     0 loss=nan train_exact=0.940 held_exact=0.974 train_exact_hard=0.940 held_exact_hard=0.974 held_div=0.842 tbl=0.998 repaired=0/2 live=0/2 naive=0/2 by_depth=1:0/2 (0s)
+[sep-arith-s5] step=  2000 loss=0.00000 train_exact=1.000 held_exact=1.000 train_exact_hard=0.972 held_exact_hard=0.974 held_div=0.842 tbl=0.998 repaired=0/2 live=0/2 naive=0/2 by_depth=1:0/2 (15s)
+--- sep-arith-s5 done in 16s
+=== sep-sel-s6 ===
+[sep-sel-s6] corrupted cells exercised by the training set: 2/2 sel:2/2
+[sep-sel-s6] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-sel-s6] step=     0 loss=nan train_exact=0.036 held_exact=0.000 train_exact_hard=0.036 held_exact_hard=0.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/2 naive=0/2 by_depth=1:0/2 (0s)
+[sep-sel-s6] step=  2000 loss=0.00000 train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.999 repaired=1/2 live=1/2 naive=1/2 by_depth=1:1/2 (15s)
+--- sep-sel-s6 done in 16s
+=== sep-arith-s6 ===
+[sep-arith-s6] corrupted cells exercised by the training set: 2/2 rs_carry_e:1/1 rs_carry_t:1/1
+[sep-arith-s6] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-arith-s6] step=     0 loss=nan train_exact=0.284 held_exact=0.184 train_exact_hard=0.780 held_exact_hard=0.763 held_div=0.842 tbl=0.998 repaired=0/2 live=0/2 naive=0/2 by_depth=1:0/2 (0s)
+[sep-arith-s6] step=  2000 loss=0.02763 train_exact=0.996 held_exact=0.974 train_exact_hard=0.336 held_exact_hard=0.395 held_div=0.921 tbl=0.998 repaired=0/2 live=0/2 naive=0/2 by_depth=1:0/2 (16s)
+--- sep-arith-s6 done in 18s
+=== sep-sel-s7 ===
+[sep-sel-s7] corrupted cells exercised by the training set: 2/2 sel:2/2
+[sep-sel-s7] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-sel-s7] step=     0 loss=nan train_exact=0.964 held_exact=1.000 train_exact_hard=0.964 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/2 naive=0/2 by_depth=1:0/2 (0s)
+[sep-sel-s7] step=  2000 loss=0.00000 train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.999 repaired=1/2 live=1/2 naive=1/2 by_depth=1:1/2 (14s)
+--- sep-sel-s7 done in 15s
+=== sep-arith-s7 ===
+[sep-arith-s7] corrupted cells exercised by the training set: 0/2 rs_carry_e:0/1 rs_carry_t:0/1
+[sep-arith-s7] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-arith-s7] step=     0 loss=nan train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/0 naive=0/2 by_depth=1:0/2 (0s)
+[sep-arith-s7] step=  2000 loss=0.00000 train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/0 naive=0/2 by_depth=1:0/2 (14s)
+--- sep-arith-s7 done in 15s
+=== sep-sel-s8 ===
+[sep-sel-s8] corrupted cells exercised by the training set: 2/2 sel:2/2
+[sep-sel-s8] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-sel-s8] step=     0 loss=nan train_exact=0.036 held_exact=0.000 train_exact_hard=0.036 held_exact_hard=0.000 held_div=0.816 tbl=0.999 repaired=0/1 live=0/1 naive=1/2 by_depth=1:0/1 (0s)
+[sep-sel-s8] step=  2000 loss=0.00000 train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.999 repaired=0/1 live=0/1 naive=1/2 by_depth=1:0/1 (16s)
+--- sep-sel-s8 done in 17s
+=== sep-arith-s8 ===
+[sep-arith-s8] corrupted cells exercised by the training set: 0/2 rs_carry_e:0/1 rs_carry_t:0/1
+[sep-arith-s8] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-arith-s8] step=     0 loss=nan train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/0 naive=0/2 by_depth=1:0/2 (0s)
+[sep-arith-s8] step=  2000 loss=0.00000 train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/0 naive=0/2 by_depth=1:0/2 (14s)
+--- sep-arith-s8 done in 15s
+=== sep-sel-s9 ===
+[sep-sel-s9] corrupted cells exercised by the training set: 2/2 sel:2/2
+[sep-sel-s9] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-sel-s9] step=     0 loss=nan train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/2 naive=0/2 by_depth=1:0/2 (0s)
+[sep-sel-s9] step=  2000 loss=0.00000 train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.999 repaired=1/2 live=1/2 naive=1/2 by_depth=1:1/2 (14s)
+--- sep-sel-s9 done in 15s
+=== sep-arith-s9 ===
+[sep-arith-s9] corrupted cells exercised by the training set: 0/2 rs_carry_e:0/1 rs_carry_t:0/1
+[sep-arith-s9] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[sep-arith-s9] step=     0 loss=nan train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/0 naive=0/2 by_depth=1:0/2 (0s)
+[sep-arith-s9] step=  2000 loss=0.00000 train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.816 tbl=0.998 repaired=0/2 live=0/0 naive=0/2 by_depth=1:0/2 (16s)
+--- sep-arith-s9 done in 17s

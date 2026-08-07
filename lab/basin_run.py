@@ -62,6 +62,19 @@ def cells(which: str):
                                  "--steps", "2000", "--log-every", "500"]
         yield "hf1-k0-lr0", HF + ["--recip", "oracle", "--from-construct", "--seed", "0",
                                   "--lr", "0", "--steps", "500", "--log-every", "500"]
+    elif which == "sep":
+        # SEPARABILITY at matched learned-op depth 1 (`hard/add-only`'s axis).
+        # `sel` rows are separable, `rs_carry_*` rows are not; 10 seeds each so
+        # the two arms have comparable cell counts.
+        for s_ in range(10):
+            yield f"sep-sel-s{s_}", ["--modulus", "323", "--recip", "oracle",
+                                     "--corrupt", "2", "--corrupt-mode", "per_table",
+                                     "--corrupt-tables", "sel", "--seed", str(s_)]
+            # 4 rows per table, because a random carry row is exercised only
+            # ~46% of the time -- at k=1 the `live` denominator came out 0
+            yield f"sep-arith-s{s_}", ["--modulus", "323", "--recip", "oracle",
+                                       "--corrupt", "4", "--corrupt-mode", "per_table",
+                                       "--corrupt-tables", "d1arith", "--seed", str(s_)]
     elif which == "div":            # nothing oracular anywhere
         for k in (20, 400):
             for s in (0, 1, 2):
@@ -92,6 +105,11 @@ def cells(which: str):
                                          "--steps", "500", "--log-every", "500"]
         yield "hf1-ceiling", HF + ["--recip", "div", "--construct"]
         yield "hf1-ceiling-orac", HF + ["--recip", "oracle", "--construct"]
+    elif which == "hf1long":   # converge the fit, per BRIEF2 6(e)
+        yield "hf1-legal-orac-40k", HF + ["--recip", "oracle", "--seed", "0",
+                                          "--steps", "40000", "--log-every", "5000"]
+        yield "hf1-legal-orac-40k-s1", HF + ["--recip", "oracle", "--seed", "1",
+                                             "--steps", "40000", "--log-every", "10000"]
     elif which == "sfit":           # N=323 calibration: does this class fit at all?
         yield "s3-legal-orac-s0", ["--modulus", "323", "--recip", "oracle", "--seed", "0",
                                    "--steps", "8000", "--log-every", "1000"]
