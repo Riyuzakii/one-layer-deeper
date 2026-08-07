@@ -271,13 +271,26 @@ the lowest-variance instrument available and it costs nothing.
 | 200 | 0.114 | 0.121 |
 | all free cells | 0.120 | 0.123 |
 
-**The add-only objective is not more informative than `DigitALU`'s at any
-corruption level, and per *fraction* of free cells it is measurably less.** At
-5 cells the add-only model is 2.1 % corrupted and reads 0.346; `DigitALU` at
-1.5 % reads 0.664 and at 3.0 % reads 0.326 — interpolating, `DigitALU` at 2.1 %
-is ≈ 0.50. Both reach the random-table floor (≈ 0.12) by 50 cells. That is the
-sign the depth table in §1 predicts and the opposite of the sign the ranking
-predicted.
+**The add-only objective's raw value is not more informative than `DigitALU`'s
+at any corruption level, and per *fraction* of free cells it is measurably
+less.** At 5 cells the add-only model is 2.1 % corrupted and reads 0.346;
+`DigitALU` at 1.5 % reads 0.664 and at 3.0 % reads 0.326 — interpolating,
+`DigitALU` at 2.1 % is ≈ 0.50. Both reach the random-table floor (≈ 0.12) by 50
+cells. That is the sign the depth table in §1 predicts (the add-only x→y path
+is 13 % longer, so a corrupted cell does more damage) and the opposite of the
+sign the ranking predicted.
+
+**Note the tension with §4.3 and do not smooth it over.** The add-only
+objective sits *lower* at a matched corruption and is nonetheless *more
+repairable* there (8/25 vs 0/20 at 4.2 % of cells). Those are two different
+properties: the profile measures the objective's *value* at the corrupted
+point, the ladder measures whether greedy descent can climb back from it. The
+combination says the add-only landscape is **steeper but better shaped** —
+each wrong cell hurts more, and the resulting gradient points more reliably at
+the right cell. That is a coherent and, as far as I can tell, new observation
+about this family, and it is exactly what a *shorter effective coupling per
+cell* would produce: with `Tmul` gone there are no 100 product cells whose
+errors alias into the same partial-product sums.
 
 ### 4.3 Exact repair under the LEGAL end-of-chain label — the headline
 
