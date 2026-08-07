@@ -287,15 +287,21 @@ same thing and are in `lab/logs/`. `train_exact_hard` is the headline.
 | **band, `beta`=0, 3 seeds** | 0 | 0 | — | 0.377–0.382 / 0.310–0.311 / **0.229–0.244** | 0.000 | **0.000** | **0.000** | 4.04–5.18 |
 | `C-N-linear-b1` | 1 | 0 | linear | 0.3809 / 0.3123 / 0.2350 | 0.000 | **0.000** | **0.000** | 3.942 |
 | `C-N-linear-b4` | 4 | 0 | linear | 0.3786 / 0.3107 / 0.2409 | 0.000 | **0.000** | **0.000** | 3.893 |
-| `C-N-exp-b2` | 2 | 0 | exponential | 0.3806 / 0.3061 / 0.2330 | 0.000 | **0.000** | **0.000** | 3.995 |
+| `C-N-linear-b1`, seed 1 | 1 | 0 | linear | 0.3856 / 0.3153 / 0.2335 | 0.000 | **0.000** | **0.000** | 4.496 |
+| `C-N-linear-b1`, seed 2 | 1 | 0 | linear | 0.3800 / 0.3096 / 0.2424 | 0.000 | **0.000** | **0.000** | 5.513 |
+| `C-N-step-b1` | 1 | 0 | **step** | 0.3817 / 0.3085 / 0.2350 | 0.000 | **0.000** | **0.000** | 3.979 |
+| `C-N-exp-b2` | 2 | 0 | **exponential** | 0.3806 / 0.3061 / 0.2330 | 0.000 | **0.000** | **0.000** | 3.995 |
+| `C-X-linear-b1` | 0 | **1** | linear | 0.3744 / 0.3142 / 0.2478 | 0.000 | **0.000** | **0.000** | 4.196 |
 | `C-NX-linear-b1` | 1 | **1** | linear | 0.3800 / 0.3115 / 0.2358 | 0.000 | **0.000** | **0.000** | 4.136 |
 | `D-only16` (extreme) | ∞ | 0 | none | 0.3817 / **0.1507** / 0.2270 | 0.000 | **0.000** | **0.000** | 3.561 |
 | `D-only20` (mirror) | −∞ | 0 | none | **0.3334** / **0.2167** / 0.2444 | 0.000 | **0.000** | **0.000** | 4.936 |
 | *trivial floor* | | | | *0.3792 / 0.3031 / 0.2350* | | | | *2.20 at `--lr 0`* |
 
-*(`C-N-step-b1`, `C-X-linear-b1` and two extra seeds of `C-N-linear-b1` were
-still running at write-up; their step-750 rows are already inside the band and
-their logs are in `lab/logs/`.)*
+Three seeds of the canonical cell (`beta_n`=1, linear) read `d20` **0.2350 /
+0.2335 / 0.2424** against the baseline band 0.229–0.244 — dead centre. The
+`C-N-const-b1` cell (no anneal at all) was still queued at write-up; its
+schedule is the `beta`-held-fixed limit of the `step` row, which is inside the
+band.
 
 **Reading.**
 
