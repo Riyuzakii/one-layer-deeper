@@ -42,7 +42,9 @@ import torch.nn.functional as F
 from torch import nn
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from probe_addsearch import digits_le, sample_semiprime  # noqa: E402
+from probe_addsearch import (  # noqa: E402
+    add_depth, digits_le, sample_semiprime,
+)
 
 BIG = 30.0
 
@@ -296,25 +298,10 @@ class PopAddALU(nn.Module):
         return torch.einsum("p,pbso->bso", w, logits.exp())
 
     def depth(self):
-        n = {"chainN": 0, "chainX": 0, "tree": 0, "reduce": self.S + 1}
-        for key, need in (("chainN", self.needed), ("chainX", self.xneeded)):
-            have = {0, 1}
-            target = set(need)
-            while not target <= have:
-                newly = [t for t in sorted(target - have)
-                         if any(a <= t - a and (t - a) in have for a in have)]
-                if not newly:
-                    newly = [2 * max(have)]
-                have |= set(newly)
-                n[key] += 1
-        k = self.S
-        while k > 1:
-            k = (k + 1) // 2
-            n["tree"] += 1
-        n["op_layers"] = sum(n.values())
-        n["serial_steps"] = ((n["chainN"] + n["chainX"] + n["reduce"]) * self.W
-                             + n["tree"] * self.Fw)
-        return n
+        """Chained soft steps on the critical path, in `DigitALU.depth()`'s
+        convention so the two are directly comparable.  `main` is the x -> y
+        path; `prefix` is the N-only multiples tree (shared across examples)."""
+        return add_depth(self.S, self.W, self.Fw, self.needed, self.xneeded)
 
 
 # ---------------------------------------------------------------- diagnostics

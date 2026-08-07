@@ -104,6 +104,36 @@ def sample_semiprime(bits: int, rng) -> tuple[int, int, int]:
             return p * q, p, q
 
 
+def _chain_rounds(needed):
+    """Batched rounds of `_chain` needed to reach every element of `needed`."""
+    have, target, n = {0, 1}, set(needed), 0
+    while not target <= have:
+        newly = [t for t in sorted(target - have)
+                 if any(a <= t - a and (t - a) in have for a in have)]
+        if not newly:
+            newly = [2 * max(have)]
+        have |= set(newly)
+        n += 1
+    return n
+
+
+def add_depth(S, W, Fw, needed, xneeded):
+    """Critical-path soft-step count in `DigitALU.depth()`'s own convention.
+
+    `adds` = the x-multiples chain (per example, so it IS on the x->y path)
+    plus the tree summation of the S leaves.  `reduce` = (S+1) quotient
+    reductions, each one W-wide scan plus one select.  `prefix` = the N-only
+    multiples chain, shared across examples exactly as DigitALU's is.
+    """
+    adds = _chain_rounds(xneeded) * W
+    n_leaf = S
+    if n_leaf > 1:
+        adds += math.ceil(math.log2(n_leaf)) * Fw
+    red = (S + 1) * (W + 1)
+    return {"main": adds + red, "adds": adds, "reduce": red,
+            "prefix": _chain_rounds(needed) * W}
+
+
 # ------------------------------------------------------------------- the model
 CELLS = (                      # (name, shape, n_candidates)
     ("add_d", (10, 10, 2), 10),
@@ -349,35 +379,7 @@ class IntAddALU:
         return dg / (B * self.S), ex / B
 
     def depth(self):
-        """Sequential LEARNED-op layers (each is one W- or F-wide digit scan)."""
-        n = {"chainN": 0, "chainX": 0, "tree": 0, "reduce": 0}
-        have = {0, 1}
-        target = set(self.needed)
-        while not target <= have:
-            newly = [t for t in sorted(target - have)
-                     if any(a <= t - a and (t - a) in have for a in have)]
-            if not newly:
-                newly = [2 * max(have)]
-            have |= set(newly)
-            n["chainN"] += 1
-        have = {0, 1}
-        target = set(self.xneeded)
-        while not target <= have:
-            newly = [t for t in sorted(target - have)
-                     if any(a <= t - a and (t - a) in have for a in have)]
-            if not newly:
-                newly = [2 * max(have)]
-            have |= set(newly)
-            n["chainX"] += 1
-        k = self.S
-        while k > 1:
-            k = (k + 1) // 2
-            n["tree"] += 1
-        n["reduce"] = self.S + 1
-        n["op_layers"] = sum(n.values())
-        n["serial_steps"] = ((n["chainN"] + n["chainX"] + n["reduce"]) * self.W
-                             + n["tree"] * self.F)
-        return n
+        return add_depth(self.S, self.W, self.F, self.needed, self.xneeded)
 
 
 # ----------------------------------------------------------- structure scores
