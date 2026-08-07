@@ -341,7 +341,7 @@ does the legal label identify the adder?*
 | **add-only** | `add`+`sub` | 800 | 0.08–0.10 | **0.032 / 0.036 / 0.048** | `add_shift` 0.265–0.300 (0.285) |
 | **add-only** | `pick` | 10 | 0.15–0.18 | **1.000 — EXACT, `cell_agree` 1.000** | `pick_ok` 1.000 |
 | `DigitALU` | `mul` | 200 | 0.18 | **0.028 / 0.048 / 0.052** | `mul_lo` 0.26–0.35, `mul_hi` 0.23–0.28 (0.23–0.28) |
-| `DigitALU` | `add` | 400 | — | **0.008** | `add_shift` 0.290 (0.285) |
+| `DigitALU` | `add` | 400 | — | **0.008 / 0.016 / 0.020** | `add_shift` 0.255 / 0.290 / 0.315 (0.285) |
 
 Three things fall out, and the third is the one that ends the branch.
 
@@ -355,7 +355,7 @@ Three things fall out, and the third is the one that ends the branch.
 3. **The premise inverts.** Under this identical protocol, `DigitALU`'s
    supposedly-unidentifiable `Tmul` reaches `train_exact_hard` **0.028–0.052**
    while the add-only model's `Tadd` reaches **0.008–0.016**, and `DigitALU`'s
-   own `Tadd` reaches **0.008** — the same value. **The adder is the *less*
+   own `Tadd` reaches **0.008–0.020** — the same band. **The adder is the *less*
    identifiable table of the two, in both architectures.** The branch was built
    on the belief that `Tadd` is the good table and `Tmul` the bad one; measured
    against the legal objective at O(chain) distance, it is the other way round.
@@ -466,3 +466,141 @@ metric buys nothing discrete. This is `alu-credit`'s DigitALU signature
 reproduced with `Tmul` deleted, which is the cleanest possible statement that
 `Tmul` was not the cause.
 
+---
+
+## 8. What this means for `lab/RANKING.md`
+
+**Entry #1 (this method) should be struck.** Not "untested with a weak result" —
+its *justifying prediction was measured directly and does not hold*, three
+independent ways: the objective profile (§4.2), the exact-repair ladder at 20
+reps a side (§4.3), and the module-restricted identification that inverts the
+premise outright (§5). Nothing about the add-only class needs to be tried
+again; the closure is structural, not budgetary.
+
+**The correction the ranking needs, stated as a rule.** The table in
+`RESUME.md` records that every *metric* here has a configuration that fools it.
+This branch adds the same caution for *basins*:
+
+> **A repair basin is a property of an (objective, architecture) pair, not of a
+> table.** `alu-relational`'s 50/400 was the basin of the **O(1) adder-law
+> objective**. Carrying that number to a different objective — the legal
+> end-of-chain label — by changing only which tables exist is a substitution
+> error. Measured, the label's basin on the adder-only class is ~4 % of free
+> cells, indistinguishable from `DigitALU`'s ~3 %, and the adder is the *less*
+> identifiable of the two tables.
+
+**Entry #3 (modular reduction at O(1) learned-op depth) is the one this branch
+supports, and it is now the only live descendant of the conditioning argument.**
+The mechanism this branch confirms is that basin width tracks *distance from
+the objective to the parameters* (add-only is 13 % deeper and measurably less
+informative per corrupted fraction), and *not* which tables are present. So the
+only remaining move is the one that shortens the distance rather than shrinking
+the inventory. The honest caveat, from §5: even at distance 1, `alu-relational`
+measured that the objective fails from random init. Entry #3 should be run with
+that expectation stated in advance.
+
+**Entry #2 (`DigitALU` at hf1 scale, fully corrected) is untouched by this
+branch and now inherits the top slot by default.** Nothing here argues against
+it; §5 in fact says `Tmul` is marginally *more* identifiable than the adder, so
+the family it belongs to is the better of the two.
+
+**Entry #5 (replica population) is confirmed again as an instrument, and again
+as the wrong instrument here.** P = 32 costs 1.75× at hf1 scale (cheaper than
+`alu-population`'s knee), reaches the ceiling under the diagnostic signal with
+5–6 replicas in basin, and finds nothing under the legal one — the same
+"bimodal under a working signal, tight unimodal blob under a legal one"
+signature that `alu-population` used to call the obstruction *systematic*
+rather than *stochastic*.
+
+---
+
+## 9. What I would run next, and what I would not
+
+**Would not, with reasons:**
+
+* Any further member of the add-only family — including the learned-chain-
+  schedule variant of §2. §5 forecloses it: more free cells against an
+  objective that cannot find 400.
+* Adder-law auxiliary losses on this architecture. `alu-relational` measured
+  them (37 runs, 544-replica re-screen, best `local_ce` 2.304 against a *random
+  init* of 2.08–2.24), and §6.2 reproduces the same inversion here.
+* A larger population, a longer schedule, or a different optimiser. `--lr 0`
+  beats training on `local_ce` by 3× (§6.2); more steps of a gradient that
+  points the wrong way is not a plan.
+
+**Would, in priority order:**
+
+1. **The one measurement this branch could not make: is there a LEGAL objective
+   at O(1) learned-op distance from a table at all?** Every candidate so far is
+   either an algebraic law (measured, null, and `alu-relational`'s ILLEGAL
+   ceiling is null too) or the end-of-chain label (O(chain)). If the answer is
+   no, the conditioning law says the family is closed regardless of
+   architecture, and entry #3 can be retired on paper rather than on GPU.
+2. **Re-examine the one asymmetry §5 turned up**: `pick` — 10 cells, 10
+   candidates — is recovered *exactly, every seed*, by the same objective that
+   cannot touch 400. The threshold between "identifiable" and "not" is somewhere
+   between 10 and 200 cells at this chain depth. Locating it is cheap (the
+   integer twin, no training) and it would turn the project's qualitative
+   closure into a quantitative one: *how small must a learned table be before
+   an O(chain) label identifies it?* That number would tell the next
+   architecture how much learned content it is allowed to have.
+3. Nothing else in this family.
+
+---
+## 10. Reproduction — exact commands and the archive
+
+Environment: `/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python`
+(call it `$V`), run from the `hf-add-only` worktree. All manifests are
+`--mode fixed_step` so the shared GPU cannot corrupt a comparison.
+
+```bash
+# LAB DIAGNOSTIC -- constructed ceiling at every hf1 modulus size (36 cells)
+bash lab/run_ceiling.sh                       # -> lab/ceiling_runs.jsonl
+
+# THE DECISIVE MEASUREMENT -- repair basin, add-only vs DigitALU
+bash lab/run_basin.sh                         # 5-rep ladders, both classes
+bash lab/run_basin2.sh                        # 20-rep at the decisive k
+bash lab/run_dctl.sh                          # 20-rep DigitALU control
+bash lab/run_basin3.sh                        # profile + random init
+bash lab/run_mod.sh                           # module-restricted identification
+
+# TRAINING -- gate first, then --lr 0, then the fitting curve
+bash lab/run_train.sh                         # A gate / B lr0 / C 12k legal
+bash lab/run_train2.sh                        # variants D-G
+
+# EVALUATOR on hf1, trained and lr=0, same fixed-step manifest
+bash lab/run_eval.sh
+```
+
+Single most informative command in the branch (LAB DIAGNOSTIC, ~40 s):
+
+```bash
+$V lab/probe_addsearch.py --modulus 323 --slots 3 --train-x 250 \
+   --modules add --repair-ks 0 --seed 0 --tag add_only_identifiability
+# every other tensor at the truth; only the 400 adder cells searched under the
+# LEGAL end-of-chain label -> train_exact_hard 0.008-0.016, add_shift ~chance
+```
+
+**Archive**
+
+| file | contents |
+|---|---|
+| `lab/ceiling_runs.jsonl` | 36 constructed-ceiling cells (DIAGNOSTIC) |
+| `lab/basin_runs.jsonl`, `lab/basin2_runs.jsonl` | add-only repair ladders |
+| `lab/basin_runs_dalu.jsonl`, `lab/basin2_runs_dalu.jsonl` | `DigitALU` controls |
+| `lab/rand_runs.jsonl` | discrete search from random init |
+| `lab/mod2_runs.jsonl`, `lab/mod2_runs_dalu.jsonl` | module-restricted identification |
+| `lab/train_runs.jsonl` | every training run, with its fitting curve in `hist` |
+| `lab/archive.jsonl` | every evaluator run (appended by `run_experiment.py`) |
+| `lab/logs/` | raw stdout for all of the above |
+| `lab/basin_table.py` | renders the basin ladders into §4's tables |
+
+**Compliance record.** No file under `data/generated/` was read, printed or
+summarised at any point; the probes sample their own semiprimes
+(`sample_semiprime`, a Miller-Rabin rejection sampler over the same bit sizes
+the generator uses) and enumerate their own operands. `--construct` and `--tf`
+appear only in rows labelled DIAGNOSTIC and in no submission. The submission
+contains no `torch.load`, no residue-indexed table, no Python control flow that
+reads `input_ids`, one forward / one backward / one `optimizer.step()` per
+batch, and every tensor is initialised at random and trained in the run.
+Nothing was submitted to the hosted service.
