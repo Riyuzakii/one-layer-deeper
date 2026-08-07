@@ -223,3 +223,71 @@ between step 200 and step 400.** That is the number the legal run has to be
 calibrated against, and it is the number §5 kills.
 
 ---
+
+## 4. The legal objective on `hf1` — and the modulus split changes nothing
+
+Same graph, same population, same budget shape, the only difference being that
+no tape is replayed. `--lr 0` control alongside, per rule 1.
+
+| run | LEGAL? | moduli in train | steps | `train_exact_hard` | `held_unseen_N` hard | replicas in basin |
+|---|---|---|---|---|---|---|
+| `--lr 0` control | LEGAL | 1,725 | 20 | 0.0000 | 0.0000 | 0 / 32 |
+| **pool** (hf1's own density) | LEGAL | 1,725 | 3,000+ | **0.0000** | **0.0000** | **0 / 32** |
+| **few-8** (prompt-split analogue) | LEGAL | 8 | 2,000 | **0.0000** | **0.0000** | **0 / 32** |
+| teacher forcing | DIAGNOSTIC | 1,725 | 1,200 | (best) **1.0000** | (best) **1.0000** | ≥ 1 / 32 |
+
+All three of argmax / mixture / best replica are **0.0000** on every split in
+every legal cell — 32 replicas × 2 conditions and not one of 64 gets a single
+7-digit answer right on 2,048 held-out prompts.
+
+**The control that decides how to read it.** `local_ce` (per-op CE against the
+construction; the cliff separating basin from no-basin is ~0.006):
+
+| | `local_ce` min over 32 | median |
+|---|---|---|
+| **random init (`--lr 0`)** | **2.1425** | **2.1899** |
+| legal objective, few-8, 2,000 steps | **2.9074** | **3.6912** |
+| teacher forcing, 1,200 steps | 0.00003 | 0.0891 |
+
+**Training on the legal objective moves `local_ce` 2.14 → 2.91 (best replica)
+and 2.19 → 3.69 (median) — i.e. AWAY from the discrete solution**, and it does so
+at Hard-faithful scale, on a modulus-split dataset, at 129 graph depth, with
+32 independent initialisations. This is `alu-optimizer`'s inversion reproduced
+under every condition it had never been tested at. The structure scores move the
+same way: `mul_gauge` **0.8 at init → 0.4 trained**.
+
+**The modulus split changes nothing, in either direction.** Compare `pool`
+(1,725 training moduli, hf1's own density, 47 operands per modulus) against
+`few-8` (8 training moduli, 10,124 operands each — the `hp1`/`hp2`/`hp3`
+prompt-split condition at matched row count and matched step count):
+
+| | pool (1,725 moduli) | few-8 (prompt-split analogue) |
+|---|---|---|
+| loss at step 1,000 | 3.8208 | 3.8460 |
+| loss at step 2,000 | 3.7832 | 3.8550 |
+| `train_exact_hard` | 0.0000 | 0.0000 |
+| `held_unseen_N` hard, best of 32 | 0.0000 | 0.0000 |
+| output diversity, unseen-N | 0.96–0.99 | 0.93–0.96 |
+
+They are the same run to three decimals. **Training across 1,725 moduli is
+neither the extra constraint that unlocks the tables nor the extra difficulty
+that breaks them.** That is exactly what §2 and §3 predict: the parameters are
+modulus-independent by construction, so the number of moduli in the training set
+is not a variable the objective can see.
+
+So the honest answer to "does the modulus split change anything?" is:
+
+* **for the ceiling, no** — constructed and teacher-forced both read 1.000 on
+  unseen moduli and unseen modulus sizes;
+* **for the legal objective, no** — identical null at 8 moduli and at 1,725;
+* **for the field, yes, but only by closing an escape hatch** — a residue-indexed
+  readout is dead by construction on `hf1`, and the memorisation route that
+  produced every `train_exact` → 1.000 result in this project's history is dead
+  too (§0.3). `hf1` does not make `DigitALU` harder; it removes the alternatives.
+
+**Collapse check, against the MEASURED reference (§2: 0.998–1.000 here).**
+Legal runs read 0.86–0.99 on unseen-N with one transient dip to 0.63 in the
+few-8 run at step 500. Diverse and wrong, not collapsed — the `--assoc`
+degeneracy from `alu-population` does not appear.
+
+---

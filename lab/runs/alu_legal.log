@@ -3,3 +3,40 @@
 [alu-legal-pool-P32] train prompts=80,992 over 1,725 distinct training moduli (16 operands each)
 [alu-legal-pool-P32] params/replica=6,821 params/train-row=0.0842
 [alu-legal-pool-P32] step=     1 loss=4.6012 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.034 solved=0/32 div_unseenN=0.9990 (13s)
+[alu-legal-pool-P32] step=   500 loss=3.8672 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.472 solved=0/32 div_unseenN=0.8809 (409s)
+[alu-legal-pool-P32] step=  1000 loss=3.8208 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.290 solved=0/32 div_unseenN=0.8667 (818s)
+[alu-legal-pool-P32] step=  1500 loss=3.8206 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.242 solved=0/32 div_unseenN=0.9844 (1248s)
+=== L2: LEGAL, PROMPT-split analogue (8 moduli, same rows), P=32, 2000 steps ===
+[alu-legal-few8-P32] hf1-faithful modulus split {16: {'train': 133, 'test': 15}, 18: {'train': 488, 'test': 55}, 20: {'train': 1546, 'test': 172}, 'oodn': 192} S=7 W=8 tree:quotient depth=129 P=32
+[alu-legal-few8-P32] train prompts=81,000 over 8 distinct training moduli (10125 operands each)
+[alu-legal-few8-P32] params/replica=6,821 params/train-row=53.2891
+[alu-legal-few8-P32] step=     1 loss=4.6020 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.034 solved=0/32 div_unseenN=0.9995 (10s)
+[alu-legal-pool-P32] step=  2000 loss=3.7832 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0010 soft_train=0.0000 wmax=0.297 solved=0/32 div_unseenN=0.9731 (1689s)
+[alu-legal-few8-P32] step=   250 loss=3.8377 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.419 solved=0/32 div_unseenN=0.8574 (139s)
+[alu-legal-few8-P32] step=   500 loss=3.8618 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.365 solved=0/32 div_unseenN=0.6289 (273s)
+[alu-legal-few8-P32] step=   750 loss=3.8521 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.234 solved=0/32 div_unseenN=0.9780 (418s)
+[alu-legal-few8-P32] step=  1000 loss=3.8460 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.188 solved=0/32 div_unseenN=0.8760 (552s)
+[alu-legal-pool-P32] step=  2500 loss=3.8326 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.257 solved=0/32 div_unseenN=0.9634 (2191s)
+=== L1b: LEGAL, hf1 modulus pool, P=32, 2000 steps (complete record) ===
+[alu-legal-pool-P32] hf1-faithful modulus split {16: {'train': 133, 'test': 15}, 18: {'train': 488, 'test': 55}, 20: {'train': 1546, 'test': 172}, 'oodn': 192} S=7 W=8 tree:quotient depth=129 P=32
+[alu-legal-pool-P32] train prompts=80,992 over 1,725 distinct training moduli (16 operands each)
+[alu-legal-pool-P32] params/replica=6,821 params/train-row=0.0842
+[alu-legal-pool-P32] step=     1 loss=4.6012 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.034 solved=0/32 div_unseenN=0.9990 (18s)
+[alu-legal-few8-P32] step=  1250 loss=3.8565 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0005 held_unseen_N=0.0005/0.0000/0.0005 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.149 solved=0/32 div_unseenN=0.9321 (700s)
+[alu-legal-few8-P32] step=  1500 loss=3.8534 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.163 solved=0/32 div_unseenN=0.9121 (843s)
+[alu-legal-pool-P32] step=   250 loss=3.8512 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.924 solved=0/32 div_unseenN=0.9604 (295s)
+[alu-legal-few8-P32] step=  1750 loss=3.8518 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.173 solved=0/32 div_unseenN=0.9292 (979s)
+[alu-legal-few8-P32] step=  2000 loss=3.8550 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.141 solved=0/32 div_unseenN=0.9565 (1068s)
+[alu-legal-few8-P32] FINAL [LEGAL] HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 local_ce(min/med)=2.9074/3.6912 wmax=0.141 struct={'mul_fn': 0.3, 'mul_gauge': 0.4, 'add_shift': 0.295, 'sub_shift': 0.2} (1075s)
+/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/hf-digitalu-hf1/lab/probe_hf.py:532: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:838.)
+  "wmax": round(float(w.max()), 4), **sc,
+=== L3: DIAGNOSTIC tf P=32 600 steps (basin rate) ===
+[alu-tf-P32-basin] hf1-faithful modulus split {16: {'train': 133, 'test': 15}, 18: {'train': 488, 'test': 55}, 20: {'train': 1546, 'test': 172}, 'oodn': 192} S=7 W=8 tree:quotient depth=129 P=32
+[alu-tf-P32-basin] train prompts=80,992 over 1,725 distinct training moduli (16 operands each)
+[alu-tf-P32-basin] params/replica=6,821 params/train-row=0.0842
+[alu-legal-pool-P32] step=  3000 loss=3.8346 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.254 solved=0/32 div_unseenN=0.9941 (2654s)
+[alu-tf-P32-basin] step=     1 loss=2.1911 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.031 solved=0/32 div_unseenN=0.9995 (11s)
+[alu-legal-pool-P32] step=   500 loss=3.8672 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.472 solved=0/32 div_unseenN=0.8809 (478s)
+[alu-tf-P32-basin] step=   200 loss=0.1914 HARD train=0.0000/0.0020/0.5171 held_seen_N=0.0000/0.0015/0.5312 held_unseen_N=0.0000/0.0020/0.5225 held_ood_n=0.0000/0.0020/0.5166 soft_train=0.0000 wmax=0.031 solved=0/32 div_unseenN=0.9941 (181s)
+[alu-legal-pool-P32] step=   750 loss=3.8348 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.375 solved=0/32 div_unseenN=0.3867 (659s)
