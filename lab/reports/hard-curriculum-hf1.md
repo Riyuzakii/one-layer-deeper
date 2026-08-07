@@ -475,14 +475,16 @@ breaks nothing.
 |---|---|---|---|---|---|---|---|
 | `hard-curriculum-hf1-lr0` | off | **0** | 0 | 0 | **all 0.000** | 0.000 / 0.000 / 0.000 | 2000 |
 | `hard-curriculum-hf1-off` | off (`beta`=0) | 1e-3 | 0 | 0 | all 0.000 except T=4 at 0.001 (**1 of 768 = the variance floor**) | 0.000 / 0.000 / 0.000 | 2000 |
-| `hard-curriculum-hf1` | `beta`=1, linear | 1e-3 | *(running)* | | | | |
-| `hard-curriculum-hf1-ids` | `beta`=1, linear, `ids` signal | 1e-3 | *(running)* | | | | |
-| `hard-curriculum-hf1-b4` | `beta`=4, linear | 1e-3 | *(running)* | | | | |
+| `hard-curriculum-hf1` | **`beta`=1, linear** | 1e-3 | 0 | 0 | **all 0.000** | 0.000 / 0.000 / 0.000 | 2000 |
+| `hard-curriculum-hf1-ids` | `beta`=1, linear, `ids` signal | 1e-3 | *(queued behind the sweep; the mechanism is identical, only the difficulty scalar differs)* | | | | |
+| `hard-curriculum-hf1-b4` | `beta`=4, linear | 1e-3 | *(queued)* | | | | |
 
-**Through the evaluator the trained and the untrained submissions are
-indistinguishable**: `mean_exact_accuracy` **3.70e-05 for both** — the same one
-example of 27,000 — and `MAX_T` 0 / `OOD_N_MAX_T` 0 for both. That is
-`plan2/sequential-rnn`'s finding reproduced on `hf1`.
+**Through the evaluator the untrained, the trained-without-curriculum and the
+trained-with-curriculum submissions are indistinguishable**: `MAX_T` 0 and
+`OOD_N_MAX_T` 0 for all three, all rungs 0.000 on both ladders, and
+`mean_exact_accuracy` **3.70e-05 / 3.70e-05 / 0.0** — a spread of *one example
+in 27,000*. That is `plan2/sequential-rnn`'s finding reproduced on `hf1`, now
+with a curriculum arm.
 
 The `--lr 0` row is the mandatory control and it agrees with
 `hard/digitalu-hf1`'s independently-measured floor for the same architecture
