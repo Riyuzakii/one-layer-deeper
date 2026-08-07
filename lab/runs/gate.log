@@ -1,0 +1,14 @@
+== Barrett bound ==
+  PASS  barrett bound S=3  (max floor(r/N) = 1; n_corr must exceed it)
+  PASS  barrett bound S=5  (max floor(r/N) = 1; n_corr must exceed it)
+  PASS  barrett bound S=7 hf1-ID (max floor(r/N) = 1; n_corr must exceed it)
+  PASS  barrett bound S=7 hf1-OODN (max floor(r/N) = 1; n_corr mus  FAIL  construct S=3 recip=oracle soft T=1 (277/399)
+  FAIL  construct S=3 recip=oracle hard T=1 (277/399)
+ S=6 (3/3)
+  PASS  longdiv recip S=7 (15/15)
+== constructed ceiling (DIAGNOSTIC) ==
+  PASS  construct S=3 recip=oracle soft T=1 (364/364)
+  PASS  construct S=3 recip=oracle hard T=1 (364/364)
+  PASS  construct S=3 recip=div soft T=1 (364/364)
+  PASS  construct S=3 recip=div hard T=1 (364/364)
+  PASS  construct S=3 recip=div soft T=4 (179/179)

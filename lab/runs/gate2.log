@@ -1,0 +1,32 @@
+== Barrett bound ==
+  PASS  barrett bound S=3  (max floor(r/N) = 1; n_corr must exceed it)
+  PASS  barrett bound S=5  (max floor(r/N) = 1; n_corr must exceed it)
+  PASS  barrett bound S=7 hf1-ID (max floor(r/N) = 1; n_corr must exceed it)
+  PASS  barrett bound S=7 hf1-OODN (max floor(r/N) = 1; n_corr must exceed it)
+== reciprocal by learned long division ==
+  PASS  longdiv recip S=3 (2/2)
+  PASS  longdiv recip S=6 (3/3)
+  PASS  longdiv recip S=7 (15/15)
+== constructed ceiling (DIAGNOSTIC) ==
+  PASS  construct S=3 recip=oracle soft T=1 (364/364)
+  PASS  construct S=3 recip=oracle hard T=1 (364/364)
+  PASS  construct S=3 recip=div soft T=1 (364/364)
+  PASS  construct S=3 recip=div hard T=1 (364/364)
+  PASS  construct S=3 recip=div soft T=4 (179/179)
+  PASS  construct S=5 recip=div soft T=1 (397/397)
+  PASS  construct S=5 recip=div hard T=1 (397/397)
+  PASS  construct S=7 recip=div soft T=1 (180/180)
+  PASS  construct S=7 recip=div soft T=1 (120/120)
+  PASS  construct S=7 recip=div hard T=1 (180/180)
+  PASS  construct S=7 recip=div hard T=1 (120/120)
+  PASS  construct S=7 recip=div soft amp T=1 (180/180)
+  PASS  construct S=7 recip=div hard amp T=1 (180/180)
+  PASS  construct S=7 recip=div soft T=4 (117/117)
+== depths ==
+  PASS  reduce depth O(1) S=3 (= 5)
+  PASS  op depth S=3 (= 7)
+    S=3: params=104,664 cells=1348 recip_depth=18 full=23
+  PASS  reduce depth O(1) S=7 (= 5)
+  PASS  op depth S=7 (= 7)
+    S=7: params=476,435 cells=1892 recip_depth=42 full=47
+ALL CHECKS PASSED
