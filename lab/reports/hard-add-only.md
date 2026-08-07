@@ -224,7 +224,40 @@ $V lab/probe_add.py --construct --pop 1 --modulus-bits 20 --modulus-seed 7 \
    --slots 7 --train-x 3000 --held-x 1000 --pick learned
 ```
 
-Archived: `lab/ceiling_runs.jsonl` (36 rows), `lab/logs/ceiling.log`.
+### 3.1 The mixed-modulus check — raised by `hard/curriculum-hf1`, and it does not bite here
+
+`hard/curriculum-hf1` reports that a fixed-slot ALU on a mixed-modulus dataset
+can **overflow the quotient alphabet** under the published `t <= S` reduction
+schedule, so the constructed ceiling is not 1.000 across sizes, and that
+`redall` (reduce after every place) is the fix. hf1 has three ID sizes and
+three OOD-N sizes in one training set, so I checked it on the object that
+actually gets trained — `submissions/hard-add-only`'s `AddStep`, which takes N
+**per example** — with all six sizes shuffled into one batch:
+
+```
+$V lab/probe_mixed.py --slots 7 --per-bits 3 --x-per-modulus 256
+[mixed:t<=S] rows=4608, 18 distinct moduli, sizes 16..21, shuffled
+[mixed:t<=S] MIXED-BATCH constructed exact=1.0000 digit=1.0000
+             16-bit 1.0000  17-bit 1.0000  18-bit 1.0000
+             19-bit 1.0000  20-bit 1.0000  21-bit 1.0000
+```
+
+**1.000 exact at every size in one mixed batch.** The overflow cannot occur in
+this schedule, and the reason is specific to the add-only product rather than
+lucky: the register entering the first reduction holds
+`floor(x²/10^S)`, and since `x² < N²` that is `< N²/10^S`, so the first
+quotient is `< N/10^S ≤ 1` **for any N with at most S digits**. Every
+subsequent step has `r < 10N + 9`, so the quotient is `≤ 10 = max_quot`
+regardless of the modulus's size. The bound is uniform in N, which is exactly
+the property a mixed-modulus dataset needs.
+
+I implemented `redall` anyway and measured it: also **1.000 at all six sizes**,
+at `main` 202 sequential steps against `t <= S`'s 146 (+38 %). It is available
+in `lab/probe_mixed.py --redall` if a future schedule needs it; this one does
+not, and I would not pay the 38 %.
+
+Archived: `lab/ceiling_runs.jsonl` (36 rows), `lab/logs/ceiling.log`,
+`lab/logs/mixed_ceiling.log`.
 
 ---
 
@@ -276,7 +309,13 @@ at any corruption level, and per *fraction* of free cells it is measurably
 less.** At 5 cells the add-only model is 2.1 % corrupted and reads 0.346;
 `DigitALU` at 1.5 % reads 0.664 and at 3.0 % reads 0.326 — interpolating,
 `DigitALU` at 2.1 % is ≈ 0.50. Both reach the random-table floor (≈ 0.12) by 50
-cells. That is the sign the depth table in §1 predicts (the add-only x→y path
+cells — and note (per `hard/curriculum-hf1`'s point about leading zeros,
+measured here for this exact cohort) that **the trivial baselines sit at
+0.188 (constant-zero) and 0.227 (best constant per slot)** at `N = 323, S = 3`.
+So by `k = 20` both objectives are already reading *below the constant
+predictor* (0.166 and 0.177), and a fully random transducer at 0.12 is worse
+than predicting a constant. Digit accuracy is the *search* objective here, never
+a headline; the headline is `train_exact_hard`, whose trivial floor is 0.000. That is the sign the depth table in §1 predicts (the add-only x→y path
 is 13 % longer, so a corrupted cell does more damage) and the opposite of the
 sign the ranking predicted.
 
@@ -515,21 +554,53 @@ reproduced with `Tmul` deleted, which is the cleanest possible statement that
 20-bit sampled semiprime, S = 7, 8,000 train / 1,024 held-out operands, P = 32,
 batch 256. `--lr 0` is the reference for every legal row.
 
-| metric | DIAGNOSTIC gate (teacher-forced) | **`--lr 0`** (LEGAL) | **LEGAL, trained** |
+| metric | DIAGNOSTIC gate (teacher-forced) | **`--lr 0`** (LEGAL) | **LEGAL, 6,000 steps** |
 |---|---|---|---|
-| `train_exact_hard` best | **1.000** (by step 200) | 0.000 | *see below* |
-| `held_exact_hard` best | **1.000** | 0.000 | *see below* |
-| `local_ce` best | **0.000** | **2.227** | *see below* |
-| `add_shift` / `sub_shift` | 1.000 / 1.000 | 0.290 / 0.283 | |
-| `n_shifts` (truth 10) | **10** | 9 | |
-| `pick_ok` | **1.000** | 0.20 | |
-| replicas in basin | 5 / 32 | 0 / 32 | |
-| held-out diversity (measured ref 0.9961) | 0.9961 | 0.999 | |
+| `train_exact_hard` best | **1.000** (by step 200) | **0.000** | **0.002** |
+| `held_exact_hard` best | **1.000** | **0.000** | **0.000** |
+| `train_exact` soft best | 1.000 | 0.000 | 0.000 |
+| `local_ce` best | **0.000** | **2.227** | **4.828** |
+| `local_ce` median | 0.037 | 2.258 | 5.765 |
+| `add_shift` / `sub_shift` (chance 0.285) | 1.000 / 1.000 | 0.290 / 0.283 | 0.315 / 0.225 |
+| `n_shifts` (truth 10) | **10** | 9 | **6** |
+| `pick_ok` | **1.000** | 0.20 | 0.10 |
+| replicas in basin | 5 / 32 | 0 / 32 | 0 / 32 |
+| held-out diversity (measured ref 0.9961) | 0.9961 | 0.999 | 0.998 |
 
-The `--lr 0` `local_ce` of **2.227** lands inside `alu-optimizer`'s measured
-random-init band of **2.08–2.24** for `DigitALU` — a different architecture,
-the same number, which is itself evidence that this quantity is a property of
-the *objective* and not of the parameter inventory. The cliff is at 0.006.
+Three things to read off this table.
+
+**The `--lr 0` `local_ce` of 2.227 lands inside `alu-optimizer`'s measured
+random-init band of 2.08–2.24 for `DigitALU`** — a different architecture, the
+same number. That is direct evidence the quantity belongs to the *objective*
+and not to the parameter inventory. The cliff is at 0.006.
+
+**The inversion reproduces at hf1 scale as well as at e1 scale:** 6,000 steps
+of the legal objective move `local_ce` from **2.227 to 4.828**, i.e. more than
+twice as far from the cliff as doing nothing, and `n_shifts` from 9 down to 6.
+Training is not slow here; it is pointed the wrong way.
+
+**The best legal numbers this branch produced on hf1's arithmetic**, and they
+are the answer to the mandate's question: `train_exact_hard` **0.002**
+(one example in 512, the variance floor) against the `--lr 0` control's
+**0.000**, and `held_exact_hard` **0.000** against the control's **0.000**.
+
+**Calibration, honestly stated.** The hf1-scale legal curve is *still in the
+pre-fitting region at 6,000 steps* — loss 4.607 → 3.786, `train_exact` never
+above 0.002 — so by `RESUME.md`'s own rule this cell is **not a calibrated
+null** and I do not rest anything on it:
+
+| step | 1 | 1000 | 2000 | 3000 | 4000 | 5000 | 6000 |
+|---|---|---|---|---|---|---|---|
+| loss | 4.607 | 3.902 | 3.875 | 3.836 | 3.823 | 3.799 | 3.786 |
+| `train_exact` | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 |
+| `train_exact_hard` | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.002 |
+
+This agrees with `hard/curriculum-hf1`'s report that the reference-width model
+never leaves the pre-fitting region at 40k steps on hf1. **The calibrated null
+in this branch is the e1-scale one in §6.3** (train_exact 0.016 → 0.492,
+plateaued, `train_exact_hard` flat at 0.012), and the *decisive* results are
+§4, §5 and §7, which involve no training at all and therefore no calibration
+question.
 
 ---
 
@@ -580,14 +651,34 @@ learned content where the objective can vary one cell at a time.
 LEGAL. `lab/manifests/lab_hf1_fs2000_s74.json` (`--mode fixed_step`, 2,000
 steps, seed 74) against the trained submission and an identical `lr = 0` copy.
 
+| | trained (LEGAL) | **`--lr 0` control** |
+|---|---|---|
+| **Max T** | **0** | **0** |
+| **OOD-N Max T** | **0** | **0** |
+| `mean_exact_accuracy` | **0.0000** | **0.000037** |
+| rungs, seen N (T = 1…64) | all 0.000 | 0.000 ×3, **0.001** at T=8, 0.000 ×3 |
+| rungs, OOD-N | 0.000 ×6, **0.001** at T=64 | all 0.000 |
+| splits `test` / `ood_t` / `ood_n_t` | 0.000 / 0.000 / 0.000 | 0.000 / 0.000 / 0.000 |
+| train seconds (2,000 steps) | 1,884 | 618 |
+
+**The `--lr 0` control's mean exact accuracy is *higher* than the trained
+model's** (3.7e-05 versus 0.0000). Both are one example at the variance floor,
+so the honest statement is *indistinguishable and both zero* — but it is the
+same inversion `matrix-scan` recorded on e5 and `alu-optimizer` recorded on
+`local_ce`, now reproduced through the real runner on the Hard-faithful
+dataset. Training this architecture on the legal objective is not merely
+ineffective; through the evaluator it is very slightly worse than not training.
+
 **Cost note, recorded because it is a result.** At the manifest's
 `batch_size = 512` the add-only transducer did not complete 2,000 steps inside
 `run_experiment.py`'s 1,200 s default and the run was killed
-(`status = failed`, archived as `add-only-hf1`). This family is expensive at
-Hard's shape, exactly as `alu-compose` P2/P3 warned; `SUBMISSION.batch_size =
-128` is what makes it fit. **A submission that cannot finish is *below* the
-leaderboard floor** (`service/db.py` counts only `status='succeeded'`), so this
-is a live risk for any ALU-family Hard attempt, not a lab inconvenience.
+(`status = failed`, archived as `add-only-hf1` with `returncode -9`; kept per
+rule 7). This family is expensive at Hard's shape, exactly as `alu-compose`
+P2/P3 warned; `SUBMISSION.batch_size = 128` is what makes it fit, and even then
+the trained cell took 1,884 s for 2,000 steps on a contended GPU. **A
+submission that cannot finish is *below* the leaderboard floor**
+(`service/db.py` counts only `status='succeeded'`), so this is a live risk for
+any ALU-family Hard attempt, not a lab inconvenience.
 
 ---
 
@@ -685,6 +776,32 @@ rather than *stochastic*.
    architecture and it can be measured in an afternoon.
 3. Nothing else in this family.
 
+**On `hard/curriculum-hf1`'s transfer result, which was pointed at this
+branch.** That branch measured that a *correct* set of tables learned on 16-bit
+examples alone scores 0.896 hard-exact on 20-bit, 0.878 on unseen moduli and
+0.867 at unseen modulus *sizes* — so a correct table transfers across modulus
+size almost for free, and "if your adder-only class produces even a partly
+correct source, that transfer is waiting for it". **It does not produce one.**
+The measurements that matter for that hand-off are §4.4 and §5: from random
+init `add_shift` is 0.250–0.305 against a chance value of 0.285, and with every
+other tensor set to the truth the legal label still leaves `add_shift` at
+0.265–0.305. The source is at chance, so there is nothing to transfer. The
+transfer result is real and important; it needs a *different* source, and on
+the evidence here that source has to come from a signal, not from an
+architecture.
+
+**Three corrections `hard/curriculum-hf1` supplied, applied here.** (i) The
+mixed-modulus quotient overflow — checked directly on the shipped `AddStep`
+with all six sizes in one batch, **1.000 exact at every size**, and §3.1
+explains why the bound is uniform in N for this schedule; `redall` implemented
+and measured anyway (also 1.000, +38 % depth). (ii) Ragged per-example
+weighting in `training_loss` — not applicable, this submission weights no
+examples. (iii) The leading-zero floor on digit accuracy — measured for my own
+cohorts (0.188 constant-zero and 0.227 best-constant at `N = 323, S = 3`;
+0.287 across hf1's six sizes, against that branch's independently measured
+0.379/0.303/0.235 at 16/18/20 bits, which my per-size numbers 0.381/0.289/0.241
+reproduce) and §4.2 now reports against it.
+
 ---
 ## 10. Reproduction — exact commands and the archive
 
@@ -702,6 +819,11 @@ bash lab/run_basin2.sh                        # 20-rep at the decisive k
 bash lab/run_dctl.sh                          # 20-rep DigitALU control
 bash lab/run_basin3.sh                        # profile + random init
 bash lab/run_mod.sh                           # module-restricted identification
+bash lab/run_thresh.sh                        # the identifiability threshold
+
+# MIXED-MODULUS ceiling of the SHIPPED submission (hard/curriculum-hf1's flag)
+$V lab/probe_mixed.py --slots 7 --per-bits 3 --x-per-modulus 256
+$V lab/probe_mixed.py --slots 7 --per-bits 2 --x-per-modulus 128 --redall
 
 # TRAINING -- gate first, then --lr 0, then the fitting curve
 bash lab/run_train.sh                         # A gate / B lr0 / C 12k legal
@@ -729,6 +851,9 @@ $V lab/probe_addsearch.py --modulus 323 --slots 3 --train-x 250 \
 | `lab/basin_runs_dalu.jsonl`, `lab/basin2_runs_dalu.jsonl` | `DigitALU` controls |
 | `lab/rand_runs.jsonl` | discrete search from random init |
 | `lab/mod2_runs.jsonl`, `lab/mod2_runs_dalu.jsonl` | module-restricted identification |
+| `lab/mod_runs.jsonl` | **SUPERSEDED** — a first pass whose module-restricted init randomised *every* table instead of only the named one. Kept per rule 7 (do not delete a run that contradicts you); the corrected data is `mod2_*`. |
+| `lab/thresh_runs*.jsonl` | the §7 identifiability-threshold ladders |
+| `lab/logs/mixed_ceiling.log` | §3.1's mixed-modulus ceiling, `t <= S` and `redall` |
 | `lab/train_runs.jsonl` | every training run, with its fitting curve in `hist` |
 | `lab/archive.jsonl` | every evaluator run (appended by `run_experiment.py`) |
 | `lab/logs/` | raw stdout for all of the above |
@@ -787,6 +912,11 @@ Three things here are worth keeping regardless of what happens to this method:
 
 **Does the #1 ranking survive? No.** The entry should be struck, not
 downgraded, and `DigitALU` at hf1 scale inherits the top slot by default.
+
+**Through the real evaluator on hf1**: Max T **0**, OOD-N Max T **0**, and the
+`--lr 0` control's mean exact accuracy (3.7e-05) is nominally *above* the
+trained model's (0.0000) — both at the one-example variance floor, the same
+inversion three other branches have now recorded.
 
 **What this branch did not do.** It did not produce a submission that scores.
 It did not test the family under a *different* objective, because there is no
