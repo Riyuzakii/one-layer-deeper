@@ -153,11 +153,15 @@ same logged step.
 
 Two further calibration facts:
 
-* **Under hard (argmax-snapped) states, training makes the model *worse* than
-  its own initialisation.** `dacc_hard` goes 0.112 at `--lr 0` to **0.085–0.093**
-  after training. The `RESUME.md` inversion ("the untrained model has scored
-  higher than the trained one") reproduces here, at Hard-faithful scale, on a
-  new metric.
+* **Under hard (argmax-snapped) states nothing is learned at all.**
+  `train_exact_hard` is **0.000** at every logged point, and `dacc_hard` wanders
+  in a 0.07–0.23 band across training against a `--lr 0` floor of **0.112** and
+  a chance level of 0.10 — it dips *below* its own initialisation at steps
+  1,000–2,000 in both seeds (0.071 / 0.097) before drifting back up. I am
+  reporting the band rather than an endpoint, because either endpoint alone
+  supports a story the other contradicts. The one stable statement: the soft
+  channel carries all 0.31 of the model's digit accuracy and the discrete
+  channel carries none of it.
 * **`local_ce` moves monotonically away from the cliff at every learning rate**
   — 2.195 (random init) → 5.77, against a basin cliff of 0.006. The legal
   objective's gradient points away from the discrete solution from step 1. This
