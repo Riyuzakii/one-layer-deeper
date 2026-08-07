@@ -490,15 +490,15 @@ breaks nothing.
 | `hard-curriculum-hf1-off` | off (`beta`=0) | 1e-3 | 0 | 0 | all 0.000 except T=4 at 0.001 (**1 of 768 = the variance floor**) | 0.000 / 0.000 / 0.000 | 2000 |
 | `hard-curriculum-hf1` | **`beta`=1, linear** | 1e-3 | 0 | 0 | **all 0.000** | 0.000 / 0.000 / 0.000 | 2000 |
 | `hard-curriculum-hf1-ids` | `beta`=1, linear, **`ids` signal** (FLAGGED) | 1e-3 | 0 | 0 | **all 0.000** | 0.000 / 0.000 / 0.000 | 2000 |
-| `hard-curriculum-hf1-b4` | `beta`=4, linear | 1e-3 | *(in flight at write-up — `lab/logs/eval_hard-curriculum-hf1-b4.log`)* | | | | |
+| `hard-curriculum-hf1-b4` | `beta`=4, linear | 1e-3 | 0 | 0 | **all 0.000** | 0.000 / 0.000 / 0.000 | 2000 |
 
-**Through the evaluator the four completed submissions are indistinguishable**:
-`MAX_T` 0 and `OOD_N_MAX_T` 0 for every one, all rungs 0.000 on both ladders,
-and `mean_exact_accuracy` spanning **0.0 to 3.70e-05** — one example in 27,000.
-The `--lr 0` control, the no-curriculum control, the curriculum and the
-prompt-decoding difficulty signal are all the same run as far as the ranked
-metric is concerned. That is `plan2/sequential-rnn`'s finding reproduced on
-`hf1`, now with curriculum arms.
+**Through the evaluator all five submissions are indistinguishable**: `MAX_T` 0
+and `OOD_N_MAX_T` 0 for every one, all rungs 0.000 on both ladders, and
+`mean_exact_accuracy` spanning **0.0 to 3.70e-05** — one example in 27,000. The
+`--lr 0` control, the no-curriculum control, the curriculum at `beta`=1 and
+`beta`=4, and the prompt-decoding difficulty signal are all the same run as far
+as the ranked metric is concerned. That is `plan2/sequential-rnn`'s finding
+reproduced on `hf1`, now with three curriculum arms.
 
 The `--lr 0` row is the mandatory control and it agrees with
 `hard/digitalu-hf1`'s independently-measured floor for the same architecture
