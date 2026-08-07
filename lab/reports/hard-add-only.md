@@ -252,9 +252,9 @@ regardless of the modulus's size. The bound is uniform in N, which is exactly
 the property a mixed-modulus dataset needs.
 
 I implemented `redall` anyway and measured it: also **1.000 at all six sizes**,
-at `main` 202 sequential steps against `t <= S`'s 146 (+38 %). It is available
+at `main` 200 sequential steps against `t <= S`'s 146 (+37 %). It is available
 in `lab/probe_mixed.py --redall` if a future schedule needs it; this one does
-not, and I would not pay the 38 %.
+not, and I would not pay the 37 %.
 
 Archived: `lab/ceiling_runs.jsonl` (36 rows), `lab/logs/ceiling.log`,
 `lab/logs/mixed_ceiling.log`.
@@ -794,7 +794,7 @@ architecture.
 mixed-modulus quotient overflow — checked directly on the shipped `AddStep`
 with all six sizes in one batch, **1.000 exact at every size**, and §3.1
 explains why the bound is uniform in N for this schedule; `redall` implemented
-and measured anyway (also 1.000, +38 % depth). (ii) Ragged per-example
+and measured anyway (also 1.000, +37 % depth). (ii) Ragged per-example
 weighting in `training_loss` — not applicable, this submission weights no
 examples. (iii) The leading-zero floor on digit accuracy — measured for my own
 cohorts (0.188 constant-zero and 0.227 best-constant at `N = 323, S = 3`;
