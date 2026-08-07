@@ -167,14 +167,14 @@ grounds 3 and 4, while shipping the member that asserts least.
 
 **And it cost nothing.** Every result below is null under both variants, so no
 claim in this report depends on the ruling. If a future reviewer overturns it,
-delete section 5 and nothing else changes.
+delete the shipped submission and nothing else in this report changes.
 
 *(One variant I designed and did not build: make the chain's own build schedule
 learned as well — `C_k = C_{a_k} ⊕ C_{b_k}` with `a_k, b_k` learned. That
-asserts no arithmetic identity at all. §4.3's module-restricted search settles
-it a fortiori: with **every other table set to the truth**, the legal label
-does not identify the adder, so a variant with strictly more free cells cannot
-do better.)*
+asserts no arithmetic identity at all. §5's module-restricted search settles it
+a fortiori: with **every other table set to the truth**, the legal label does
+not identify the adder, so a variant with strictly more free cells cannot do
+better.)*
 
 ---
 
