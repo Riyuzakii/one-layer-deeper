@@ -60,12 +60,12 @@ def to_tensors(pairs, slots, L, device, time_steps: int):
 
 
 @torch.no_grad()
-def evaluate(model, xin, nin, tgt, ns, S, T, chunk=512, hard=False):
+def evaluate(model, xin, nin, tgt, mus, S, T, chunk=512, hard=False):
     ok, ce, preds = 0, 0.0, []
     for i in range(0, xin.shape[0], chunk):
         nb = nin[i:i + chunk]
         if model.recip_kind == "oracle":
-            model.set_mu(true_mu(ns[i:i + chunk], S, model.Lmu, xin.device))
+            model.set_mu(mus[i:i + chunk])
         y = xin[i:i + chunk]
         for _ in range(T):
             y = model(y, nb, hard=hard)
@@ -111,6 +111,9 @@ def main() -> int:
                     help="LAB DIAGNOSTIC start point: construct then randomise k cells, "
                          "then train on the LEGAL objective and count exact repairs")
     ap.add_argument("--corrupt-scale", type=float, default=0.5)
+    ap.add_argument("--corrupt-tables", default="logit", choices=["logit", "all"],
+                    help="logit = only the +/-BIG tables, which are on exactly the scale "
+                         "alu-relational and matrix-scan measured; all = include ColSum")
     ap.add_argument("--corrupt-mode", default="uniform", choices=["uniform", "per_table"],
                     help="per_table corrupts k cells of EVERY table, which is what "
                          "makes the depth-stratified repair read balanced")
@@ -167,13 +170,19 @@ def main() -> int:
     xin, nin, tgt, ns_tr = to_tensors(train, S, L, device, T)
     hin, hnin, htgt, ns_he = to_tensors(held, S, L, device, T)
 
+    # mu is a function of N alone; precomputing it once removes a 1,500-iteration
+    # Python loop from every optimizer step (measured: it dominated the cell).
+    mu_tr = true_mu(ns_tr, S, model.Lmu, device)
+    mu_he = true_mu(ns_he, S, model.Lmu, device)
+
     ref = model._reference()
     hit = pre = None
     if args.construct or args.corrupt:
         model.construct_()
     if args.corrupt:
         g = torch.Generator().manual_seed(args.seed + 1000)
-        hit = model.corrupt_(args.corrupt, g, args.corrupt_scale, args.corrupt_mode)
+        hit = model.corrupt_(args.corrupt, g, args.corrupt_scale, args.corrupt_mode,
+                             args.corrupt_tables)
         pre = model.cell_correct(ref)   # baseline: which touched cells are wrong
 
     n_par = sum(p.numel() for p in model.parameters())
@@ -186,10 +195,10 @@ def main() -> int:
     t0 = time.time()
 
     def row(step, loss):
-        tr, _, _ = evaluate(model, xin, nin, tgt, ns_tr, S, T, args.eval_chunk)
-        he, he_ce, _ = evaluate(model, hin, hnin, htgt, ns_he, S, T, args.eval_chunk)
-        trh, _, _ = evaluate(model, xin, nin, tgt, ns_tr, S, T, args.eval_chunk, hard=True)
-        heh, _, hdiv = evaluate(model, hin, hnin, htgt, ns_he, S, T, args.eval_chunk, hard=True)
+        tr, _, _ = evaluate(model, xin, nin, tgt, mu_tr, S, T, args.eval_chunk)
+        he, he_ce, _ = evaluate(model, hin, hnin, htgt, mu_he, S, T, args.eval_chunk)
+        trh, _, _ = evaluate(model, xin, nin, tgt, mu_tr, S, T, args.eval_chunk, hard=True)
+        heh, _, hdiv = evaluate(model, hin, hnin, htgt, mu_he, S, T, args.eval_chunk, hard=True)
         tbl = model.table_correct(ref)
         rec = {"tag": args.tag, "step": step, "loss": loss,
                "train_exact": round(tr, 4), "held_exact": round(he, 4),
@@ -231,7 +240,7 @@ def main() -> int:
     for step in range(1, args.steps + 1):
         idx = torch.randint(0, n, (min(args.batch, n),), generator=gen).to(device)
         if model.recip_kind == "oracle":
-            model.set_mu(true_mu([ns_tr[i] for i in idx.tolist()], S, model.Lmu, device))
+            model.set_mu(mu_tr[idx])
         model.ste = args.hard_train
         y = xin[idx]
         for _ in range(T):

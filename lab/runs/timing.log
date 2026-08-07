@@ -1,0 +1,4 @@
+[timing] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[timing] step=     0 loss=nan train_exact=0.136 held_exact=0.105 train_exact_hard=0.148 held_exact_hard=0.105 held_div=0.947 tbl=0.985 repaired=0/16 naive=4/20 by_depth=1:0/1,2:0/3,3:0/4,4:0/0,5:0/4,6:0/4 (8s)
+[timing] step=   200 loss=12.27615 train_exact=0.148 held_exact=0.105 train_exact_hard=0.148 held_exact_hard=0.105 held_div=0.947 tbl=0.985 repaired=0/16 naive=4/20 by_depth=1:0/1,2:0/3,3:0/4,4:0/0,5:0/4,6:0/4 (143s)
+[timing] step=   400 loss=12.65609 train_exact=0.160 held_exact=0.105 train_exact_hard=0.160 held_exact_hard=0.105 held_div=0.921 tbl=0.985 repaired=0/16 naive=4/20 by_depth=1:0/1,2:0/3,3:0/4,4:0/0,5:0/4,6:0/4 (285s)

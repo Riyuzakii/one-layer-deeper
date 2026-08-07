@@ -98,6 +98,9 @@ LAM = 16.0      # curvature of the constructed ColSum quadratic (see below)
 # --------------------------------------------------------------------------- #
 
 
+_PLAN_CACHE: dict = {}
+
+
 def pair_plan(La: int, Lb: int, Lout: int, shift: int, device) -> tuple[Tensor, Tensor]:
     """Fixed binary maps sending digit-pair (i, j) to its output columns.
 
@@ -105,25 +108,35 @@ def pair_plan(La: int, Lb: int, Lout: int, shift: int, device) -> tuple[Tensor, 
     product of ``a_i`` and ``b_j`` lands in column ``i + j + shift``, the high
     half one column above.  Pure bookkeeping -- the *values* of the halves are
     what `ColSum` learns.
+
+    Built on the host and cached: the boolean-mask index assignment forces a
+    device sync, and rebuilding these per forward cost 0.68 s/step on a shared
+    GPU (vs ~0.02 s once cached).
     """
-    i = torch.arange(La, device=device).view(La, 1).expand(La, Lb).reshape(-1)
-    j = torch.arange(Lb, device=device).view(1, Lb).expand(La, Lb).reshape(-1)
-    lo = torch.zeros(La * Lb, Lout, device=device)
-    hi = torch.zeros(La * Lb, Lout, device=device)
-    cl, ch = i + j + shift, i + j + shift + 1
-    ok_l, ok_h = cl < Lout, ch < Lout
-    lo[torch.arange(La * Lb, device=device)[ok_l], cl[ok_l]] = 1.0
-    hi[torch.arange(La * Lb, device=device)[ok_h], ch[ok_h]] = 1.0
-    return lo, hi
+    key = ("p", La, Lb, Lout, shift, str(device))
+    if key not in _PLAN_CACHE:
+        i = torch.arange(La).view(La, 1).expand(La, Lb).reshape(-1)
+        j = torch.arange(Lb).view(1, Lb).expand(La, Lb).reshape(-1)
+        lo, hi = torch.zeros(La * Lb, Lout), torch.zeros(La * Lb, Lout)
+        cl, ch = i + j + shift, i + j + shift + 1
+        rows = torch.arange(La * Lb)
+        ok_l, ok_h = cl < Lout, ch < Lout
+        lo[rows[ok_l], cl[ok_l]] = 1.0
+        hi[rows[ok_h], ch[ok_h]] = 1.0
+        _PLAN_CACHE[key] = (lo.to(device), hi.to(device))
+    return _PLAN_CACHE[key]
 
 
 def digit_plan(Ld: int, Lout: int, shift: int, device) -> Tensor:
     """Fixed binary map sending digit ``l`` of an addend to column ``l+shift``."""
-    m = torch.zeros(Ld, Lout, device=device)
-    c = torch.arange(Ld, device=device) + shift
-    ok = c < Lout
-    m[torch.arange(Ld, device=device)[ok], c[ok]] = 1.0
-    return m
+    key = ("d", Ld, Lout, shift, str(device))
+    if key not in _PLAN_CACHE:
+        m = torch.zeros(Ld, Lout)
+        c = torch.arange(Ld) + shift
+        ok = c < Lout
+        m[torch.arange(Ld)[ok], c[ok]] = 1.0
+        _PLAN_CACHE[key] = m.to(device)
+    return _PLAN_CACHE[key]
 
 
 def pair_bag(a: Tensor, b: Tensor, A_lo: Tensor, A_hi: Tensor) -> Tensor:
@@ -604,9 +617,21 @@ class O1ReduceALU(nn.Module):
         ref.construct_()
         return ref
 
+    # Tables whose constructed logits are +/-BIG, i.e. on exactly the scale
+    # `alu-relational` (400 cells) and `plan2/matrix-scan` (700 cells) measured.
+    # `ColSum` rows are NOT: the constructed quadratic reaches ~3e4, so a
+    # corrupted row sits ~1e5 away from the truth and no learning rate that
+    # trains the rest of the model can walk back to it in 2,000 steps.  Mixing
+    # the two would measure parameter scale, not conditioning -- so the basin is
+    # reported on this set and the ColSum rows are reported separately.
+    LOGIT_TABLES = ("carry_t", "carry_e", "sel")
+
+    def _cells_logit(self):
+        return [c for c in self._cells() if c[0].endswith(self.LOGIT_TABLES)]
+
     @torch.no_grad()
     def corrupt_(self, k: int, generator=None, scale: float = 0.5,
-                 mode: str = "uniform", ref=None) -> dict[str, Tensor]:
+                 mode: str = "uniform", tables: str = "logit") -> dict[str, Tensor]:
         """Randomise k cells (`uniform`) or k cells of *every* table (`per_table`).
 
         A corrupted row is replaced by noise at `scale` x the RMS of the
@@ -616,7 +641,8 @@ class O1ReduceALU(nn.Module):
         experiments).  `per_table` is what makes the depth-stratified read
         balanced -- the tables differ in size by 10x.
         """
-        cells = [(n, p, s) for n, p, s, _, _ in self._cells()]
+        src = self._cells() if tables == "all" else self._cells_logit()
+        cells = [(n, p, s) for n, p, s, _, _ in src]
         hit = {}
         if mode == "uniform":
             total = sum(s[0] for _, _, s in cells)
