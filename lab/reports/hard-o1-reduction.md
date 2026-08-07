@@ -508,6 +508,14 @@ never leaves chance (0.005-0.011 against 0.005 at init). This is the
 memorisation signature seen everywhere else in this project, reproduced at
 O(1) learned-op depth with a modulus-split train/held pool.
 
+**Seed 1 reproduces it exactly** (`train_exact` 0.000 → 0.301 → 0.550 → 0.652 →
+**0.696**, loss 2.30 → 0.178, `held_exact` / `held_exact_hard` **0.000 at all
+five checkpoints**, `tbl` 0.003 → chance, `held_div` 0.992 → 0.995). So the
+40,000-step curve is not a single-seed accident: two seeds traverse
+`train_exact` 0.00 → 0.70 while held-out never leaves zero — which is the same
+shape `plan2/sequential-rnn`'s dense m1 evaluation found, now on a discrete
+digit transducer at learned-op depth 7 and on a modulus-split split.
+
 **Best `train_exact_hard` / `held_exact_hard` on `hf1` from random init: 0.000 /
 0.000**, against `--lr 0` at 0.000 / 0.000.
 
