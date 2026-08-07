@@ -304,15 +304,22 @@ breaks nothing.
 
 `lab/manifests/lab_hf1_fs2000_s74.json`, seed 74, `--mode fixed_step`.
 
-| submission | curriculum | `MAX_T` | `OOD_N_MAX_T` | rungs (seen N) | `test`/`ood_t`/`ood_n_t` | steps |
-|---|---|---|---|---|---|---|
-| `hard-curriculum-hf1-off` | off (`beta`=0) | 0 | 0 | all 0.000 except T=4 at 0.001 (**1 of 768 = the variance floor**) | 0.000 / 0.000 / 0.000 | 2000 |
+| submission | curriculum | lr | `MAX_T` | `OOD_N_MAX_T` | rungs (seen N) | `test`/`ood_t`/`ood_n_t` | steps |
+|---|---|---|---|---|---|---|---|
+| `hard-curriculum-hf1-lr0` | off | **0** | 0 | 0 | **all 0.000** | 0.000 / 0.000 / 0.000 | 2000 |
+| `hard-curriculum-hf1-off` | off (`beta`=0) | 1e-3 | 0 | 0 | all 0.000 except T=4 at 0.001 (**1 of 768 = the variance floor**) | 0.000 / 0.000 / 0.000 | 2000 |
+| `hard-curriculum-hf1` | `beta`=1, linear | 1e-3 | *(running)* | | | | |
+| `hard-curriculum-hf1-ids` | `beta`=1, linear, `ids` signal | 1e-3 | *(running)* | | | | |
+| `hard-curriculum-hf1-b4` | `beta`=4, linear | 1e-3 | *(running)* | | | | |
 
-*(remaining cells land as they complete)*
-
-The sibling's `--lr 0` floor for the same architecture class on `hf1` is 0.000 at
-every rung on both ladders, so the single 0.001 above is one example and is
-inside the floor.
+The `--lr 0` row is the mandatory control and it agrees with
+`hard/digitalu-hf1`'s independently-measured floor for the same architecture
+class (0.000 at every rung on both ladders). The single 0.001 in the `off` row
+is **one example of 768** and sits inside that floor. A smoke run of the same
+submission on `hf1s` at 30 steps also completed cleanly
+(`lab/archive.jsonl`, tag `curric-smoke`), which is what establishes that the
+forward-side gradient scale passes `lint_submission_source` and runs inside the
+evaluator's own loop.
 
 ---
 
