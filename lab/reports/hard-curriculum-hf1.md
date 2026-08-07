@@ -8,8 +8,10 @@ brief asked for a clean negative if that is what the evidence says. It is.
 **The one-paragraph version.** A curriculum needs a *learnable source* and
 *transfer from source to target*. Transfer is free here and I measured it: given
 an illegal per-op signal restricted to **16-bit examples only**, the shared
-digit tables reach **0.90 exact on 20-bit examples**, the same as on the bucket
-they were taught from (§12b). The source does not exist: under the legal
+digit tables come out **exactly right** and score **0.896 hard exact on 20-bit
+operands, 0.878 on unseen moduli, 0.867 at unseen modulus sizes** — beating the
+same signal spread over all three sizes (0.380) by 2.4x at matched steps
+(§12b). The source does not exist: under the legal
 end-of-chain label, `train_exact_hard` is **0.000 at every modulus size**,
 including a 10-bit, three-decimal-digit problem six bits below `hf1`'s floor
 (§6). And the method's stated premise is inverted — with a fixed slot count a
@@ -511,22 +513,49 @@ teacher forcing on a constructed register tape reaches 1.000) and then
 | 500 | 0.0060 | 0.9332 | 0.8992 | **0.9002** |
 | 600 | **0.0053** | 0.9450 | 0.8992 | **0.9002** |
 
-**Taught the shared tables from 16-bit examples alone, the model reaches ~0.90
-exact on 20-bit examples — the same as on the bucket it was taught from.** The
-control (`TF-all`, same signal on all three sizes) reads 0.816 / 0.726 / 0.691
-at step 600, i.e. *lower*, because 16-bit examples are cheaper per step.
+FINAL at 800 steps, **argmax-snapped (hard) states**, and every split below
+except `train` is operands the model never saw — `held_n` is *unseen moduli*
+(`hf1`'s `test`), `ood_n` is *unseen modulus sizes* 17/19/21:
 
-**So the curriculum's transfer step is not merely adequate, it is free.** The
-`DigitALU`'s tables are modulus-independent by construction, and that
-construction does what it claims: what is learned at the easy end is exactly
-what is needed at the hard end. Combined with §6, the diagnosis is unambiguous —
+| split | all | 16-bit | 18-bit | **20-bit** |
+|---|---|---|---|---|
+| train (16-bit only) | **0.9076** | 0.9312 | 0.8954 | **0.8962** |
+| held `x`, train moduli | **0.9121** | 0.9357 | 0.9085 | **0.8904** |
+| **held `n` (unseen moduli)** | **0.8776** | 0.8867 | 0.9043 | **0.8418** |
+| `ood_n` (17/19/21-bit) | **0.8672** | 0.8848 (17b) | 0.8613 (19b) | 0.8555 (21b) |
+
+`local_ce` **0.00549** — below the 0.006 cliff. Structure scores
+**`mul_fn` 1.000, `mul_gauge` 1.000, `add_shift` 1.000, `sub_shift` 1.000**: the
+digit tables are *exactly right*. `state_sharpness` 0.9886, output diversity
+0.9954 against the measured constructed reference of 0.9954.
+
+**Taught from 16-bit examples alone, the tables come out exact and carry to
+20-bit operands, to unseen moduli, and to modulus sizes never trained on.**
+
+**And the restriction *helped*.** The control `TF-all` — identical signal,
+identical budget, all three sizes in the batch — reads hard exact **0.3796**
+train / **0.3789** held-`n`, against `TF-only16`'s 0.9076 / 0.8776. At matched
+steps, **training on the easy end alone is 2.4x better on the ranked-style hard
+metric than training on the mixture, and generalises to the hard end anyway.**
+That is the curriculum hypothesis, confirmed — under a signal that is illegal.
+(Caveat: matched in *steps*, not in per-bucket examples; `TF-only16` spends
+every gradient on one bucket. The point stands as stated — restricting to the
+easy end cost nothing at the hard end.)
+
+**So the curriculum's transfer step is not merely adequate, it is free, and its
+concentration is a genuine win when the source is learnable.** Combined with §6,
+the diagnosis is unambiguous —
 
 > **The curriculum fails on the source, never on the transfer.** There is no
-> modulus size at which the legal objective produces tables worth annealing away
-> from, and no schedule can weight its way to one.
+> modulus size at which the *legal* objective produces tables worth annealing
+> away from, and no schedule can weight its way to one.
 
-*(FINAL held-out-modulus rows land with the run; the table above is the in-loop
-train cohort.)*
+**This is the one place in this report that carries a forward-looking positive.**
+If any future architecture makes the legal objective produce even a partly
+correct source — `hard/add-only`'s adder-only transducer is the candidate, since
+adder laws repair 50/400 cells against the label's ~0 — then a modulus-size
+curriculum is worth **re-testing there**, because both of its preconditions
+other than the source are measured good here.
 
 ---
 
@@ -543,10 +572,14 @@ The argument in four steps, each a measurement rather than an expectation:
    scale in the forward, which agrees with a weighted loss to 6.9e-08. The
    schedule fits in a non-persistent buffer. Nothing about the contract blocks
    this idea.
-2. **The transfer it assumes works perfectly.** Under a per-op (illegal) signal
-   restricted to 16-bit examples *only*, the shared tables reach ~0.90 exact on
-   **20-bit** examples — the same as on the 16-bit examples they were taught
-   from (§14). Easy-to-hard transfer across modulus size is not the problem.
+2. **The transfer it assumes works perfectly, and the concentration even
+   helps.** Under a per-op (illegal) signal restricted to 16-bit examples
+   *only*, the tables come out **exactly right** (`mul_fn`/`add_shift`/
+   `sub_shift` all 1.000) and score **0.896 hard exact on 20-bit** examples,
+   **0.878 on unseen moduli** and **0.867 at unseen modulus sizes** — while the
+   same signal spread over all three sizes reaches only 0.380 at matched steps
+   (§12b). Easy-to-hard transfer is not the problem; it is the one thing in this
+   report that works.
 3. **The source it assumes does not exist.** Under the legal end-of-chain label,
    `train_exact_hard` is **0.000 at every modulus size on the ladder**,
    including a 10-bit, 3-decimal-digit problem six bits below `hf1`'s floor
