@@ -266,6 +266,66 @@ changes the mixture, not the conditioning.
 
 ---
 
-## 9. State of play
+## 9. The evaluator cells on `hf1`
+
+**These are a MECHANISM check, not the scientific test**, and `hard/digitalu-hf1`
+§0.3 says why in one line: the reference-width transformer *never leaves the
+pre-fitting region on `hf1`* — `train_exact` 0.000 flat across 40,000 steps at
+0.83 params/row. Any accuracy comparison at this width on `hf1` is
+uninterpretable. What these rows do establish is that the curriculum machinery
+is legal, lints, runs inside the evaluator's own loop on real `hf1` prompts, and
+breaks nothing.
+
+`lab/manifests/lab_hf1_fs2000_s74.json`, seed 74, `--mode fixed_step`.
+
+| submission | curriculum | `MAX_T` | `OOD_N_MAX_T` | rungs (seen N) | `test`/`ood_t`/`ood_n_t` | steps |
+|---|---|---|---|---|---|---|
+| `hard-curriculum-hf1-off` | off (`beta`=0) | 0 | 0 | all 0.000 except T=4 at 0.001 (**1 of 768 = the variance floor**) | 0.000 / 0.000 / 0.000 | 2000 |
+
+*(remaining cells land as they complete)*
+
+The sibling's `--lr 0` floor for the same architecture class on `hf1` is 0.000 at
+every rung on both ladders, so the single 0.001 above is one example and is
+inside the floor.
+
+---
+
+## 10. Compliance
+
+| item | status |
+|---|---|
+| `data/generated/` | **never opened**. Every modulus and operand in the probe is self-generated from the *generator source* (`data/squaring_mod.py:1259`, `p_bits = bits//2`). Independent check: my enumeration finds **148 / 543 / 1718** balanced semiprimes at 16 / 18 / 20 bits, and `hard/digitalu-hf1` measured `hf1`'s own pools at 133+15 / 488+55 / 1546+172 — **the same three numbers**. |
+| difficulty signal | derived at runtime from the input tensors (`log10` of the modulus and of the operand, from the one-hot digit slots), never from a dataset field |
+| custom training loop / backward | none. The curriculum is arithmetic in the forward; the evaluator still does one forward, one `backward()`, one `step()` |
+| step counter | **non-persistent buffer** (`benchmark/api.py:26-42` excludes it from the 5e8 ceiling) |
+| `--construct`, `--basin`, `local_ce` | **DIAGNOSTIC** — they set tables to the truth or replay a constructed tape. Never in a submission. |
+| `--only-bits` | **LEGAL** (a 0/1 weight computed from the input) but reported as the curriculum's extreme point, not as a candidate |
+| `_CURRIC_SRC="ids"` | **FLAGGED compliance-uncertain** (it decodes the prompt format to build the difficulty scalar). Not the default; `"len"` uses only the input's length. |
+| hosted service | nothing submitted |
+
+---
+
+## 11. Exact commands
+
+```bash
+V=/home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python
+D="--n-mod 16 --n-mod-held 8 --n-x 1024 --n-held-x 64"
+
+# gates
+$V lab/probe_curric.py --construct   $D --tag GATE-construct
+$V lab/probe_curric.py --grad-equiv  $D --tag GATE-gradequiv
+$V lab/probe_curric.py --basin       $D --basin-n 768 --basin-reps 3 --tag GATE-basin
+$V lab/probe_curric.py --steps 100 --lr 0 $D --tag GATE-lr0
+
+# calibration (fitting curve)
+$V lab/probe_curric.py $D --steps 12000 --lr 3e-2 --log-every 500 --tag CAL-lr3e-2
+
+# sweep and ladder
+bash lab/curric_sweep2.sh a   # ... through g
+```
+
+---
+
+## 12. Verdict and what I would do with the budget instead
 
 *(filled in)*
