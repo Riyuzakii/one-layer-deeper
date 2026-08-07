@@ -535,12 +535,23 @@ digit tables are *exactly right*. `state_sharpness` 0.9886, output diversity
 **And the restriction *helped*.** The control `TF-all` — identical signal,
 identical budget, all three sizes in the batch — reads hard exact **0.3796**
 train / **0.3789** held-`n`, against `TF-only16`'s 0.9076 / 0.8776. At matched
-steps, **training on the easy end alone is 2.4x better on the ranked-style hard
-metric than training on the mixture, and generalises to the hard end anyway.**
-That is the curriculum hypothesis, confirmed — under a signal that is illegal.
-(Caveat: matched in *steps*, not in per-bucket examples; `TF-only16` spends
-every gradient on one bucket. The point stands as stated — restricting to the
-easy end cost nothing at the hard end.)
+steps, **training on the easy end alone is 2.4x better on the hard metric than
+training on the mixture, and generalises to the hard end anyway.** That is the
+curriculum hypothesis, confirmed — under a signal that is illegal.
+
+The mechanism is visible and it is the `(1-eps)^L` law at L = 183 chained ops:
+*both* runs reach exactly correct tables by the structure scores
+(`mul_fn`/`mul_gauge`/`add_shift`/`sub_shift` = 1.000 in both), and the entire
+difference is residual **per-op** error — `local_ce` **0.00549** for
+`TF-only16` (below the 0.006 cliff) against **0.02032** for `TF-all`. A 3.7x
+lower per-op error over 183 steps is the whole 2.4x. So what concentrating on
+the easy end buys is *rate of per-op error reduction per optimizer step*, which
+is exactly the quantity a curriculum is supposed to buy.
+
+(Caveat, stated rather than smoothed: matched in *steps*, not in per-bucket
+examples — `TF-only16` spends every gradient on one bucket. The defensible claim
+is the narrow one: restricting to the easy end cost nothing at the hard end and
+converged faster per step.)
 
 **So the curriculum's transfer step is not merely adequate, it is free, and its
 concentration is a genuine win when the source is learnable.** Combined with §6,
