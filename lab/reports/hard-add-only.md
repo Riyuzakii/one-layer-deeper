@@ -8,9 +8,18 @@ unidentifiable (`alu-relational`), the adder's laws have the widest repair
 basin in the project (50/400 cells), therefore an *adder-only* hypothesis class
 should have a much wider basin than `DigitALU`'s **0/5 at k = 20**. Built, and
 measured at matched conditions with the same searcher and 20 repetitions per
-cell: **the add-only class's exact-repair basin is statistically
-indistinguishable from `DigitALU`'s**, and the small differences that do appear
-track free-cell count, not the absence of `Tmul`.
+cell: at the **fraction-matched** corruption both classes repair **1 of 20**,
+with mean `train_exact_hard` 0.16 versus 0.175. The promised 14× is a factor of
+one.
+
+Three further measurements say the same thing from different directions.
+The objective *profile* is no more informative at any corruption level and is
+measurably **less** per fraction of cells (§4.2). From random init both classes
+sit at the identical chance floor (§4.4). And with **every other tensor set to
+the truth**, the legal label cannot identify the adder — while `DigitALU`'s
+supposedly-hopeless `Tmul` scores slightly *higher* under the identical
+protocol (§5, §7). **The premise inverts: the adder is the less identifiable of
+the two tables, in both architectures.**
 
 The ranking's inference contained a substitution error that this branch makes
 explicit: **the 50/400 basin belongs to an objective, not to a table.** It was
