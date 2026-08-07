@@ -237,8 +237,13 @@ class CarryMonoid(nn.Module):
         self.trans = nn.Parameter(torch.randn(M, self.C * self.C) * init_scale)
         self.emit = nn.Parameter(torch.randn(M, self.C * 10) * init_scale)
 
+    record_usage = False   # when True, accumulate how much input mass each row sees
+
     def forward(self, tot: Tensor, *, hard: bool = False, ste: bool = False):
         """``tot`` ``(B, L, M)`` column-total distribution -> (digits, final)."""
+        if self.record_usage:
+            u = tot.detach().float().reshape(-1, tot.shape[-1]).sum(0)
+            self.usage = u if not hasattr(self, "usage") else self.usage + u
         shape = tot.shape[:-2]
         L, M = tot.shape[-2], tot.shape[-1]
         t = tot.reshape(-1, L, M).float()
@@ -669,6 +674,36 @@ class O1ReduceALU(nn.Module):
                 sel.numel(), *shape[1:], generator=generator
             ).to(p.device) * (scale * rms)
         return hit
+
+    @torch.no_grad()
+    def usage(self, x, n, mu=None, chunk: int = 256) -> dict[str, Tensor]:
+        """Input mass each corruptible table row receives over a dataset.
+
+        A cell that no example exercises receives no gradient and cannot be
+        repaired whatever the conditioning is -- so the basin has to be read
+        against this, not in isolation.  Row indices match `_cells()`.
+        """
+        mons = {"sq": self.sq.carry, "qm": self.qm.carry, "rs": self.rs.carry}
+        if self.recip_kind == "div":
+            mons["rc"] = self.recip.step.carry
+        for m in mons.values():
+            m.record_usage = True
+            if hasattr(m, "usage"):
+                del m.usage
+        for i in range(0, x.shape[0], chunk):
+            if mu is not None:
+                self.set_mu(mu[i:i + chunk])
+            self(x[i:i + chunk], n[i:i + chunk])
+        out = {}
+        for name, m in mons.items():
+            m.record_usage = False
+            u = m.usage / m.usage.sum().clamp_min(1e-9)
+            out[f"{name}_carry_t"] = u
+            out[f"{name}_carry_e"] = u
+        out["sel"] = torch.ones(self.n_corr, device=x.device) / self.n_corr
+        if self.recip_kind == "div":
+            out["rc_sel"] = torch.ones(10, device=x.device) / 10
+        return out
 
     @torch.no_grad()
     def cell_correct(self, ref=None) -> dict[str, Tensor]:

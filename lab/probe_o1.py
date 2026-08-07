@@ -79,7 +79,7 @@ def evaluate(model, xin, nin, tgt, mus, S, T, chunk=512, hard=False):
     return ok / xin.shape[0], ce / (xin.shape[0] * S), div
 
 
-def main() -> int:
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--modulus", type=int, default=323)
     ap.add_argument("--bits", type=int, default=11)
@@ -122,7 +122,7 @@ def main() -> int:
     ap.add_argument("--log-every", type=int, default=250)
     ap.add_argument("--jsonl", default="")
     ap.add_argument("--tag", default="")
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
 
     torch.manual_seed(args.seed)
     device = torch.device(args.device)
@@ -184,6 +184,14 @@ def main() -> int:
         hit = model.corrupt_(args.corrupt, g, args.corrupt_scale, args.corrupt_mode,
                              args.corrupt_tables)
         pre = model.cell_correct(ref)   # baseline: which touched cells are wrong
+        # a cell no example exercises cannot be repaired at any conditioning
+        use = model.usage(xin, nin, mu_tr if args.recip == "oracle" else None)
+        used = {n_: int((use[n_][i.to(device)] > 1e-6).sum()) for n_, i in hit.items()
+                if n_ in use}
+        print(f"[{args.tag}] corrupted cells exercised by the training set: "
+              f"{sum(used.values())}/{sum(len(i) for i in hit.values())} "
+              + " ".join(f"{k}:{v}/{len(hit[k])}" for k, v in sorted(used.items())),
+              flush=True)
 
     n_par = sum(p.numel() for p in model.parameters())
     n_cells = ref.table_correct(ref)["_n_cells"]

@@ -11,3 +11,6 @@
 [o1-k20-s0] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
 [o1-k20-s0] step=  2000 loss=0.79335 train_exact=0.460 held_exact=0.053 train_exact_hard=0.224 held_exact_hard=0.053 held_div=0.974 tbl=0.956 repaired=0/20 naive=0/20 by_depth=1:0/9,3:0/9,5:0/2 (77s)
 === o1-k20-s1 ===
+[o1-k20-s1] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[o1-k20-s1] step=  2000 loss=0.77076 train_exact=0.656 held_exact=0.211 train_exact_hard=0.504 held_exact_hard=0.263 held_div=0.921 tbl=0.967 repaired=0/20 naive=0/20 by_depth=1:0/3,3:0/10,5:0/7 (70s)
+=== o1-k20-s2 ===
