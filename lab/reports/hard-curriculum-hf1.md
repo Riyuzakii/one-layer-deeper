@@ -629,7 +629,8 @@ So the curriculum is not mistuned; its precondition never holds. **No schedule
 between "16-bit only" and "uniform" can help, because the sweep's two endpoints
 are measured and both are 0.000** — and the endpoint that concentrates hardest
 on the easy set is the one that does measurable *damage* (`D-only16` drives
-18-bit digit accuracy to 0.192, below its own 0.303 trivial floor).
+18-bit digit accuracy to **0.151**, half its own 0.303 trivial floor, and its
+mirror `D-only20` does the same to 16- and 18-bit).
 
 ### What I would do with the budget instead
 
