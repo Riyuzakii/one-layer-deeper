@@ -29,9 +29,9 @@ help; the difficulty is concentrated entirely in the single step.
 
 | # | method | evidence | status |
 |---|---|---|---|
-| 1 | **Addition-only transducer** — multiplication by double-and-add, so the only learned arithmetic primitive is an adder (+ comparator) | removes the provably-unidentifiable `Tmul`; adder laws repair 50/400 where `Tmul` repairs ~0 | **untested** |
-| 2 | **`DigitALU` at hf1 scale, fully corrected** — `tree:quotient` (39 steps), `EMB_INIT=0.02`, ~93k-step budget, replica population, calibrated fitting curve | never run on a modulus-split dataset; applies every earned correction at once; supplies the reference and `--lr 0` floor | **untested at Hard-faithful** |
-| 3 | **Modular reduction at O(1) learned-op depth** | `matrix-scan` named it the one well-posed remaining target; the conditioning law is measured and correct (0/5 @39 ops, 14/400 @12, 50/400 @1) — this is where its coefficient is largest | **untested** |
+| ~~1~~ | ~~Addition-only transducer~~ | **STRUCK — the ranking premise was a substitution error.** The 50/400 belonged to an **O(1) algebraic objective**, not to the adder as a table. Module-restricted with everything else at truth, the label leaves the **adder at chance** (0.008-0.016) while `Tmul` scores **higher** (0.028-0.052) — the adder is the *less* identifiable table. Constructed ceiling 36/36 at 1.000 soft+hard; basin advantage real at 4.2% corruption (8/25 vs 0/20, p=0.0056) but only in *rate*, not *radius* (5.9% both sides), and only radius is reachable from init. Best legal `train_exact_hard` 0.002 vs `--lr 0` 0.000 | **closed** |
+| **1** | **`DigitALU` at hf1 scale, fully corrected** — `tree:quotient` (39 steps), `EMB_INIT=0.02`, ~93k-step budget, replica population, calibrated fitting curve | never run on a modulus-split dataset; applies every earned correction at once; supplies the reference and `--lr 0` floor | **untested at Hard-faithful** |
+| **2** | **Modular reduction at O(1) learned-op depth** — and make it **SEPARABLE**, see below | `matrix-scan` named it the one well-posed remaining target; the conditioning law is measured and correct (0/5 @39 ops, 14/400 @12, 50/400 @1) — this is where its coefficient is largest | **untested** |
 | 4 | ~~Loss-side curriculum over modulus size / operand magnitude~~ | **CLOSED — null on hf1.** 10 cells x 4 schedule shapes x 4 strengths x 3 axes x 3 seeds: `train_exact_hard` 0.000 everywhere, held-out 0.000 per size; all six evaluator arms within **one example in 27,000** of the `--lr 0` control | **closed** |
 | 5 | **Replica population** as a standard instrument on whichever of 1-3 shows any tail | validated: 1-in-7 -> 6-of-6, legal, +29% wall clock, eval at P=1 cost | instrument |
 
@@ -92,3 +92,24 @@ calibration only (fewer rows makes memorisation *easier* — not for accuracy cl
    100), and is *less* disturbed by a wrong cell. "Smaller = easier" does not hold here.
 6. `hf1` reference scale: **243k train rows, 768-example rungs, variance floor 1/768**,
    and the reference-width model **never leaves the pre-fitting region at 40k steps**.
+
+## The single most actionable result so far: SEPARABILITY, not size
+
+`hard/add-only` measured that the legal label's exact-repair radius on an arithmetic
+table is **5-10 wrong cells**, the same for `Tadd` and `Tmul` — but a **10-cell
+*separable* table** (a selector whose parameters are determined by the label largely
+independently of one another) is **recovered exactly, every seed**. That is a
+qualitative difference in learnability, and it is the **first structural property found
+in ~1,200 experiments that the legal objective can actually exploit.**
+
+**Design implication:** prefer architectures whose learned components are *separable*,
+not merely small or shallow. This is now the most promising untested axis, and it
+supersedes "reduce learned-op depth" as the primary design criterion.
+
+## A correction to this document's own reasoning
+
+**A repair basin is a property of an (objective, architecture) PAIR, not of a table.**
+The 0/5 @39 ops -> 14/400 @12 -> 50/400 @1 scaling is valid *for a fixed objective*. The
+50/400 came from an O(1) algebraic objective evaluated next to a table. Carrying that
+number to a different architecture by deleting a table is a **substitution error**, and
+it is what put add-only at #1. Recorded so it is not repeated.

@@ -775,6 +775,7 @@ session has a measured configuration that fools it:
 | in-distribution accuracy | length extrapolation | 0.941 on mod-3 | **0.328 at 2x length** |
 | `train_exact` (soft) | `--family orth` | **0.996**, best fit in the project | `train_exact_hard` 0.004, held 0.000 |
 | output diversity vs a 1.0 reference | squaring is 4-to-1 | "collapse" at 0.22 | **0.221 IS the exact solution's value** |
+| a repair basin | quoting it across architectures | adder "repairs 50/400" | it was an **O(1) objective's** basin, not the adder's; module-restricted, the adder is at **chance** and `Tmul` scores higher |
 | `local_ce` | SOAP on the legal objective | 14/32 replicas below the 0.006 cliff | only **1** actually in basin; one cell reads 5e-05 with `train_exact_hard` 0.120 |
 | any leftward `local_ce` shift | the legal objective itself | 3.5 -> 2.3 looks like progress | **random init is 2.08-2.24** — it is regression toward init |
 
