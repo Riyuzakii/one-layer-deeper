@@ -230,9 +230,32 @@ modulus size this task can present.
 
 ---
 
-## 7. The sweep
+## 7. The sweep — schedule shape, strength, axis
 
-*(filled in)*
+All cells: 1,500 steps, lr 3e-2, batch 512, seed 0, same 48 training moduli and
+49,152 rows, `--mode fixed_step`-equivalent so contention cannot corrupt the
+comparison. **Compared at step 1,500 against the three-seed baseline band read
+from the same logged step.** The weight ratio the slope buys, measured on a
+worked batch: `beta` 0.5 / 1 / 2 / 4 → **3.1x / 9.4x / 87x / 7,664x** between a
+16-bit and a 20-bit example at step 0, annealing to 1.0x.
+
+### 7.1 The baseline band (LEGAL, `beta` = 0)
+
+| seed | step | soft `dacc` 16/18/20 | soft `train_exact` | **`train_exact_hard`** | `held_n` exact | `local_ce` |
+|---|---|---|---|---|---|---|
+| 0 | 1500 | 0.3797 / 0.3072 / 0.2387 | 0.000 | **0.000** | 0.000 | 4.635 |
+| 1 | 1500 | 0.3783 / 0.3131 / 0.2398 | 0.0007 | **0.000** | 0.000 | 4.913 |
+| 2 | 1500 | 0.3851 / 0.3112 / 0.2315 | 0.000 | **0.000** | 0.000 | *(final)* |
+| **band** | | **0.378–0.385 / 0.307–0.313 / 0.232–0.240** | 0.000–0.0007 | **0.000** | 0.000 | 4.6–5.7 |
+| *trivial floor* | | *0.3792 / 0.3031 / 0.2350* | | | | |
+
+Seed 0 reproduces `CAL-lr3e-2` to every decimal at step 1,500 (loss 1.7339,
+`local_ce` 4.63542) — the probe is deterministic given a seed, so any difference
+below is a real effect of the flag and not run-to-run noise.
+
+### 7.2 The cells
+
+*(filled in as cells complete; every cell is LEGAL unless marked)*
 
 ---
 
