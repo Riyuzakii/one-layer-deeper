@@ -604,6 +604,25 @@ def main() -> int:
                       f"digit={d0[0]:.4f} exact={e0[0]:.4f} "
                       f"cell_agree={cell_agreement(base, truth)['all']}",
                       flush=True)
+            elif only is not None:
+                # LAB DIAGNOSTIC: every table outside --modules is set to the
+                # CONSTRUCTION; only the named ones start random and are
+                # searched.  Measures which modules the end-of-chain label can
+                # identify on its own.
+                model.construct()
+                base = model.snapshot(0)
+                rnd = IntAddALU(1, args.slots, nd, 2, 2, args.max_quot,
+                                device, args.pick)
+                rnd.set_ties(ties)
+                rnd.randomize(g)
+                rs = rnd.snapshot(0)
+                for name in only:
+                    base[name] = rs[name]
+                model.load(base)
+                d0, e0 = model.score(xin, xt, args.chunk)
+                print(f"[{args.tag}] modules={sorted(only)} random, rest "
+                      f"CONSTRUCTED: digit={d0[0]:.4f} exact={e0[0]:.4f}",
+                      flush=True)
             else:
                 model.randomize(g)
                 base = model.snapshot(0)

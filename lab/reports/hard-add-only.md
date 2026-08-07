@@ -210,3 +210,119 @@ Archived: `lab/ceiling_runs.jsonl` (36 rows), `lab/logs/ceiling.log`.
 optimising it; it costs no training and predicts whether optimisation can go
 anywhere.* This is that measurement, and it is what the branch was ranked on.
 
+### 4.1 Protocol (identical on both sides)
+
+`lab/probe_addsearch.py` is the add-only transducer written as a **pure integer
+simulator** — with every inter-step state snapped to argmax the whole forward
+pass is a table lookup, so this is exactly the float model under `hard=True`,
+~1000× cheaper, and vectorised over a population of candidate assignments. It
+imports `search()` *from* `discrete-search`'s `probe_search.py`, so the searcher
+is literally the same code: block-greedy coordinate descent, `block=64`,
+`sweeps=40`, patience 3, objective = training **digit** accuracy, with prefix
+verification of every simultaneously-accepted move. Same modulus (`N = 323`,
+λ = 144 — stated per BRIEF2 §6.5; a *step-map* experiment, not a depth
+experiment, so the degenerate ladder is irrelevant here), same `S = 3`, same 250
+training operands, same `--seed 501` stream, same corruption procedure
+(`randperm` over free cells, each redrawn uniformly from its alphabet).
+
+Free cells under `--tie sym,inv`: **add-only 237**, `DigitALU` **337**. Equal
+`k` is therefore *not* equal corruption; fraction-matched rows are marked.
+
+### 4.2 The objective profile — no search, 8 reps, and it already answers it
+
+Training digit accuracy of the corrupted transducer, before any search. This is
+the lowest-variance instrument available and it costs nothing.
+
+| corrupted cells | add-only (of 237) | `DigitALU` (of 337) |
+|---|---|---|
+| 0 | 1.000 | 1.000 |
+| 1 | 0.776 | 0.767 |
+| 2 | 0.629 | 0.795 |
+| 3 | 0.634 | 0.766 |
+| 5 | 0.346 | 0.664 |
+| 10 | 0.261 | 0.326 |
+| 20 | 0.166 | 0.177 |
+| 50 | 0.119 | 0.138 |
+| 100 | 0.124 | 0.122 |
+| 200 | 0.114 | 0.121 |
+| all free cells | 0.120 | 0.123 |
+
+**The add-only objective is not more informative than `DigitALU`'s at any
+corruption level, and per *fraction* of free cells it is measurably less.** At
+5 cells the add-only model is 2.1 % corrupted and reads 0.346; `DigitALU` at
+1.5 % reads 0.664 and at 3.0 % reads 0.326 — interpolating, `DigitALU` at 2.1 %
+is ≈ 0.50. Both reach the random-table floor (≈ 0.12) by 50 cells. That is the
+sign the depth table in §1 predicts and the opposite of the sign the ranking
+predicted.
+
+### 4.3 Exact repair under the LEGAL end-of-chain label — the headline
+
+Reps that recovered the transducer exactly (`train_exact_hard = 1.000`).
+
+**20 reps per cell, both sides, matched searcher and seed stream:**
+
+| corruption | add-only A (of 237) | `DigitALU` (of 337) |
+|---|---|---|
+| k = 10 → 4.2 % vs 3.0 % | **5/20** (25 %) | **1/20** (5 %) |
+| k = 14 → **5.9 %** (fraction-matched to `DigitALU` k=20) | **1/20** (5 %) | — |
+| k = 20 → 8.4 % vs 5.9 % | **1/20** (5 %) | **0/20** |
+
+**5 reps per cell** (the full ladder, same seed stream, `--seed 11`):
+
+| k | add-only A tied (237) | add-only A untied (817) | add-only B tied (227) | `DigitALU` tied (337) |
+|---|---|---|---|---|
+| 1 | 5/5 | 5/5 | 4/5 | 3/5 |
+| 2 | 4/5 | 5/5 | 4/5 | 2/5 |
+| 3 | 2/5 | 1/5 | 5/5 | 1/5 |
+| 5 | 3/5 | 2/5 | 3/5 | 2/5 |
+| 10 | 3/5 | 3/5 | 1/5 | 1/5 |
+| 20 | **0/5** | 2/5 | **0/5** | **0/5** |
+| 50 | 0/5 | 0/5 | 0/5 | 0/5 |
+| 100 | 0/5 | 0/5 | 0/5 | 0/5 |
+| 200 | 0/5 | 0/5 | 0/5 | — |
+| 500 | — | 0/5 | — | — |
+
+**Reading this honestly.**
+
+* **The prediction was a *much* wider basin — 50/400 cells (12.5 %) against the
+  label's 0.9 %, a 14× factor. That is not what happened.** The add-only class's
+  exact-repair radius under the legal label is ~4 % of its free cells at 25 %
+  success and ~6–8 % at 5 %; `DigitALU`'s is ~3 % at 5 %. In absolute cells the
+  two radii are k ≈ 10–20 on both sides.
+* There **is** a real but small edge at `k = 10`: 5/20 vs 1/20, and add-only's
+  10 cells are a *larger* fraction of its table. At n = 20 that is
+  **Fisher two-sided p = 0.18 — not significant**; it would be significant only
+  against a 0/20 control (p = 0.047). I report it as *suggestive of a factor
+  ~2 in cell fraction*, and explicitly not as the promised 14×.
+* By `k = 20` both are at 0–1 in 20 and by `k = 50` both are at zero. The
+  qualitative fact that mattered — *the legal label cannot repair a
+  double-digit number of wrong cells* — is unchanged by deleting `Tmul`.
+* Untied add-only looks better at `k = 20` (2/5) purely because 20 of 817 is
+  2.4 % where 20 of 237 is 8.4 %. Cell count, not `Tmul`.
+* The 5-rep `DigitALU` numbers here are noisier than `discrete-search` §8's
+  published 5/5 @ k=3, 1/5 @ k=10, 0/5 @ k=20; my 20-rep k=10 estimate (1/20)
+  sits below its 5-rep 1/5. **The published 5-rep ladder was optimistic**, which
+  is worth recording as a screening note in its own right.
+
+### 4.4 From RANDOM init the two classes are indistinguishable — and both at chance
+
+The basin only matters if it can be reached. Block-greedy discrete search from
+a uniformly random table assignment, same searcher, same objective:
+
+| class | seeds | final `train_exact_hard` | `add_shift` | `n_shifts` (truth 10) |
+|---|---|---|---|---|
+| **add-only, tied (237 cells)** | 7 | **0.000–0.012** | **0.250–0.305** | 7–9 |
+| **add-only, untied (817 cells)** | 3 | **0.016–0.032** | **0.270–0.295** | 8–9 |
+| `DigitALU`, tied (337) — `discrete-search` §8 | 5 | 0.012–0.024 | 0.233–0.317 | — |
+| chance level for `add_shift` | | | **0.285** | |
+
+**`add_shift` at 0.250–0.305 against a chance value of 0.285 is exactly
+nothing.** Deleting the provably-unidentifiable table did not make the
+remaining table identifiable. This is the measurement that settles the branch:
+`alu-relational`'s 50/400 basin belonged to the *O(1) algebraic objective*, and
+`alu-relational` §6.3 had already measured that **that objective also fails from
+random init** (`add_shift` 0.250–0.320, basin hopping at 38× the compute drives
+structure *below* chance). Add-only inherits that negative unchanged, because
+it inherits the same adder.
+
+---
