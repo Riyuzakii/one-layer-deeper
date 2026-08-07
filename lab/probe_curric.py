@@ -702,6 +702,14 @@ def main() -> int:
     ap.add_argument("--sched", default="linear",
                     choices=["const", "step", "linear", "exp"])
     ap.add_argument("--anneal-frac", type=float, default=0.5)
+    ap.add_argument("--tf", type=float, default=0.0,
+                    help="DIAGNOSTIC weight on the teacher-forced per-step CE "
+                         "(rules 2 and 7 -- never a submission)")
+    ap.add_argument("--task-w", type=float, default=1.0,
+                    help="weight on the LEGAL end-of-chain CE")
+    ap.add_argument("--train-bits", type=int, default=0,
+                    help="restrict the training SAMPLER to one bit size (used "
+                         "with --tf; the legal analogue is --only-bits)")
     ap.add_argument("--only-bits", type=int, default=0,
                     help="DIAGNOSTIC extreme: weight 1 on this bit size, 0 "
                          "elsewhere, for the whole run")
@@ -846,22 +854,45 @@ def main() -> int:
     tstep = 0.0
     curve = []
     gen = torch.Generator(device=dev).manual_seed(args.seed + 1)
+    pool = torch.arange(tr.n, device=dev)
+    if args.train_bits:
+        pool = pool[tr.bits == args.train_bits]
+        print(f"[{args.tag}] training restricted to {args.train_bits}-bit "
+              f"rows: {pool.numel()} of {tr.n}", flush=True)
     for step in range(1, args.steps + 1):
-        idx = torch.randint(0, tr.n, (args.batch,), device=dev, generator=gen)
+        idx = pool[torch.randint(0, pool.numel(), (args.batch,), device=dev,
+                                 generator=gen)]
         xo, no, tg, bt = tr.batch(idx)
         if step == 11:
             torch.cuda.synchronize()
             tstep = time.time()
-        logits = model(xo, no)
-        ce = F.cross_entropy(logits.reshape(-1, 10), tg.reshape(-1),
-                             reduction="none").view(args.batch, -1).mean(1)
-        if args.only_bits:
-            w = (bt == args.only_bits).float()
-            w = w / w.mean().clamp_min(1e-6)
-            bn = bx = float("nan")
-        else:
-            w, bn, bx = curric_weights(xo, no, step, args.steps, args)
-        loss = (w * ce).mean()
+        loss = torch.zeros((), device=dev)
+        bn = bx = 0.0
+        if args.task_w > 0:
+            logits = model(xo, no)
+            ce = F.cross_entropy(logits.reshape(-1, 10), tg.reshape(-1),
+                                 reduction="none").view(args.batch, -1).mean(1)
+            if args.only_bits:
+                w = (bt == args.only_bits).float()
+                w = w / w.mean().clamp_min(1e-6)
+                bn = bx = float("nan")
+            else:
+                w, bn, bx = curric_weights(xo, no, step, args.steps, args)
+            loss = loss + args.task_w * (w * ce).mean()
+        if args.tf > 0:
+            # DIAGNOSTIC (rules 2 and 7): replays the register trace of a
+            # CONSTRUCTED copy.  Used only to measure the curriculum's ILLEGAL
+            # ceiling -- "does a perfectly taught easy end transfer to the hard
+            # end?" -- never as a candidate.
+            with torch.no_grad():
+                ref.mode, ref.tape = "record", []
+                ref(xo, no)
+                ref.mode = None
+            model.mode, model.tape = "force", ref.tape
+            model.tf_loss, model.tf_n = torch.zeros((), device=dev), 0
+            model(xo, no)
+            model.mode = None
+            loss = loss + args.tf * (model.tf_loss / max(model.tf_n, 1))
         opt.zero_grad(set_to_none=True)
         loss.backward()
         if args.clip:
