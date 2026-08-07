@@ -412,6 +412,11 @@ breaks nothing.
 | `hard-curriculum-hf1-ids` | `beta`=1, linear, `ids` signal | 1e-3 | *(running)* | | | | |
 | `hard-curriculum-hf1-b4` | `beta`=4, linear | 1e-3 | *(running)* | | | | |
 
+**Through the evaluator the trained and the untrained submissions are
+indistinguishable**: `mean_exact_accuracy` **3.70e-05 for both** — the same one
+example of 27,000 — and `MAX_T` 0 / `OOD_N_MAX_T` 0 for both. That is
+`plan2/sequential-rnn`'s finding reproduced on `hf1`.
+
 The `--lr 0` row is the mandatory control and it agrees with
 `hard/digitalu-hf1`'s independently-measured floor for the same architecture
 class (0.000 at every rung on both ladders). The single 0.001 in the `off` row
