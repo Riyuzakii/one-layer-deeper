@@ -1,0 +1,5 @@
+=== L1: LEGAL, hf1 modulus pool (1725 moduli), P=32, 6000 steps ===
+[alu-legal-pool-P32] hf1-faithful modulus split {16: {'train': 133, 'test': 15}, 18: {'train': 488, 'test': 55}, 20: {'train': 1546, 'test': 172}, 'oodn': 192} S=7 W=8 tree:quotient depth=129 P=32
+[alu-legal-pool-P32] train prompts=80,992 over 1,725 distinct training moduli (16 operands each)
+[alu-legal-pool-P32] params/replica=6,821 params/train-row=0.0842
+[alu-legal-pool-P32] step=     1 loss=4.6012 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.034 solved=0/32 div_unseenN=0.9990 (13s)

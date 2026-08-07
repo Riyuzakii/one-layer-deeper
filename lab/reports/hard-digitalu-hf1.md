@@ -97,4 +97,101 @@ prompts × 28 batches = **131 s** against an 1,800 s eval budget.
 
 ---
 
-*(sections 1+ below: the `DigitALU` result)*
+## 1. What this branch ran, and why
+
+`DigitALU` was ranked #2 for one reason: it has a **provably exact solution in
+its class**, and it had never been run on a modulus-split dataset with the
+corrections this project earned applied together. Those corrections are:
+
+| correction | source | applied here |
+|---|---|---|
+| `tree:quotient` graph | `alu-depth` | yes — 129 sequential soft steps at S=7 instead of 1,537 for the serial graph |
+| **untied** tables | `alu-credit` (ties help repair, hurt learning from random init) | yes |
+| `EMB_INIT=0.02` | `plan2/phase0` + the hosted run's step-1 loss 79.936 | yes — step-1 loss is `2.833 = ln 17` exactly |
+| replica population + differentiable selector | `alu-population` | yes, P = 32 |
+| the real step budget | hosted H100 calibration | measured, and it is the headline negative — see §5 |
+| a calibrated fitting curve | BRIEF2 §2(e) | yes — §0.3 and §4 |
+| `--lr 0` control | `alu-optimizer` | yes, on every result |
+
+The probe is `lab/probe_hf.py`. It rebuilds `hf1`'s structure offline from the
+**generator source** (`_enumerate_sampled_factor_pairs`, a 90/10 partition by
+count, `(p-1)(q-1)`-weighted modulus draws, unit `x`) and never opens anything
+under `data/generated/`. Its modulus pools come out at **133/488/1546 train**
+and **15/55/172 test** — matching the "15/54/172 unseen moduli" recorded for
+`hf1` itself, so the reconstruction is faithful.
+
+It measures **one squaring step on 7 digit slots**, which is the only open
+bottleneck; parsing, T-fold composition and the depth controller are solved
+elsewhere and are deliberately absent so nothing else can absorb the result.
+
+---
+
+## 2. The constructed ceiling at Hard-faithful scale — DIAGNOSTIC
+
+`lab/probe_hf.py --construct` (tables set to the truth; **never a submission**).
+
+| split | soft states | hard (argmax-snapped) states |
+|---|---|---|
+| train (train-pool moduli) | 1.0000 | **1.0000** |
+| held, unseen x, **train-pool** modulus | 1.0000 | **1.0000** |
+| held, unseen x, **held-out** modulus (= `hf1`'s `test`) | 1.0000 | **1.0000** |
+| held, **17/19/21-bit** modulus (= `hf1`'s `ood_n_*`) | 1.0000 | **1.0000** |
+
+**DIAGNOSTIC.** The exact solution is in the class at S=7, on unseen moduli, at
+unseen modulus *sizes*, soft and hard. The 39-step S=5 ceiling from `alu-depth`
+survives the move to Hard-faithful shape.
+
+**Measured collapse reference for this setting: output diversity of the exact
+solution is 0.998–1.000.** (It is *not* 1.0 in general — `plan2/phase0` measured
+0.7012 on an e5 rung, and `matrix-scan` computed 0.221 for the whole map. On
+`hf1`-faithful cohorts every prompt carries a different (N, x) pair, so the
+image is essentially injective and the reference is ~1.0. Use this number, not
+the e5 one, for anything on `hf1`.)
+
+---
+
+## 3. The illegal ceiling under a per-op signal — DIAGNOSTIC, and it is 1.000
+
+`--tf 1.0`, P = 32, 1,200 steps, 80,992 training prompts over 1,725 distinct
+training moduli. Teacher forcing replays a tape recorded from a **constructed**
+copy of the same model, so this is a **LAB DIAGNOSTIC** (rules 2 and 7) and can
+never appear in a submission.
+
+| metric (hard states) | train | held seen-N | held **unseen-N** | held OOD-N |
+|---|---|---|---|---|
+| **best replica** | **1.0000** | **1.0000** | **1.0000** | **1.0000** |
+| mixture over 32 | 0.2197 | 0.2441 | 0.2217 | 0.0439 |
+| argmax(`alpha`) replica | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+
+`local_ce` min/median = **3e-05 / 0.0891** (the cliff is at ~0.006).
+Structure: `mul_fn` 1.000, `mul_gauge` 1.000, `add_shift` 0.905,
+`sub_shift` 1.000. Diversity 0.998–0.999.
+
+Three things follow, and they matter more than the headline:
+
+1. **The modulus split costs the ceiling nothing.** train = held-seen-N =
+   held-unseen-N = held-OOD-N = 1.000. A `DigitALU` that gets its tables right
+   generalises to moduli it has never seen, at bit sizes it has never seen,
+   *exactly* as well as it fits. This is stronger than `alu-population`'s
+   1.000/1.000, which was S=5 on a **single** modulus with 6,821 parameters
+   against 8,000 rows; here it is 6,821 parameters against **80,992 rows over
+   1,725 moduli** — 0.084 params/row, twelve times below any memorisation
+   threshold.
+2. **A NEW WAY THE `argmax` RULE LIES, and `wmax` catches it.** The argmax
+   replica reads 0.0000 while the population contains a replica at 1.0000.
+   Cause: under full teacher forcing every replica emits the forced trace during
+   training, so the mixture CE has **no gradient with respect to `alpha`** —
+   `wmax` sits at exactly **1/32 = 0.0312** from step 1 to step 1,200. With an
+   uninformative selector, "commit to the mode" commits to an arbitrary replica.
+   `RESUME`'s rule "check `wmax` first" fires here, and this is a cleaner
+   instance of it than the one that produced the rule.
+3. **The mixture is worse than its best component by 4.5x.** Blending 32
+   replicas of which a few are exact dilutes the exact ones. Report
+   argmax / mixture / best as a row; any one of the three is misleading alone.
+
+The trajectory also peaks and decays: the mixture reads 0.670 at step 400,
+0.394 at 600, 0.210 at 1,000. **Fitting onset under the working signal is
+between step 200 and step 400.** That is the number the legal run has to be
+calibrated against, and it is the number §5 kills.
+
+---

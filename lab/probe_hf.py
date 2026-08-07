@@ -298,7 +298,11 @@ def evaluate(model, sets, discrete=True, chunk_g=16):
             n += tgt.shape[0]
         acc = ok / n
         out[name] = {"mix": ok_mix / n, "argmax": float(acc[star]),
-                     "best": float(acc.max()), "diversity": len(answers) / n}
+                     "best": float(acc.max()), "diversity": len(answers) / n,
+                     # how many replicas are IN BASIN -- the basin rate is the
+                     # quantity a population buys, and `best` alone hides it
+                     "n_solved": int((acc >= 0.99).sum().item()),
+                     "per": [round(float(v), 4) for v in acc]}
     model.hard = was
     model.train()
     return out
@@ -454,10 +458,19 @@ def main() -> int:
             model.tf_p = args.tf
         logits = model(sin, nd)
         model.mode = None
-        mix = model.mix_probs(logits).clamp_min(1e-9).log()
-        loss = F.cross_entropy(mix.reshape(-1, 10), tgt.reshape(-1))
+        mp = model.mix_probs(logits).clamp_min(1e-9)
+        loss = F.nll_loss(mp.log().reshape(-1, 10), tgt.reshape(-1))
         if args.tf > 0:
             loss = loss + model.tf_loss.mean() / max(model.tf_n, 1)
+        else:
+            # LEGAL run: the mixture CE alone scales replica p's gradient by its
+            # mixture weight, so once `alpha` concentrates the other replicas
+            # stop training and the population is a population in name only.
+            # `alu-population` adds every replica's own end-of-chain CE for
+            # exactly this reason; without it P=32 is P=1 with 31 spectators.
+            loss = loss + F.cross_entropy(
+                logits.reshape(-1, 10),
+                tgt[None].expand(model.P, *tgt.shape).reshape(-1))
         opt.zero_grad(set_to_none=True)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(list(model.parameters()), args.clip)
@@ -470,6 +483,7 @@ def main() -> int:
                   f"HARD {fmt(res, order)} "
                   f"soft_train={soft['train']['argmax']:.4f} "
                   f"wmax={w.max().item():.3f} "
+                  f"solved={res['held_unseen_N']['n_solved']}/{model.P} "
                   f"div_unseenN={res['held_unseen_N']['diversity']:.4f} "
                   f"({time.time()-t0:.0f}s)", flush=True)
             hist.append({"step": step, "loss": round(loss.item(), 5),
@@ -509,7 +523,9 @@ def main() -> int:
                    for k in order},
                 **{f"{k}_hard_mix": round(res[k]["mix"], 5) for k in order},
                 **{f"{k}_hard_best": round(res[k]["best"], 5) for k in order},
+                **{f"{k}_n_solved": res[k]["n_solved"] for k in order},
                 **{f"{k}_div": round(res[k]["diversity"], 5) for k in order},
+                "held_unseen_N_per_replica": res["held_unseen_N"]["per"],
                 "train_soft": round(soft["train"]["argmax"], 5),
                 "local_ce_min": round(float(lce.min()), 5),
                 "local_ce_med": round(float(lce.median()), 5),

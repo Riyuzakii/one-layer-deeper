@@ -17,3 +17,8 @@ Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/cs
 [alu-tf-P32] step=   600 loss=0.1247 HARD train=0.0000/0.3940 held_seen_N=0.0000/0.4380 held_unseen_N=0.0000/0.4023 held_ood_n=0.0000/0.0830 soft_train=0.0000 wmax=0.031 div_unseenN=0.9995 (201s)
 [alu-tf-P32] step=   800 loss=0.1108 HARD train=0.0000/0.3467 held_seen_N=0.0000/0.3804 held_unseen_N=0.0000/0.3613 held_ood_n=0.0000/0.0811 soft_train=0.0000 wmax=0.031 div_unseenN=0.9985 (244s)
 [alu-tf-P32] step=  1000 loss=0.1032 HARD train=0.0000/0.2095 held_seen_N=0.0000/0.2339 held_unseen_N=0.0000/0.2070 held_ood_n=0.0000/0.0381 soft_train=0.0000 wmax=0.031 div_unseenN=0.9990 (289s)
+[alu-tf-P32] step=  1200 loss=0.1053 HARD train=0.0000/0.2197 held_seen_N=0.0000/0.2441 held_unseen_N=0.0000/0.2217 held_ood_n=0.0000/0.0439 soft_train=0.0000 wmax=0.031 div_unseenN=0.9985 (386s)
+[alu-tf-P32] FINAL [DIAGNOSTIC] HARD train=0.0000/0.2197 held_seen_N=0.0000/0.2441 held_unseen_N=0.0000/0.2217 held_ood_n=0.0000/0.0439 soft_train=0.0000 local_ce(min/med)=0.0000/0.0891 wmax=0.031 struct={'mul_fn': 1.0, 'mul_gauge': 1.0, 'add_shift': 0.905, 'sub_shift': 1.0} (391s)
+/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/hf-digitalu-hf1/lab/probe_hf.py:498: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:838.)
+  "wmax": round(float(w.max()), 4), **sc,
