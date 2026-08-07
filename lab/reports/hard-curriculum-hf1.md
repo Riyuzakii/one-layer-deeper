@@ -555,16 +555,19 @@ bash lab/curric_eval.sh
 **Files.** `lab/probe_curric.py` (the probe and every gate),
 `lab/curric_run.sh` / `curric_sweep2.sh` / `curric_ladder.sh` (drivers),
 `lab/curric_at.py` and `lab/curric_table.py` (matched-step renderers),
-`lab/logs/*.log` + `lab/logs/curric.jsonl` (every run), `lab/archive.jsonl`
+**`lab/runs/curric/`** — every run's log plus `curric.jsonl` (`lab/logs` is
+gitignored repo-wide, so the archive copy lives here), `lab/archive.jsonl`
 (evaluator rows), `submissions/hard-curriculum-hf1{,-off,-lr0,-ids,-b4}/`.
 
 **One harness incident, recorded rather than hidden.** I patched
 `curric_sweep2.sh` while four of its shells were mid-file; bash resumed at a
 stale byte offset and each of them executed a spurious extra cell that
-overwrote `lab/logs/C-N-step-b1.log` four times over. No *intended* cell was
-skipped and the clobbered file is kept as `C-N-step-b1.CLOBBERED.log`, but the
-cell was re-run alone for a clean log. Do not edit a shell script that is
-currently executing.
+overwrote `C-N-step-b1.log` four times over. No *intended* cell was skipped.
+The clobbered file is kept as `C-N-step-b1.CLOBBERED.log` and the cell was
+re-run alone — **it reproduced the recorded numbers exactly** (soft `dacc`
+0.3817 / 0.3085 / 0.2350, `local_ce` 3.97906 at step 1,000), which is what the
+probe's determinism predicts. Do not edit a shell script that is currently
+executing.
 
 ---
 
