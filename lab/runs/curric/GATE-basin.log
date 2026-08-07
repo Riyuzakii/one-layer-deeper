@@ -1,0 +1,17 @@
+[GATE-basin] tree:quotient S=7 W=8 Q=10 params=6,820 DEPTH main=183 (adds=56 reduce=126) N-prefix=32 leaves=13 alphabet={'digit': 10, 'carry': 2, 'borrow': 2, 'quotient': 11}
+[GATE-basin] moduli train={16: 16, 18: 16, 20: 16} held={16: 8, 18: 8, 20: 8} oodn={17: 8, 19: 8, 21: 8} rows train=49152 held_x=3072 held_n=1536 ood_n=1536 (1s)
+[GATE-basin] max true quotient under red-skip=0: 9 (alphabet covers 0..10)
+[GATE-basin] dacc trivial floors (train, zero-predictor, per-slot-majority): {'b16': (0.3792, 0.3896), 'b18': (0.3031, 0.3229), 'b20': (0.235, 0.2472)}
+[GATE-basin] dacc trivial floors (held_n, zero-predictor, per-slot-majority): {'b16': (0.377, 0.3912), 'b18': (0.2991, 0.3142), 'b20': (0.2363, 0.2536)}
+[GATE-basin] Tmul coverage per example: {'b16': {'cells_per_example': 21.47, 'sig_digits': 4.39, 'table_covered': 100}, 'b18': {'cells_per_example': 25.13, 'sig_digits': 4.91, 'table_covered': 100}, 'b20': {'cells_per_example': 28.19, 'sig_digits': 5.33, 'table_covered': 100}}
+[GATE-basin] assert_model_state OK: 6,820 / 500,000,000
+[GATE-basin] BASIN (DIAGNOSTIC) n=768 reps=3 module=Tmul cells=200
+[GATE-basin] BASIN k=   0 exact=1.0 (b16=1.0 b18=1.0 b20=1.0) dacc=1.0 (d16=1.0 d18=1.0 d20=1.0)
+[GATE-basin] BASIN k=   1 exact=0.7444 (b16=0.7857 b18=0.7302 b20=0.7181) dacc=0.8558 (d16=0.8936 d18=0.8432 d20=0.8314)
+[GATE-basin] BASIN k=   2 exact=0.5048 (b16=0.5318 b18=0.476 b20=0.5071) dacc=0.6716 (d16=0.7207 d18=0.6468 d20=0.6484)
+[GATE-basin] BASIN k=   5 exact=0.3498 (b16=0.3876 b18=0.3735 b20=0.2896) dacc=0.5795 (d16=0.6434 d18=0.5879 d20=0.5089)
+[GATE-basin] BASIN k=  10 exact=0.1293 (b16=0.1601 b18=0.1349 b20=0.094) dacc=0.4003 (d16=0.4819 d18=0.3904 d20=0.331)
+[GATE-basin] BASIN k=  20 exact=0.0035 (b16=0.0026 b18=0.0065 b20=0.0013) dacc=0.3023 (d16=0.3794 d18=0.2961 d20=0.2335)
+[GATE-basin] BASIN k=  50 exact=0.0 (b16=0.0 b18=0.0 b20=0.0) dacc=0.3019 (d16=0.373 d18=0.3009 d20=0.2337)
+[GATE-basin] BASIN k= 100 exact=0.0 (b16=0.0 b18=0.0 b20=0.0) dacc=0.3031 (d16=0.3696 d18=0.3024 d20=0.2392)
+[GATE-basin] BASIN k= 200 exact=0.0 (b16=0.0 b18=0.0 b20=0.0) dacc=0.3012 (d16=0.3791 d18=0.2911 d20=0.2353)

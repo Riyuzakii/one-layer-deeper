@@ -1,0 +1,18 @@
+[GATE-lr0] tree:quotient S=7 W=8 Q=10 params=6,820 DEPTH main=183 (adds=56 reduce=126) N-prefix=32 leaves=13 alphabet={'digit': 10, 'carry': 2, 'borrow': 2, 'quotient': 11}
+[GATE-lr0] moduli train={16: 16, 18: 16, 20: 16} held={16: 8, 18: 8, 20: 8} oodn={17: 8, 19: 8, 21: 8} rows train=49152 held_x=3072 held_n=1536 ood_n=1536 (1s)
+[GATE-lr0] max true quotient under red-skip=0: 9 (alphabet covers 0..10)
+[GATE-lr0] dacc trivial floors (train, zero-predictor, per-slot-majority): {'b16': (0.3792, 0.3896), 'b18': (0.3031, 0.3229), 'b20': (0.235, 0.2472)}
+[GATE-lr0] dacc trivial floors (held_n, zero-predictor, per-slot-majority): {'b16': (0.377, 0.3912), 'b18': (0.2991, 0.3142), 'b20': (0.2363, 0.2536)}
+[GATE-lr0] Tmul coverage per example: {'b16': {'cells_per_example': 21.47, 'sig_digits': 4.39, 'table_covered': 100}, 'b18': {'cells_per_example': 25.13, 'sig_digits': 4.91, 'table_covered': 100}, 'b20': {'cells_per_example': 28.19, 'sig_digits': 5.33, 'table_covered': 100}}
+[GATE-lr0] assert_model_state OK: 6,820 / 500,000,000
+[GATE-lr0] step=    1 loss=2.2904 beta=(0.00,0.00) local_ce=2.20136 train_soft=0.0 dacc=0.1049 (b16=0.0 d16=0.0859 b18=0.0 d18=0.1355 b20=0.0 d20=0.0921) ce=2.2898 | train_hard=0.0 dacc=0.1117 (b16=0.0 d16=0.1072 b18=0.0 d18=0.1152 b20=0.0 d20=0.1126) ce=18.4085 | heldN_hard=0.0 dacc=0.1023 (b16=0.0 d16=0.1035 b18=0.0 d18=0.0979 b20=0.0 d20=0.1055) ce=18.6031 (4s)
+[GATE-lr0] step=  100 loss=2.2902 beta=(0.00,0.00) local_ce=2.20136 train_soft=0.0 dacc=0.1049 (b16=0.0 d16=0.0859 b18=0.0 d18=0.1355 b20=0.0 d20=0.0921) ce=2.2898 | train_hard=0.0 dacc=0.1117 (b16=0.0 d16=0.1072 b18=0.0 d18=0.1152 b20=0.0 d20=0.1126) ce=18.4085 | heldN_hard=0.0 dacc=0.1023 (b16=0.0 d16=0.1035 b18=0.0 d18=0.0979 b20=0.0 d20=0.1055) ce=18.6031 (39s)
+[GATE-lr0] FINAL hard train=0.0 dacc=0.1117 (b16=0.0 d16=0.1072 b18=0.0 d18=0.1152 b20=0.0 d20=0.1126) ce=18.4085 div=1.0
+[GATE-lr0] FINAL soft train=0.0 dacc=0.1049 (b16=0.0 d16=0.0859 b18=0.0 d18=0.1355 b20=0.0 d20=0.0921) ce=2.2898 div=0.0007
+[GATE-lr0] FINAL hard held_x=0.0 dacc=0.1069 (b16=0.0 d16=0.1082 b18=0.0 d18=0.112 b20=0.0 d20=0.1006) ce=18.5087 div=1.0
+[GATE-lr0] FINAL soft held_x=0.0 dacc=0.0986 (b16=0.0 d16=0.0835 b18=0.0 d18=0.1241 b20=0.0 d20=0.0906) ce=2.2899 div=0.0007
+[GATE-lr0] FINAL hard held_n=0.0 dacc=0.1023 (b16=0.0 d16=0.1035 b18=0.0 d18=0.0979 b20=0.0 d20=0.1055) ce=18.6031 div=0.998
+[GATE-lr0] FINAL soft held_n=0.0 dacc=0.1069 (b16=0.0 d16=0.089 b18=0.0 d18=0.1395 b20=0.0 d20=0.0921) ce=2.2894 div=0.0007
+[GATE-lr0] FINAL hard ood_n=0.0 dacc=0.1056 (b17=0.0 d17=0.0921 b19=0.0 d19=0.113 b21=0.0 d21=0.1116) ce=18.5357 div=0.9993
+[GATE-lr0] FINAL soft ood_n=0.0 dacc=0.1053 (b17=0.0 d17=0.0812 b19=0.0 d19=0.1186 b21=0.0 d21=0.1161) ce=2.2929 div=0.0007
+[GATE-lr0] FINAL state_sharpness=0.2869 local_ce=2.20136 mul_fn=0.26 mul_gauge=0.8 add_shift=0.285 sub_shift=0.294 ms_per_step=348.8

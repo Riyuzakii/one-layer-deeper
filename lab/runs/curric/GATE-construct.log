@@ -1,0 +1,15 @@
+[GATE-construct-final] tree:quotient S=7 W=8 Q=10 params=6,820 DEPTH main=183 (adds=56 reduce=126) N-prefix=32 leaves=13 alphabet={'digit': 10, 'carry': 2, 'borrow': 2, 'quotient': 11}
+[GATE-construct-final] moduli train={16: 16, 18: 16, 20: 16} held={16: 8, 18: 8, 20: 8} oodn={17: 8, 19: 8, 21: 8} rows train=49152 held_x=3072 held_n=1536 ood_n=1536 (1s)
+[GATE-construct-final] max true quotient under red-skip=0: 9 (alphabet covers 0..10)
+[GATE-construct-final] dacc trivial floors (train, zero-predictor, per-slot-majority): {'b16': (0.3792, 0.3896), 'b18': (0.3031, 0.3229), 'b20': (0.235, 0.2472)}
+[GATE-construct-final] dacc trivial floors (held_n, zero-predictor, per-slot-majority): {'b16': (0.377, 0.3912), 'b18': (0.2991, 0.3142), 'b20': (0.2363, 0.2536)}
+[GATE-construct-final] Tmul coverage per example: {'b16': {'cells_per_example': 21.47, 'sig_digits': 4.39, 'table_covered': 100}, 'b18': {'cells_per_example': 25.13, 'sig_digits': 4.91, 'table_covered': 100}, 'b20': {'cells_per_example': 28.19, 'sig_digits': 5.33, 'table_covered': 100}}
+[GATE-construct-final] assert_model_state OK: 6,820 / 500,000,000
+[GATE-construct-final] CONSTRUCTED(hard) train=1.0 dacc=1.0 (b16=1.0 d16=1.0 b18=1.0 d18=1.0 b20=1.0 d20=1.0) ce=0.0 div=0.9954
+[GATE-construct-final] CONSTRUCTED(hard) held_x=1.0 dacc=1.0 (b16=1.0 d16=1.0 b18=1.0 d18=1.0 b20=1.0 d20=1.0) ce=0.0 div=0.9922
+[GATE-construct-final] CONSTRUCTED(hard) held_n=1.0 dacc=1.0 (b16=1.0 d16=1.0 b18=1.0 d18=1.0 b20=1.0 d20=1.0) ce=0.0 div=0.9948
+[GATE-construct-final] CONSTRUCTED(hard) ood_n=1.0 dacc=1.0 (b17=1.0 d17=1.0 b19=1.0 d19=1.0 b21=1.0 d21=1.0) ce=0.0 div=0.9967
+[GATE-construct-final] CONSTRUCTED(soft) train=1.0 dacc=1.0 (b16=1.0 d16=1.0 b18=1.0 d18=1.0 b20=1.0 d20=1.0) ce=0.0 div=0.9954
+[GATE-construct-final] CONSTRUCTED(soft) held_x=1.0 dacc=1.0 (b16=1.0 d16=1.0 b18=1.0 d18=1.0 b20=1.0 d20=1.0) ce=0.0 div=0.9922
+[GATE-construct-final] CONSTRUCTED(soft) held_n=1.0 dacc=1.0 (b16=1.0 d16=1.0 b18=1.0 d18=1.0 b20=1.0 d20=1.0) ce=0.0 div=0.9948
+[GATE-construct-final] CONSTRUCTED(soft) ood_n=1.0 dacc=1.0 (b17=1.0 d17=1.0 b19=1.0 d19=1.0 b21=1.0 d21=1.0) ce=0.0 div=0.9967

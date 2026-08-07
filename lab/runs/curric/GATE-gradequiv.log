@@ -1,0 +1,11 @@
+[GATE-gradequiv] tree:quotient S=7 W=8 Q=10 params=6,820 DEPTH main=183 (adds=56 reduce=126) N-prefix=32 leaves=13 alphabet={'digit': 10, 'carry': 2, 'borrow': 2, 'quotient': 11}
+[GATE-gradequiv] moduli train={16: 16, 18: 16, 20: 16} held={16: 8, 18: 8, 20: 8} oodn={17: 8, 19: 8, 21: 8} rows train=49152 held_x=3072 held_n=1536 ood_n=1536 (1s)
+[GATE-gradequiv] max true quotient under red-skip=0: 9 (alphabet covers 0..10)
+[GATE-gradequiv] dacc trivial floors (train, zero-predictor, per-slot-majority): {'b16': (0.3792, 0.3896), 'b18': (0.3031, 0.3229), 'b20': (0.235, 0.2472)}
+[GATE-gradequiv] dacc trivial floors (held_n, zero-predictor, per-slot-majority): {'b16': (0.377, 0.3912), 'b18': (0.2991, 0.3142), 'b20': (0.2363, 0.2536)}
+[GATE-gradequiv] Tmul coverage per example: {'b16': {'cells_per_example': 21.47, 'sig_digits': 4.39, 'table_covered': 100}, 'b18': {'cells_per_example': 25.13, 'sig_digits': 4.91, 'table_covered': 100}, 'b20': {'cells_per_example': 28.19, 'sig_digits': 5.33, 'table_covered': 100}}
+[GATE-gradequiv] assert_model_state OK: 6,820 / 500,000,000
+/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/hf-curriculum-hf1/lab/probe_curric.py:834: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:838.)
+  g[name + "_loss"] = float(loss)
+[GATE-gradequiv] GRAD-EQUIV weighted_loss=2.289153 grad_scale_loss=2.289519 grad_rel_diff=6.679e-08 cos=1.00000012

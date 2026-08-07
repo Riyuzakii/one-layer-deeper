@@ -1,0 +1,22 @@
+[B0-s1] tree:quotient S=7 W=8 Q=10 params=6,820 DEPTH main=183 (adds=56 reduce=126) N-prefix=32 leaves=13 alphabet={'digit': 10, 'carry': 2, 'borrow': 2, 'quotient': 11}
+[B0-s1] moduli train={16: 16, 18: 16, 20: 16} held={16: 8, 18: 8, 20: 8} oodn={17: 8, 19: 8, 21: 8} rows train=49152 held_x=3072 held_n=1536 ood_n=1536 (1s)
+[B0-s1] max true quotient under red-skip=0: 9 (alphabet covers 0..10)
+[B0-s1] dacc trivial floors (train, zero-predictor, per-slot-majority): {'b16': (0.3792, 0.3896), 'b18': (0.3031, 0.3229), 'b20': (0.235, 0.2472)}
+[B0-s1] dacc trivial floors (held_n, zero-predictor, per-slot-majority): {'b16': (0.377, 0.3912), 'b18': (0.2991, 0.3142), 'b20': (0.2363, 0.2536)}
+[B0-s1] assert_model_state OK: 6,820 / 500,000,000
+[B0-s1] step=    1 loss=2.3041 beta=(0.00,0.00) local_ce=2.19205 train_soft=0.0 dacc=0.2692 (b16=0.0 d16=0.3418 b18=0.0 d18=0.2759 b20=0.0 d20=0.1882) ce=2.2912 | train_hard=0.0 dacc=0.1022 (b16=0.0 d16=0.1086 b18=0.0 d18=0.1048 b20=0.0 d20=0.093) ce=18.6051 | heldN_hard=0.0 dacc=0.0959 (b16=0.0 d16=0.0957 b18=0.0 d18=0.0996 b20=0.0 d20=0.0924) ce=18.7361 (5s)
+[B0-s1] step=  500 loss=1.7440 beta=(0.00,0.00) local_ce=3.96965 train_soft=0.0 dacc=0.3038 (b16=0.0 d16=0.3772 b18=0.0 d18=0.2979 b20=0.0 d20=0.2352) ce=1.7405 | train_hard=0.0 dacc=0.097 (b16=0.0 d16=0.0794 b18=0.0 d18=0.11 b20=0.0 d20=0.1012) ce=18.713 | heldN_hard=0.0 dacc=0.092 (b16=0.0 d16=0.0915 b18=0.0 d18=0.0901 b20=0.0 d20=0.0943) ce=18.8171 (188s)
+[B0-s1] step= 1000 loss=1.7409 beta=(0.00,0.00) local_ce=4.61862 train_soft=0.0 dacc=0.3077 (b16=0.0 d16=0.382 b18=0.0 d18=0.311 b20=0.0 d20=0.2287) ce=1.7359 | train_hard=0.0 dacc=0.1403 (b16=0.0 d16=0.1336 b18=0.0 d18=0.1592 b20=0.0 d20=0.1275) ce=17.8148 | heldN_hard=0.0 dacc=0.137 (b16=0.0 d16=0.1546 b18=0.0 d18=0.1387 b20=0.0 d20=0.1177) ce=17.8842 (368s)
+[B0-s1] step= 1500 loss=1.7322 beta=(0.00,0.00) local_ce=4.91327 train_soft=0.0007 dacc=0.3108 (b16=0.002 d16=0.3783 b18=0.0 d18=0.3131 b20=0.0 d20=0.2398) ce=1.7336 | train_hard=0.0 dacc=0.1215 (b16=0.0 d16=0.1243 b18=0.0 d18=0.129 b20=0.0 d20=0.1106) ce=18.2061 | heldN_hard=0.0 dacc=0.1197 (b16=0.0 d16=0.1242 b18=0.0 d18=0.1194 b20=0.0 d20=0.1155) ce=18.2427 (551s)
+[B0-s1] step= 2000 loss=1.7396 beta=(0.00,0.00) local_ce=5.22932 train_soft=0.0 dacc=0.3082 (b16=0.0 d16=0.3781 b18=0.0 d18=0.3131 b20=0.0 d20=0.2321) ce=1.7324 | train_hard=0.0 dacc=0.1524 (b16=0.0 d16=0.1614 b18=0.0 d18=0.1567 b20=0.0 d20=0.1389) ce=17.5643 | heldN_hard=0.0 dacc=0.1483 (b16=0.0 d16=0.1666 b18=0.0 d18=0.144 b20=0.0 d20=0.1345) ce=17.6491 (740s)
+[B0-s1] step= 2500 loss=1.7384 beta=(0.00,0.00) local_ce=6.18086 train_soft=0.0 dacc=0.3127 (b16=0.0 d16=0.3839 b18=0.0 d18=0.311 b20=0.0 d20=0.2421) ce=1.7321 | train_hard=0.0 dacc=0.1761 (b16=0.0 d16=0.1945 b18=0.0 d18=0.1901 b20=0.0 d20=0.1426) ce=17.0747 | heldN_hard=0.0 dacc=0.1735 (b16=0.0 d16=0.1995 b18=0.0 d18=0.1819 b20=0.0 d20=0.139) ce=17.1287 (925s)
+[B0-s1] step= 3000 loss=1.7371 beta=(0.00,0.00) local_ce=6.47115 train_soft=0.0 dacc=0.3127 (b16=0.0 d16=0.3789 b18=0.0 d18=0.3156 b20=0.0 d20=0.2424) ce=1.7304 | train_hard=0.0 dacc=0.1729 (b16=0.0 d16=0.1945 b18=0.0 d18=0.1901 b20=0.0 d20=0.1329) ce=17.1403 | heldN_hard=0.0 dacc=0.1695 (b16=0.0 d16=0.1791 b18=0.0 d18=0.1777 b20=0.0 d20=0.1515) ce=17.2116 (1126s)
+[B0-s1] FINAL hard train=0.0 dacc=0.1729 (b16=0.0 d16=0.1945 b18=0.0 d18=0.1901 b20=0.0 d20=0.1329) ce=17.1403 div=0.8841
+[B0-s1] FINAL soft train=0.0 dacc=0.3127 (b16=0.0 d16=0.3789 b18=0.0 d18=0.3156 b20=0.0 d20=0.2424) ce=1.7304 div=0.2376
+[B0-s1] FINAL hard held_x=0.0 dacc=0.1759 (b16=0.0 d16=0.1917 b18=0.0 d18=0.1928 b20=0.0 d20=0.1431) ce=17.0786 div=0.8763
+[B0-s1] FINAL soft held_x=0.0 dacc=0.3127 (b16=0.0 d16=0.385 b18=0.0 d18=0.3136 b20=0.0 d20=0.2348) ce=1.728 div=0.2396
+[B0-s1] FINAL hard held_n=0.0 dacc=0.1695 (b16=0.0 d16=0.1791 b18=0.0 d18=0.1777 b20=0.0 d20=0.1515) ce=17.2116 div=0.8268
+[B0-s1] FINAL soft held_n=0.0 dacc=0.3048 (b16=0.0 d16=0.3828 b18=0.0 d18=0.3016 b20=0.0 d20=0.2299) ce=1.7881 div=0.14
+[B0-s1] FINAL hard ood_n=0.0 dacc=0.1509 (b17=0.0 d17=0.1733 b19=0.0 d19=0.1462 b21=0.0 d21=0.1331) ce=17.597 div=0.8301
+[B0-s1] FINAL soft ood_n=0.0 dacc=0.2793 (b17=0.0 d17=0.3597 b19=0.0 d19=0.2718 b21=0.0 d21=0.2065) ce=2.0208 div=0.125
+[B0-s1] FINAL state_sharpness=0.699 local_ce=6.47115 mul_fn=0.32 mul_gauge=0.5 add_shift=0.265 sub_shift=0.217 ms_per_step=373.9
