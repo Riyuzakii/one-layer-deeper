@@ -455,8 +455,9 @@ Two readings, and they point the same way as §8.1:
 2. **The label's basin is dead by k = 20 of 200, at every modulus size, and by
    k = 20 the per-bucket digit accuracy has already fallen back to its trivial
    floor** (0.379 / 0.296 / 0.234 against 0.379 / 0.303 / 0.235). A random
-   initialisation is ~180 wrong cells out of 200 — **nine times outside the
-   basin** — and no bucket's basin is meaningfully wider than another's. There
+   initialisation is **176.6 wrong cells of 200** (measured, 8 seeds) —
+   **nine times outside the basin** — and no bucket's basin is meaningfully
+   wider than another's. There
    is no modulus size at which the end-of-chain label can see the solution from
    random init.
 
