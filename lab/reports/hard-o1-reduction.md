@@ -270,6 +270,15 @@ from the discrete solution" — but now *localised*: it is not diffuse, it happe
 in the one table the gradient actually reaches, and it happens because the
 gradient reaches it.
 
+**The one alternative explanation, and it is ruled out.** The carry-state index
+is a *gauge*: permuting carry states consistently in `trans` and `emit` leaves
+the function unchanged while breaking an argmax match against the reference.
+Two things rule that out here. (i) A gauge move would break `carry_t` and
+`carry_e` together; instead `rs_carry_t` moves 0.91 → 0.90 while `rs_carry_e`
+moves 0.957 → 0.657. (ii) A gauge move is function-preserving, and
+`train_exact_hard` and `held_exact_hard` both **fall** (to 0.016 and 0.000 at
+k=50). The degradation is functional.
+
 **So the conditioning law's coefficient is not too small. Its sign is negative.**
 Reducing learned-op depth increases the gradient's reach, exactly as measured;
 the extra reach is spent trading discrete correctness for soft mixture. Putting

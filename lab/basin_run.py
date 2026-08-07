@@ -50,6 +50,18 @@ def cells(which: str):
             yield f"o1-k{k}-20k", ["--modulus", "323", "--recip", "oracle",
                                    "--corrupt", str(k), "--seed", "0",
                                    "--steps", "20000", "--log-every", "5000"]
+    elif which == "k0":             # start AT the exact solution and train
+        for s_ in (0, 1, 2):
+            yield f"o1-k0-s{s_}", ["--modulus", "323", "--recip", "oracle",
+                                   "--from-construct", "--seed", str(s_),
+                                   "--steps", "2000", "--log-every", "250"]
+        yield "o1-k0-lr0", ["--modulus", "323", "--recip", "oracle", "--from-construct",
+                            "--seed", "0", "--lr", "0", "--steps", "500",
+                            "--log-every", "250"]
+        yield "hf1-k0-s0", HF + ["--recip", "oracle", "--from-construct", "--seed", "0",
+                                 "--steps", "2000", "--log-every", "500"]
+        yield "hf1-k0-lr0", HF + ["--recip", "oracle", "--from-construct", "--seed", "0",
+                                  "--lr", "0", "--steps", "500", "--log-every", "500"]
     elif which == "div":            # nothing oracular anywhere
         for k in (20, 400):
             for s in (0, 1, 2):

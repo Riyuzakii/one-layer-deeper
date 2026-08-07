@@ -110,6 +110,10 @@ def main(argv=None) -> int:
     ap.add_argument("--corrupt", type=int, default=0,
                     help="LAB DIAGNOSTIC start point: construct then randomise k cells, "
                          "then train on the LEGAL objective and count exact repairs")
+    ap.add_argument("--from-construct", action="store_true",
+                    help="LAB DIAGNOSTIC start point: begin at the EXACT solution "
+                         "(k=0) and train on the LEGAL label.  Asks whether the "
+                         "objective destroys a solution that already scores 1.000.")
     ap.add_argument("--corrupt-scale", type=float, default=0.5)
     ap.add_argument("--corrupt-tables", default="logit", choices=["logit", "all"],
                     help="logit = only the +/-BIG tables, which are on exactly the scale "
@@ -177,7 +181,7 @@ def main(argv=None) -> int:
 
     ref = model._reference()
     hit = pre = None
-    if args.construct or args.corrupt:
+    if args.construct or args.corrupt or args.from_construct:
         model.construct_()
     if args.corrupt:
         g = torch.Generator().manual_seed(args.seed + 1000)
