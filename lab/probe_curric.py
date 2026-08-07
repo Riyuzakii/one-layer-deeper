@@ -578,6 +578,83 @@ def evaluate(model, coh, chunk=512, discrete=False, limit=None,
 
 
 @torch.no_grad()
+def table_coverage(coh, limit=None):
+    """How much of the SHARED 10x10 product table one example exercises.
+
+    The curriculum's premise is that a small-modulus example is a cheaper source
+    of the same signal.  It is the same function, but it is not the same amount
+    of signal: a 16-bit operand has five significant decimal digits inside a
+    seven-slot register, so 24 of its 49 digit pairs are (0, .) or (., 0) and it
+    touches far fewer of the 100 shared `Tmul` cells than a 20-bit operand does.
+    This counts that, per bit size.
+    """
+    n = coh.n if limit is None else min(coh.n, limit)
+    xd, bits = coh.xd[:n].long(), coh.bits[:n]
+    S = xd.shape[1]
+    pair = xd[:, :, None] * 10 + xd[:, None, :]              # (n, S, S)
+    flat = pair.reshape(n, S * S)
+    oh = torch.zeros(n, 100, device=xd.device)
+    oh.scatter_(1, flat, 1.0)
+    per_ex = oh.sum(1)
+    nz = (xd != 0).sum(1).float()
+    out = {}
+    for b in sorted(set(bits.tolist())):
+        m = bits == b
+        out[f"b{b}"] = {"cells_per_example": round(float(per_ex[m].mean()), 2),
+                        "sig_digits": round(float(nz[m].mean()), 2),
+                        "table_covered": int((oh[m].sum(0) > 0).sum())}
+    return out
+
+
+@torch.no_grad()
+def basin(model, data, args, dev):
+    """DIAGNOSTIC: sensitivity of the END-OF-CHAIN label to k corrupted `Tmul`
+    cells, resolved by modulus size.
+
+    Same instrument as `alu-relational`'s / `matrix-scan`'s basin measurement,
+    asked of a new question: is the label a STRONGER signal at the easy end of
+    the curriculum than at the hard end?  If a 16-bit example's answer is less
+    disturbed by a wrong product cell than a 20-bit example's, then upweighting
+    16-bit examples upweights the WEAKER gradient, and the curriculum is pushing
+    the wrong way for a mechanical reason rather than a tuning one.
+    """
+    was, model.hard = model.hard, True
+    n = args.basin_n
+    print(f"[{args.tag}] BASIN (DIAGNOSTIC) n={n} reps={args.basin_reps} "
+          f"module=Tmul cells=200", flush=True)
+    for k in [int(v) for v in args.basin_ks.split(",")]:
+        acc = {}
+        for rep in range(args.basin_reps):
+            g = torch.Generator(device=dev).manual_seed(1000 * k + rep)
+            model.construct()
+            if k:
+                v = model.Tmul.view(100, 2, 10)
+                pick = torch.randperm(200, generator=g, device=dev)[:k]
+                for p in pick.tolist():
+                    cell, half = p // 2, p % 2
+                    cur = int(v[cell, half].argmax())
+                    new = int(torch.randint(0, 10, (1,), generator=g,
+                                            device=dev))
+                    while new == cur:
+                        new = int(torch.randint(0, 10, (1,), generator=g,
+                                                device=dev))
+                    v[cell, half] = -BIG
+                    v[cell, half, new] = BIG
+            r = evaluate(model, data["train"], args.eval_chunk, True,
+                         n, False)
+            for key in ("dacc", "all", "d16", "d18", "d20",
+                        "b16", "b18", "b20"):
+                acc.setdefault(key, []).append(r.get(key, float("nan")))
+        mean = {key: round(float(torch.tensor(v).mean()), 4)
+                for key, v in acc.items()}
+        print(f"[{args.tag}] BASIN k={k:>4} exact={mean['all']} "
+              f"(b16={mean['b16']} b18={mean['b18']} b20={mean['b20']}) "
+              f"dacc={mean['dacc']} (d16={mean['d16']} d18={mean['d18']} "
+              f"d20={mean['d20']})", flush=True)
+    model.hard = was
+
+
+@torch.no_grad()
 def trivial_floors(coh, limit=None):
     """Measured floors for `dacc`, so per-bucket digit accuracy is read against
     a reference rather than against 0.1.
@@ -650,6 +727,12 @@ def main() -> int:
     ap.add_argument("--eval-chunk", type=int, default=512)
     ap.add_argument("--device", default="cuda:0")
     ap.add_argument("--construct", action="store_true")
+    ap.add_argument("--basin", action="store_true",
+                    help="DIAGNOSTIC: label sensitivity to k corrupted Tmul "
+                         "cells, resolved by modulus size")
+    ap.add_argument("--basin-ks", default="0,1,2,5,10,20,50,100,200")
+    ap.add_argument("--basin-n", type=int, default=1536)
+    ap.add_argument("--basin-reps", type=int, default=3)
     ap.add_argument("--grad-equiv", action="store_true",
                     help="GATE: per-row loss weight == per-row gradient scale "
                          "on the logits (the form a submission must use)")
@@ -693,6 +776,8 @@ def main() -> int:
         print(f"[{args.tag}] dacc trivial floors ({nm}, zero-predictor, "
               f"per-slot-majority): {trivial_floors(data[nm], args.eval_n)}",
               flush=True)
+    print(f"[{args.tag}] Tmul coverage per example: "
+          f"{table_coverage(data['train'], args.eval_n)}", flush=True)
 
     try:
         from benchmark import ModelSpec, assert_model_state
@@ -712,6 +797,10 @@ def main() -> int:
         for name, coh in data.items():
             r = evaluate(model, coh, args.eval_chunk, False, args.eval_n, True)
             print(f"[{args.tag}] CONSTRUCTED(soft) {fmt(name, r)}", flush=True)
+        return 0
+
+    if args.basin:
+        basin(model, data, args, dev)
         return 0
 
     if args.grad_equiv:

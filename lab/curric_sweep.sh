@@ -4,7 +4,12 @@
 # (a fixed --steps) so results are contention-immune.
 set -uo pipefail
 R=/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/hf-curriculum-hf1
-STEPS=4000
+# 3,000 steps is a CALIBRATED budget, not a guess: the no-curriculum fitting
+# curve (lab/logs/CAL-lr*.log) reaches its plateau -- soft digit accuracy equal
+# to the measured constant-zero predictor, to three decimals -- by step 500-1000
+# at every learning rate, and holds it.  The anneal completes at step 1,500,
+# leaving 1,500 plain steps after it.
+STEPS=3000
 LR=3e-2
 COMMON="--steps $STEPS --lr $LR --log-every 500"
 
