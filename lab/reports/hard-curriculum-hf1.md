@@ -179,23 +179,30 @@ degenerate solution faster; it does not find the algorithm"*.
 Same graph (S=7, 183 sequential soft steps, one set of digit tables), varying
 only the modulus size the model is trained on, from far below `hf1`'s floor.
 
-*(rungs land as runs complete; b10 to step 2,000 below)*
+**10-bit** — `LAD-b10`, 4 moduli, a **3-decimal-digit** problem, six bits below
+`hf1`'s smallest modulus. Trivial `dacc` floor 0.6305. **LEGAL**, 3,000 steps.
 
-**10-bit** (`LAD-b10`, 4 moduli, 3 decimal digits, trivial `dacc` floor 0.6305):
+| step | 1 | 500 | 1000 | 1500 | 2000 | 3000 (FINAL) |
+|---|---|---|---|---|---|---|
+| loss | 2.272 | 0.868 | 0.840 | 0.819 | 0.807 | 0.784 |
+| `train_exact` (soft) | 0.0067 | 0.0075 | 0.0183 | 0.0150 | 0.0142 | 0.0183 |
+| **`train_exact_hard`** | 0.000 | 0.000 | 0.0008 | 0.000 | 0.0008 | **0.000** |
+| `dacc` (soft) | 0.630 | 0.666 | 0.680 | 0.691 | 0.697 | 0.704 |
+| `local_ce` | 2.271 | 5.005 | 5.734 | 6.374 | 7.559 | **8.914** |
 
-| step | 1 | 500 | 1000 | 1500 | 2000 |
-|---|---|---|---|---|---|
-| loss | 2.272 | 0.868 | 0.840 | 0.819 | 0.807 |
-| `train_exact` (soft) | 0.0067 | 0.0075 | 0.0183 | 0.0150 | 0.0142 |
-| **`train_exact_hard`** | 0.000 | 0.000 | 0.0008 | 0.000 | 0.0008 |
-| `dacc` (soft) | 0.630 | 0.666 | 0.680 | 0.691 | 0.697 |
-| `local_ce` | 2.271 | 5.005 | 5.734 | 6.374 | 7.559 |
+FINAL, all splits: **`held_x` exact 0.000, `held_n` exact 0.000**,
+`ood_n` hard 0.0078 (**1 of 128**, the variance floor). Structure scores
+`mul_fn` 0.27 / `add_shift` 0.275 / `sub_shift` 0.225 — the random baseline is
+0.23–0.28, so **the tables have not moved off chance**. Output diversity 0.278
+against a measured constructed reference of ~0.99.
 
-Even at **10 bits — six bits below `hf1`'s smallest modulus, a 3-digit
-problem** — soft digit accuracy sits 6 points above its trivial floor,
-`train_exact` reaches 1.8% and `train_exact_hard` is **one example**, and
-`local_ce` still climbs away from the cliff. There is no rung of this ladder at
-which the graph finds the algorithm.
+**Even at 10 bits the easy end is not learnable.** The 1.8% soft train exact is
+carried entirely by the continuous channel: it is 0.000 under hard states, 0.000
+on held-out `x` at the *same* modulus, and the tables are at chance. `local_ce`
+climbs from 2.27 to 8.91 — the objective walks away from the discrete solution
+just as fast at 10 bits as at 20.
+
+*(12-, 16- and 20-bit rungs land as they complete)*
 
 ---
 
