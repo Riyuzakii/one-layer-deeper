@@ -253,9 +253,47 @@ Seed 0 reproduces `CAL-lr3e-2` to every decimal at step 1,500 (loss 1.7339,
 `local_ce` 4.63542) — the probe is deterministic given a seed, so any difference
 below is a real effect of the flag and not run-to-run noise.
 
-### 7.2 The cells
+### 7.2 The cells, at step 1,500
 
-*(filled in as cells complete; every cell is LEGAL unless marked)*
+Every row **LEGAL**. `train_exact_hard` is the headline; the per-bucket soft
+digit accuracies are the only metric with any resolution, and they are read
+against the baseline band and the trivial floor in §7.1.
+
+| cell | `beta_n` | `beta_x` | schedule | soft `dacc` 16 / 18 / 20 | soft `train_exact` | **`train_exact_hard`** | `held_n` exact hard | `local_ce` |
+|---|---|---|---|---|---|---|---|---|
+| **band (3 seeds)** | 0 | 0 | — | 0.378–0.385 / 0.307–0.313 / **0.232–0.240** | ≤0.0007 | **0.000** | **0.000** | 4.6–5.7 |
+| `C-N-linear-b1` | 1 | 0 | linear | 0.3806 / 0.3150 / **0.2461** | 0.000 | **0.000** | **0.000** | 4.035 |
+| `C-N-linear-b4` | 4 | 0 | linear | 0.3820 / 0.3085 / 0.2390 | 0.000 | **0.000** | **0.000** | 4.001 |
+| `D-only16` (extreme) | ∞ | 0 | none | 0.3898 / **0.1920** / 0.2139 | 0.000 | **0.000** | **0.000** | 3.610 |
+| *trivial floor* | | | | *0.3792 / 0.3031 / 0.2350* | | | | *2.20 at `--lr 0`* |
+
+*(step, exponential, constant, magnitude-axis and both-axes cells, `D-only20`
+and two more seeds of the best cell are still running; the table is updated as
+they land.)*
+
+**Reading, so far.**
+
+* **`train_exact_hard` is 0.000 in every cell, and so is held-out exact.** The
+  ranked quantity does not move for any schedule, any strength, any axis. That
+  is the headline and nothing below changes it.
+* **The one cell outside the band is outside it by less than a band width.**
+  `C-N-linear-b1` reads `d20` = 0.2461 against a three-seed band top of 0.2398 —
+  +0.006 on a metric whose band is 0.008 wide and whose trivial floor is 0.2350.
+  I am rerunning it at two more seeds rather than reporting +0.006 as an effect.
+* **`local_ce` looks like it improves, and that is the trap.** Every curriculum
+  cell reads *lower* `local_ce` than the baseline (4.00–4.04 against 4.6–5.7),
+  and `D-only16` lowest of all at 3.61. But `--lr 0` reads **2.20**, so every one
+  of these is **partial regression toward initialisation**, exactly the last row
+  of `RESUME.md`'s fooling table. The cells that "improve" `local_ce` most are
+  the ones that train least.
+* **Stronger is not better and the extreme is actively harmful.** `beta`=4
+  (a 7,664:1 weight ratio) is indistinguishable from `beta`=1 and from the
+  baseline. Training on 16-bit *alone* leaves its own bucket at its trivial
+  floor (`d16` 0.3898 against 0.3792 — the same +0.01 the baseline gets for
+  free) while destroying the others (`d18` **0.192**, well *below* its 0.3031
+  floor). **The failure mode the brief asked me to check for is real, and it is
+  the dominant effect of the strongest curriculum**: the model fits the 16-bit
+  digit marginals, which are the *wrong* marginals for a larger modulus.
 
 ---
 
