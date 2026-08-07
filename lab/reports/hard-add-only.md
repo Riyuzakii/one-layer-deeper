@@ -7,19 +7,28 @@ measurement, and the #1 ranking does not survive.**
 unidentifiable (`alu-relational`), the adder's laws have the widest repair
 basin in the project (50/400 cells), therefore an *adder-only* hypothesis class
 should have a much wider basin than `DigitALU`'s **0/5 at k = 20**. Built, and
-measured at matched conditions with the same searcher and 20 repetitions per
-cell: at the **fraction-matched** corruption both classes repair **1 of 20**,
-with mean `train_exact_hard` 0.16 versus 0.175. The promised 14× is a factor of
-one.
+measured at matched conditions, same searcher, same seed stream, 20 repetitions
+per cell, compared at **matched fractions of free cells**:
 
-Three further measurements say the same thing from different directions.
-The objective *profile* is no more informative at any corruption level and is
-measurably **less** per fraction of cells (§4.2). From random init both classes
-sit at the identical chance floor (§4.4). And with **every other tensor set to
-the truth**, the legal label cannot identify the adder — while `DigitALU`'s
-supposedly-hopeless `Tmul` scores slightly *higher* under the identical
-protocol (§5, §7). **The premise inverts: the adder is the less identifiable of
-the two tables, in both architectures.**
+| corrupted fraction of free cells | add-only A | `DigitALU` |
+|---|---|---|
+| **4.2 %** | **5/20** | **0/20** (Fisher p = 0.047) |
+| **5.9 %** | **1/20** | **1/20** (p = 1.0) |
+| pooled 3–8 % | 7/60 | 2/60 (p = 0.16) |
+
+So the honest answer is **a modest edge at the smallest corruption that does
+not survive to 6 %, and no edge in the pooled comparison** — not the 14× the
+ranking predicted (50/400 = 12.5 % against the label's 0.9 %), and not enough
+to change any downstream number. By 50 corrupted cells both are at zero.
+
+Three further measurements point the same way, and the third points the
+opposite way to the ranking. The objective *profile* is no more informative at
+any corruption level and is measurably **less** per fraction of cells (§4.2).
+From random init both classes sit at the identical chance floor (§4.4). And
+with **every other tensor set to the truth**, the legal label cannot identify
+the adder — while `DigitALU`'s supposedly-hopeless `Tmul` scores slightly
+*higher* under the identical protocol (§5, §7). **The premise inverts: the
+adder is the less identifiable of the two tables, in both architectures.**
 
 The ranking's inference contained a substitution error that this branch makes
 explicit: **the 50/400 basin belongs to an objective, not to a table.** It was
@@ -270,15 +279,27 @@ Reps that recovered the transducer exactly (`train_exact_hard = 1.000`).
 
 **20 reps per cell, both sides, matched searcher and seed stream:**
 
-| corruption | add-only A (of 237 cells) | `DigitALU` (of 337 cells) |
-|---|---|---|
-| k = 10 → 4.2 % vs 3.0 % of free cells | **5/20** (25 %) | **1/20** (5 %) |
-| k = 14 of 237 = **5.9 %**, fraction-matched to `DigitALU` k = 20 | **1/20** (5 %) | **1/20** (5 %) |
-| k = 20 → 8.4 % vs 5.9 % | **1/20** (5 %) | **1/20** (5 %) |
+By absolute `k`:
 
-Mean `train_exact_hard` over the same 20 reps: at k = 10, add-only 0.61 vs
-`DigitALU` 0.615; at k = 20, add-only 0.16 vs `DigitALU` 0.175. **The
-fraction-matched row is identical to within one rep, and so is the mean.**
+| k | add-only A (of 237 cells) | `DigitALU` (of 337 cells) |
+|---|---|---|
+| 10 | **5/20** = 25 % (4.2 % of cells) | **1/20** = 5 % (3.0 % of cells) |
+| 14 | **1/20** = 5 % (5.9 %) | **0/20** = 0 % (4.2 %) |
+| 20 | **1/20** = 5 % (8.4 %) | **1/20** = 5 % (5.9 %) |
+
+By **matched fraction of free cells**, which is the comparison that controls
+for add-only's smaller table (237 vs 337):
+
+| corrupted fraction | add-only A | `DigitALU` | Fisher two-sided |
+|---|---|---|---|
+| ~3 % | — | 1/20 | |
+| **4.2 %** | **5/20** (k = 10) | **0/20** (k = 14) | **p = 0.047** |
+| **5.9 %** | **1/20** (k = 14) | **1/20** (k = 20) | p = 1.0 |
+| ~8 % | 1/20 (k = 20) | — | |
+| **pooled 3–8 %** | **7/60** | **2/60** | **p = 0.16** |
+
+Mean `train_exact_hard` over the same reps: at 4.2 % of cells, add-only 0.61 vs
+`DigitALU` 0.49; at 5.9 %, add-only 0.16 vs `DigitALU` 0.175.
 
 **5 reps per cell** (the full ladder, same seed stream, `--seed 11`):
 
@@ -297,20 +318,17 @@ fraction-matched row is identical to within one rep, and so is the mean.**
 
 **Reading this honestly.**
 
-* **The prediction was a *much* wider basin — 50/400 cells (12.5 %) against the
-  label's 0.9 %, a 14× factor. That is not what happened.** The add-only class's
-  exact-repair radius under the legal label is ~4 % of its free cells at 25 %
-  success and ~6–8 % at 5 %; `DigitALU`'s is ~3 % at 5 %. In absolute cells the
-  two radii are k ≈ 10–20 on both sides.
-* There **is** a real but small edge at `k = 10`: 5/20 vs 1/20, and add-only's
-  10 cells are a *larger* fraction of its table. At n = 20 that is
-  **Fisher two-sided p = 0.18 — not significant.** I report it as
-  *suggestive of a factor ~2 in cell fraction at small k*, and explicitly not as
-  the promised 14×; and it does not survive to the fraction-matched row.
-* **At the fraction-matched point the two are the same number, 1/20 and 1/20.**
-  By `k = 50` both are at zero. The
-  qualitative fact that mattered — *the legal label cannot repair a
-  double-digit number of wrong cells* — is unchanged by deleting `Tmul`.
+* **There IS a real edge at the smallest corruption, and I report it as such:**
+  5/20 versus 0/20 at 4.2 % of free cells, `p = 0.047`. That is the branch's
+  hypothesis showing up — but at a magnitude of *a few*, in one cell of the
+  ladder.
+* **It does not survive to 5.9 %** (1/20 vs 1/20, `p = 1.0`) or to the pooled
+  3–8 % comparison (7/60 vs 2/60, `p = 0.16`), and by 50 cells both are at
+  zero. **The prediction was 50/400 = 12.5 % against the label's 0.9 %, a 14×
+  factor. Nothing near that appears at any corruption level.**
+* The qualitative fact that mattered — *the legal label cannot repair a
+  double-digit number of wrong cells* — is unchanged by deleting `Tmul`, and
+  §4.4, §5 and §7 all say the residual edge is not enough to matter.
 * Untied add-only looks better at `k = 20` (2/5) purely because 20 of 817 is
   2.4 % where 20 of 237 is 8.4 %. Cell count, not `Tmul`.
 * The 5-rep `DigitALU` numbers here are noisier than `discrete-search` §8's
@@ -564,11 +582,18 @@ is a live risk for any ALU-family Hard attempt, not a lab inconvenience.
 ## 8. What this means for `lab/RANKING.md`
 
 **Entry #1 (this method) should be struck.** Not "untested with a weak result" —
-its *justifying prediction was measured directly and does not hold*, three
-independent ways: the objective profile (§4.2), the exact-repair ladder at 20
-reps a side (§4.3), and the module-restricted identification that inverts the
-premise outright (§5). Nothing about the add-only class needs to be tried
-again; the closure is structural, not budgetary.
+its *justifying prediction was measured directly and comes back a factor of a
+few where a factor of 14 was needed*, and three other measurements point the
+other way: the objective profile (§4.2), the identical chance floor from random
+init (§4.4), and the module-restricted identification that inverts the premise
+outright (§5, §7). Nothing about the add-only class needs to be tried again;
+the closure is structural, not budgetary.
+
+To be fair to the entry: the one place its prediction shows up — 5/20 versus
+0/20 at 4.2 % of free cells, `p = 0.047` — is real, and it is the only
+architectural change in this project that has moved a legal basin at all. It is
+simply two orders of magnitude short of what would be needed, and it disappears
+by 6 % corruption.
 
 **The correction the ranking needs, stated as a rule.** The table in
 `RESUME.md` records that every *metric* here has a configuration that fools it.
@@ -704,11 +729,14 @@ Nothing was submitted to the hosted service.
 
 I built the method `lab/RANKING.md` ranked first, verified it can express the
 answer, and then measured the one quantity the ranking rested on. **It does not
-hold.** Deleting `Tmul` from the hypothesis class — the table `alu-relational`
-proved unidentifiable — does not widen the legal objective's repair basin, does
-not make the remaining table identifiable, and does not change any training
-number. At the fraction-matched corruption the add-only class and `DigitALU`
-both repair **1 of 20**, with mean `train_exact_hard` 0.16 versus 0.175.
+hold at the magnitude it needed to.** Deleting `Tmul` from the hypothesis class
+— the table `alu-relational` proved unidentifiable — buys a factor of a few in
+the legal objective's repair basin at the smallest corruptions, nothing by 6 %
+corruption, does not make the remaining table identifiable, and does not change
+a single training number. At the fraction-matched corruption the add-only class and `DigitALU`
+both repair **1 of 20** at 5.9 % of free cells; at 4.2 % add-only leads 5/20 to
+0/20 (`p = 0.047`), which is real and is roughly two orders of magnitude short
+of the 14× the entry promised.
 
 The error in the ranking's inference is now explicit and worth more than the
 branch: **`alu-relational`'s 50/400 basin was a property of an objective
