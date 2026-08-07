@@ -1,0 +1,44 @@
+# cmd: /home/scratch.arohan_hw/git/one-layer-deeper/.venv/bin/python -m benchmark.runner --manifest /home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/hf-digitalu-hf1/lab/manifests/lab_hf1_fs5_s74.json --submission-file /home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/hf-digitalu-hf1/submissions/hard-digitalu-hf1/lr0/submission.py
+# rc=0
+# submission: /home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/hf-digitalu-hf1/submissions/hard-digitalu-hf1/lr0/submission.py
+# manifest: /home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/hf-digitalu-hf1/lab/manifests/lab_hf1_fs5_s74.json
+--- stdout ---
+{
+  "manifest": "lab_hf1_fs5_s74",
+  "model_spec": {
+    "vocab_size": 17,
+    "max_seq_len": 19,
+    "maximum_model_state_elements": 500000000
+  },
+  "training_batch_size": 128,
+  "evaluation_batch_size": 2048,
+  "max_training_steps": 5,
+  "total_training_time_seconds": 100000.0,
+  "training_time_seconds_per_seed": 100000.0,
+  "evaluation_time_seconds_per_seed": 50000.0,
+  "seeds": [
+    74
+  ]
+}
+step=1 loss=2.855491 accuracy=0.000000 elapsed=10.9s budget=100000.0s
+seed=74 split=test loss=3.482434 exact_accuracy=0.000000
+seed=74 split=ood_t loss=3.491291 exact_accuracy=0.000000
+seed=74 split=ood_n_t loss=3.480842 exact_accuracy=0.000000
+seed=74 profile=seen_n depth_t=1 exact_accuracy=0.000000 certified=False
+seed=74 profile=seen_n depth_t=2 exact_accuracy=0.000000 certified=False
+seed=74 profile=seen_n depth_t=4 exact_accuracy=0.000000 certified=False
+seed=74 profile=seen_n depth_t=8 exact_accuracy=0.000000 certified=False
+seed=74 profile=seen_n depth_t=16 exact_accuracy=0.000000 certified=False
+seed=74 profile=seen_n depth_t=32 exact_accuracy=0.000000 certified=False
+seed=74 profile=seen_n depth_t=64 exact_accuracy=0.000000 certified=False
+seed=74 profile=ood_n depth_t=1 exact_accuracy=0.000000 certified=False
+seed=74 profile=ood_n depth_t=2 exact_accuracy=0.000000 certified=False
+seed=74 profile=ood_n depth_t=4 exact_accuracy=0.000000 certified=False
+seed=74 profile=ood_n depth_t=8 exact_accuracy=0.000000 certified=False
+seed=74 profile=ood_n depth_t=16 exact_accuracy=0.000000 certified=False
+seed=74 profile=ood_n depth_t=32 exact_accuracy=0.000000 certified=False
+seed=74 profile=ood_n depth_t=64 exact_accuracy=0.000000 certified=False
+RESULT_JSON={"depth_profile": {"depth_factor": 0, "ladder": [1, 2, 4, 8, 16, 32, 64], "max_certified_time_steps": null, "ood_n_ladder": [1, 2, 4, 8, 16, 32, 64], "ood_n_max_certified_time_steps": null, "ood_n_profile_available": true}, "manifest": "lab_hf1_fs5_s74", "score": {"mean_exact_accuracy": 0.0, "mean_loss": 3.484855669709988, "num_measurements": 3, "primary_metric": "mean_exact_accuracy"}, "seeds": [{"completed_training_steps": 5, "depth_profile": {"depth_factor": 0, "ladder": [1, 2, 4, 8, 16, 32, 64], "max_certified_time_steps": null, "ood_n_ladder": [1, 2, 4, 8, 16, 32, 64], "ood_n_max_certified_time_steps": null, "ood_n_rungs": [{"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 768, "status": "failed", "time_steps": 1}, {"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 768, "status": "failed", "time_steps": 2}, {"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 768, "status": "failed", "time_steps": 4}, {"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 768, "status": "failed", "time_steps": 8}, {"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 768, "status": "failed", "time_steps": 16}, {"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 768, "status": "failed", "time_steps": 32}, {"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 768, "status": "failed", "time_steps": 64}], "rungs": [{"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 768, "status": "failed", "time_steps": 1}, {"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 768, "status": "failed", "time_steps": 2}, {"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 768, "status": "failed", "time_steps": 4}, {"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 768, "status": "failed", "time_steps": 8}, {"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 768, "status": "failed", "time_steps": 16}, {"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 768, "status": "failed", "time_steps": 32}, {"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 768, "status": "failed", "time_steps": 64}]}, "evaluation": {"ood_n_t": {"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 9000, "loss": 3.4808423761603406}, "ood_t": {"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 9000, "loss": 3.491290915507183}, "test": {"correct_examples": 0, "exact_accuracy": 0.0, "example_count": 27000, "loss": 3.482433717462439}}, "evaluation_batch_size": 2048, "evaluation_budget_seconds": 50000.0, "evaluation_seconds": 265.11421531199994, "final_train_loss": 2.8597686290740967, "max_training_steps": 5, "model_state_elements": 8873, "optimizer_state_elements_after_first_step": 17766, "seed": 74, "training_batch_size": 128, "training_seconds": 25.1578121069997}]}
+
+--- stderr ---
+

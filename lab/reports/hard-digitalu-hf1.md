@@ -17,10 +17,13 @@ immune to GPU contention and comparable across agents.
 
 ### 0.1 Structural constants of `hf1` (measured, not assumed)
 
+All confirmed from the runner's own `RESULT_JSON` (`example_count` per split), not
+inferred.
+
 | quantity | value |
 |---|---|
 | train rows | **243,000** (27,000 per (bit size, T), 3 sizes × 3 T) |
-| `test` / `ood_t` / `ood_n_t` | 27,000 / 9,000 / 9,000 |
+| `test` / `ood_t` / `ood_n_t` | **27,000 / 9,000 / 9,000** |
 | depth rungs, **each** | **768 examples** (256 per bit size × 3) — both ladders |
 | **variance floor on a rung** | **1/768 = 0.0013** |
 | train modulus pools | 133 / 488 / 1546 (16b / 18b / 20b) = **2,167** |
@@ -49,8 +52,32 @@ parameters are bit-identical to `build_model`'s output at every step.
 | model state elements | 202,752 |
 | evaluation wall clock, all 16 splits | **3.1 s** |
 
-> **Everything at initialisation is a hard zero on the ranked metric.** Any
-> non-zero rung a sibling reports is above this floor only if it exceeds 2/768.
+And the same control for **this branch's own architecture**, because the floor
+has to be read per model class:
+`submissions/hard-digitalu-hf1/lr0` — the tree:quotient `DigitALU` (S=7) with
+`LR=0`, `SEL_LR=0`. **LEGAL.** `lab_hf1_fs5_s74`.
+
+| | value |
+|---|---|
+| `MAX_T` / `OOD_N_MAX_T` | **0 / 0** |
+| every rung, both ladders, `correct_examples` | **0 of 768** |
+| `test` / `ood_t` / `ood_n_t` | **0.000 / 0.000 / 0.000** (0 of 27,000 / 9,000 / 9,000) |
+| step-1 / final train loss | 2.860 (`ln 17 = 2.833`) |
+| model state elements | 8,873 |
+| **evaluation wall clock, all 16 splits** | **265 s** at `eval_batch_size` 2048 |
+
+> **Everything at initialisation is a hard zero on the ranked metric, for both
+> model classes.** Any non-zero rung a sibling reports is above this floor only
+> if it exceeds 2/768.
+
+**A budget result worth flagging on its own: `tree:quotient` fixes the eval
+budget.** `alu-compose` P2 measured the 257-step serial `DigitALU` at a **1.1×**
+margin against the Easy allowance and a hard `TimeoutError` at fixed depth —
+which is *below* the leaderboard floor, since `service/db.py` counts only
+`status='succeeded'`. At Hard's own shape the 129-step graph runs all 16 splits
+of `hf1` in **265 s against an 1,800 s allowance — a 6.8× margin**, on a GPU
+shared with three other agents. Eval is no longer a reason to reject this
+family.
 
 Note the step-1 loss: `EMB_INIT=0.02` removes the toll. The hosted Hard run's
 `metric.jsonl` shows step-1 loss **79.936** for the same architecture with
@@ -87,13 +114,14 @@ begun to fit anything. `hf1` is 9× more rows than m1 at the same width, and
 | model | shape | ms/step | steps in a 1,800 s training half-budget |
 |---|---|---|---|
 | ref `D`=128, 1 block | batch 512, L=19 | **5.3** | ~340,000 |
-| `DigitALU` tree:quotient, S=7, 16 loops | batch 128, L=19 | **12,800** | **~140** |
+| `DigitALU` tree:quotient, S=7, 16 loops | batch 128, L=19 | **5,030** (evaluator-measured) | **~360** |
 
-The hosted H100 reference is 38.6 ms/step for a `D`=128 × 8-loop stack, so the
-1-block reference here is within ~10% of the H100 figure per unit of work; take
-the ALU row as a **ratio**: the `DigitALU` is **~2,400×** the reference model's
-step cost at Hard's shape. Evaluation is not the problem — 4.7 s per 2,048
-prompts × 28 batches = **131 s** against an 1,800 s eval budget.
+The hosted H100 reference is 38.6 ms/step for a `D`=128 × 8-loop stack, i.e.
+~4.8 ms per loop, so this box's 1-block reference is within ~10% of the H100
+figure per unit of work. Take the ALU row as a **ratio**: the `DigitALU` costs
+**~950×** the reference model's step, at Hard's own shape. Both numbers are
+from the evaluator, on a GPU shared with three sibling agents, so the ratio is
+the transferable quantity and the absolute is pessimistic.
 
 ---
 
