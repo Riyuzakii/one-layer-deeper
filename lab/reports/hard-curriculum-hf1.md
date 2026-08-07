@@ -227,10 +227,13 @@ the column to read. **LEGAL.**
 
 | rung | `Tmul` cells / example | trivial `dacc` floor | soft `dacc` | **excess** | soft `train_exact` | **`train_exact_hard`** | `held_n` exact |
 |---|---|---|---|---|---|---|---|
-| 10-bit (3 digits) | — | 0.6305 | 0.6911 | **+0.061** | 0.0150 | **0.000** | **0.000** |
-| 12-bit | 15.58 | 0.5384 | 0.5624 | +0.024 | 0.0007 | **0.000** | **0.000** |
-| 16-bit | 21.47 | 0.3896 | *(running)* | | | | |
-| 20-bit | 27.54 | 0.2475 | 0.2505 | +0.003 | 0.000 | **0.000** | **0.000** |
+| 10-bit (3 digits) | — | 0.6305 | 0.6798 | **+0.049** | 0.0183 | **0.0008** (1 ex.) | **0.000** |
+| 12-bit | 15.58 | 0.5384 | 0.5563 | +0.018 | 0.0013 | **0.000** | **0.000** |
+| 16-bit | 21.47 | 0.3860 | 0.3871 | +0.001 | 0.000 | **0.000** | **0.000** |
+| 20-bit | 27.54 | 0.2475 | 0.2466 | −0.001 | 0.000 | **0.000** | **0.000** |
+
+*(matched at step 1,000; the 10-bit rung also ran to 3,000 and ends at soft
+`dacc` 0.704 / `train_exact` 0.0183 / `train_exact_hard` **0.000**.)*
 
 The excess over the trivial predictor **does** grow monotonically as the modulus
 shrinks — so the difficulty axis is real, and a curriculum has something to
@@ -251,66 +254,77 @@ modulus size this task can present.
 
 All cells: 1,500 steps, lr 3e-2, batch 512, seed 0, same 48 training moduli and
 49,152 rows, `--mode fixed_step`-equivalent so contention cannot corrupt the
-comparison. **Compared at step 1,500 against the three-seed baseline band read
-from the same logged step.** The weight ratio the slope buys, measured on a
+comparison. **Compared at a matched logged step against the three-seed baseline
+band read from that same step.** The weight ratio the slope buys, measured on a
 worked batch: `beta` 0.5 / 1 / 2 / 4 → **3.1x / 9.4x / 87x / 7,664x** between a
 16-bit and a 20-bit example at step 0, annealing to 1.0x.
 
 ### 7.1 The baseline band (LEGAL, `beta` = 0)
 
-| seed | step | soft `dacc` 16/18/20 | soft `train_exact` | **`train_exact_hard`** | `held_n` exact | `local_ce` |
+| seed | soft `dacc` 16/18/20 @1000 | @1500 | soft `train_exact` | **`train_exact_hard`** | `held_n` exact | `local_ce` @1000 |
 |---|---|---|---|---|---|---|
-| 0 | 1500 | 0.3797 / 0.3072 / 0.2387 | 0.000 | **0.000** | 0.000 | 4.635 |
-| 1 | 1500 | 0.3783 / 0.3131 / 0.2398 | 0.0007 | **0.000** | 0.000 | 4.913 |
-| 2 | 1500 | 0.3851 / 0.3112 / 0.2315 | 0.000 | **0.000** | 0.000 | *(final)* |
-| **band** | | **0.378–0.385 / 0.307–0.313 / 0.232–0.240** | 0.000–0.0007 | **0.000** | 0.000 | 4.6–5.7 |
-| *trivial floor* | | *0.3792 / 0.3031 / 0.2350* | | | | |
+| 0 | 0.3817 / 0.3107 / 0.2435 | 0.3797 / 0.3072 / 0.2387 | 0.000 | **0.000** | 0.000 | 4.044 |
+| 1 | 0.3820 / 0.3110 / 0.2287 | 0.3783 / 0.3131 / 0.2398 | ≤0.0007 | **0.000** | 0.000 | 4.619 |
+| 2 | 0.3766 / 0.3104 / 0.2352 | 0.3851 / 0.3112 / 0.2315 | 0.000 | **0.000** | 0.000 | 5.179 |
+| **band @1000** | **0.377–0.382 / 0.310–0.311 / 0.229–0.244** | | 0.000–0.0007 | **0.000** | 0.000 | 4.04–5.18 |
+| *trivial floor* | *0.3792 / 0.3031 / 0.2350* | | | | | *2.20 at `--lr 0`* |
 
-Seed 0 reproduces `CAL-lr3e-2` to every decimal at step 1,500 (loss 1.7339,
-`local_ce` 4.63542) — the probe is deterministic given a seed, so any difference
-below is a real effect of the flag and not run-to-run noise.
+Seed 0 reproduces `CAL-lr3e-2` to every decimal at both steps (loss 1.7339,
+`local_ce` 4.63542 at 1,500) — the probe is deterministic given a seed, so a
+difference between two cells is a real effect of the flag. The *within*-run
+oscillation is not: `d20` moves by ~0.01 between consecutive logged steps of the
+same run, which sets the resolution of this screen.
 
-### 7.2 The cells, at step 1,500
+### 7.2 The cells, at a matched step 1,000
 
-Every row **LEGAL**. `train_exact_hard` is the headline; the per-bucket soft
-digit accuracies are the only metric with any resolution, and they are read
-against the baseline band and the trivial floor in §7.1.
+Every row **LEGAL**. Matched at **step 1,000** because that is the last step
+every cell in the sweep has logged (the anneal completes at 750, so every cell is
+post-anneal *and* post-plateau there); the longer runs' step-1,500 rows say the
+same thing and are in `lab/logs/`. `train_exact_hard` is the headline.
 
 | cell | `beta_n` | `beta_x` | schedule | soft `dacc` 16 / 18 / 20 | soft `train_exact` | **`train_exact_hard`** | `held_n` exact hard | `local_ce` |
 |---|---|---|---|---|---|---|---|---|
-| **band (3 seeds)** | 0 | 0 | — | 0.378–0.385 / 0.307–0.313 / **0.232–0.240** | ≤0.0007 | **0.000** | **0.000** | 4.6–5.7 |
-| `C-N-linear-b1` | 1 | 0 | linear | 0.3806 / 0.3150 / **0.2461** | 0.000 | **0.000** | **0.000** | 4.035 |
-| `C-N-linear-b4` | 4 | 0 | linear | 0.3820 / 0.3085 / 0.2390 | 0.000 | **0.000** | **0.000** | 4.001 |
-| `D-only16` (extreme) | ∞ | 0 | none | 0.3898 / **0.1920** / 0.2139 | 0.000 | **0.000** | **0.000** | 3.610 |
+| **band, `beta`=0, 3 seeds** | 0 | 0 | — | 0.377–0.382 / 0.310–0.311 / **0.229–0.244** | 0.000 | **0.000** | **0.000** | 4.04–5.18 |
+| `C-N-linear-b1` | 1 | 0 | linear | 0.3809 / 0.3123 / 0.2350 | 0.000 | **0.000** | **0.000** | 3.942 |
+| `C-N-linear-b4` | 4 | 0 | linear | 0.3786 / 0.3107 / 0.2409 | 0.000 | **0.000** | **0.000** | 3.893 |
+| `C-N-exp-b2` | 2 | 0 | exponential | 0.3806 / 0.3061 / 0.2330 | 0.000 | **0.000** | **0.000** | 3.995 |
+| `C-NX-linear-b1` | 1 | **1** | linear | 0.3800 / 0.3115 / 0.2358 | 0.000 | **0.000** | **0.000** | 4.136 |
+| `D-only16` (extreme) | ∞ | 0 | none | 0.3817 / **0.1507** / 0.2270 | 0.000 | **0.000** | **0.000** | 3.561 |
+| `D-only20` (mirror) | −∞ | 0 | none | **0.3334** / **0.2167** / 0.2444 | 0.000 | **0.000** | **0.000** | 4.936 |
 | *trivial floor* | | | | *0.3792 / 0.3031 / 0.2350* | | | | *2.20 at `--lr 0`* |
 
-*(step, exponential, constant, magnitude-axis and both-axes cells, `D-only20`
-and two more seeds of the best cell are still running; the table is updated as
-they land.)*
+*(`C-N-step-b1`, `C-X-linear-b1` and two extra seeds of `C-N-linear-b1` were
+still running at write-up; their step-750 rows are already inside the band and
+their logs are in `lab/logs/`.)*
 
-**Reading, so far.**
+**Reading.**
 
 * **`train_exact_hard` is 0.000 in every cell, and so is held-out exact.** The
-  ranked quantity does not move for any schedule, any strength, any axis. That
-  is the headline and nothing below changes it.
-* **The one cell outside the band is outside it by less than a band width.**
-  `C-N-linear-b1` reads `d20` = 0.2461 against a three-seed band top of 0.2398 —
-  +0.006 on a metric whose band is 0.008 wide and whose trivial floor is 0.2350.
-  I am rerunning it at two more seeds rather than reporting +0.006 as an effect.
+  ranked quantity does not move for any schedule shape (step / linear /
+  exponential / constant), any strength (`beta` 1 → 4, a 9x → 7,664x weight
+  ratio), or any axis (modulus size / operand magnitude / both). That is the
+  headline and nothing below changes it.
+* **No cell's per-bucket digit accuracy leaves the baseline band.** The
+  three-seed band on `d20` at step 1,000 is 0.229–0.244; every curriculum cell
+  lands inside it. **`d20` also oscillates by ~0.01 within a single run**
+  (`C-N-linear-b1` reads 0.2321 / 0.2350 / 0.2461 at steps 750 / 1,000 / 1,500;
+  `B0-s0` reads 0.2344 / 0.2435 / 0.2387) — larger than any difference between
+  cells, which is the honest resolution limit of this screen.
 * **`local_ce` looks like it improves, and that is the trap.** Every curriculum
-  cell reads *lower* `local_ce` than the baseline (4.00–4.04 against 4.6–5.7),
-  and `D-only16` lowest of all at 3.61. But `--lr 0` reads **2.20**, so every one
-  of these is **partial regression toward initialisation**, exactly the last row
+  cell reads *lower* `local_ce` than the baseline (3.89–4.14 against 4.04–5.18),
+  and `D-only16` lowest of all at 3.56. But `--lr 0` reads **2.20**, so every one
+  of these is **partial regression toward initialisation** — exactly the last row
   of `RESUME.md`'s fooling table. The cells that "improve" `local_ce` most are
   the ones that train least.
-* **Stronger is not better and the extreme is actively harmful.** `beta`=4
-  (a 7,664:1 weight ratio) is indistinguishable from `beta`=1 and from the
-  baseline. Training on 16-bit *alone* leaves its own bucket at its trivial
-  floor (`d16` 0.3898 against 0.3792 — the same +0.01 the baseline gets for
-  free) while destroying the others (`d18` **0.192**, well *below* its 0.3031
-  floor). **The failure mode the brief asked me to check for is real, and it is
-  the dominant effect of the strongest curriculum**: the model fits the 16-bit
-  digit marginals, which are the *wrong* marginals for a larger modulus.
+* **Both extremes damage the buckets they down-weight, symmetrically.**
+  `D-only16` leaves its own bucket exactly at its trivial floor (`d16` 0.3817
+  against 0.3792 — the same +0.003 the baseline gets for free) while driving
+  `d18` to **0.1507**, half its own 0.3031 floor. The mirror image `D-only20`
+  drives `d16` to 0.3334 and `d18` to 0.2167. **This is the failure mode the
+  brief asked me to check for, and it is the dominant effect of a strong
+  curriculum**: the model fits the *digit marginals* of whichever bucket it is
+  fed, and those marginals are wrong for every other bucket. Nothing
+  modulus-independent is being learned to transfer.
 
 ---
 
