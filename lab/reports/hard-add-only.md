@@ -326,3 +326,143 @@ structure *below* chance). Add-only inherits that negative unchanged, because
 it inherits the same adder.
 
 ---
+## 5. Module-restricted identification — the sharpest result, and it inverts
+
+**LAB DIAGNOSTIC.** Every table outside `--modules` is set to the truth; the
+named tables start at random and are the only ones searched, under the LEGAL
+end-of-chain label with the same block-greedy searcher. This asks the branch's
+premise as directly as it can be asked: *with everything else exactly right,
+does the legal label identify the adder?*
+
+| model | searched module | free cells | start `digit` | final `train_exact_hard` | structure score (chance) |
+|---|---|---|---|---|---|
+| **add-only** | `add` | 400 | 0.09–0.12 | **0.008 / 0.012 / 0.016** | `add_shift` 0.265 / 0.280 / 0.305 (0.285) |
+| **add-only** | `sub` | 400 | 0.09–0.11 | **0.020 / 0.028 / 0.032** | `sub_shift` 0.267 / 0.283 / 0.283 (0.285) |
+| **add-only** | `add`+`sub` | 800 | 0.08–0.10 | **0.032 / 0.036 / 0.048** | `add_shift` 0.265–0.300 (0.285) |
+| **add-only** | `pick` | 10 | 0.15–0.18 | **1.000 — EXACT, `cell_agree` 1.000** | `pick_ok` 1.000 |
+| `DigitALU` | `mul` | 200 | 0.18 | **0.028 / 0.048 / 0.052** | `mul_lo` 0.26–0.35, `mul_hi` 0.23–0.28 (0.23–0.28) |
+| `DigitALU` | `add` | 400 | — | **0.008** | `add_shift` 0.290 (0.285) |
+
+Three things fall out, and the third is the one that ends the branch.
+
+1. **The label identifies small tables and not arithmetic ones.** `pick` — 10
+   cells, 10 candidates each — is recovered *exactly, every seed*. So the
+   searcher and the objective are not broken; they simply cannot reach a
+   400-cell table.
+2. **The end-of-chain label cannot identify the adder even when literally every
+   other tensor in the model is exactly correct.** `add_shift` 0.265–0.305
+   against a chance value of 0.285 is nothing at all.
+3. **The premise inverts.** Under this identical protocol, `DigitALU`'s
+   supposedly-unidentifiable `Tmul` reaches `train_exact_hard` **0.028–0.052**
+   while the add-only model's `Tadd` reaches **0.008–0.016**, and `DigitALU`'s
+   own `Tadd` reaches **0.008** — the same value. **The adder is the *less*
+   identifiable table of the two, in both architectures.** The branch was built
+   on the belief that `Tadd` is the good table and `Tmul` the bad one; measured
+   against the legal objective at O(chain) distance, it is the other way round.
+
+`alu-relational`'s 50/400 was never a property of `Tadd`. It was a property of
+an objective evaluated **one learned op** from `Tadd` (associativity,
+commutativity, cancellativity of the adder itself). There is no legal
+end-of-chain objective with that property, and `alu-relational` §6.3 had
+already measured that even the O(1) objective fails from random init
+(`add_shift` 0.250–0.320; basin hopping at 38× the compute drives structure
+*below* chance). The add-only class inherits that negative unchanged, because
+it inherits the same adder.
+
+This also settles the more conservative variant I designed and did not build
+(a learned chain *schedule*, §2): it has strictly more free cells than the
+shipped variant, so if the label cannot find 400 adder cells with everything
+else at truth, it cannot find 400 plus a schedule either.
+
+---
+
+## 6. Training — the gate, the `--lr 0` control, and the fitting curve
+
+All runs use the `alu-population` replica dimension (P = 32, validated: 1-in-7
+→ 6-of-6, legal, eval at P = 1 cost). At hf1's arithmetic scale P = 32 costs
+**1.75×** P = 1 (218 vs 125 ms/step, batch 256, S = 7, 20-bit modulus) — the
+same cheap-population result `alu-population` measured, reproduced on this
+architecture.
+
+### 6.1 The DIAGNOSTIC GATE fires clean — the instrument works
+
+`alu-optimizer`'s rule: a null is only interpretable if the same code, same
+scale, same budget can reach the ceiling under a signal that is known to work.
+Teacher forcing off a constructed tape (**DIAGNOSTIC — rules 2, 7, never a
+submission**), 20-bit sampled modulus, S = 7, 8,000 train / 1,024 held-out
+operands, P = 32, 2,000 steps:
+
+| metric | value |
+|---|---|
+| `train_exact_hard` (best replica) | **1.000 — reached by step 200** |
+| `held_exact_hard` (best replica) | **1.000** |
+| replicas in basin | **5 / 32** (per-replica rate 0.16) |
+| `local_ce` best / median | **0.000** / 0.037 |
+| `add_shift`, `sub_shift` | **1.000, 1.000** |
+| `n_shifts` (truth 10) | **10** |
+| `pick_ok` | **1.000** |
+| held-out diversity vs measured reference | 0.9961 vs 0.9961 |
+
+**Every table is recovered exactly, from random init, at hf1's operand size, in
+200 optimizer steps.** That is *faster* than `alu-population`'s DigitALU ceiling
+(step 600) at a comparable basin rate. The add-only hypothesis class is not
+hard to learn — it is hard to *supervise*. The same gate at e1 scale also
+reaches 1.000 (3–4 of 32 replicas by step 400), where `alu-credit` measured
+DigitALU at 0.028; so if anything the smaller class helps the *diagnostic*
+signal.
+
+Every number in §6.2–§6.4 is therefore a statement about the objective, not
+about the model or the optimiser.
+
+### 6.2 The `--lr 0` control, and the inversion reproduces
+
+`RESUME.md`: *on this task the legal objective provably trains away from the
+discrete solution; the untrained model has outscored the trained one more than
+once. Run `--lr 0` before interpreting any improvement.* Identical config, P = 32,
+`lr = 0` versus `lr = 3e-2`, e1 scale (N = 323, λ = 144, S = 3, 250 train / 38
+held-out — a step-map experiment, so the degenerate T-ladder does not apply):
+
+| metric | `--lr 0` (LEGAL) | trained 6,000 steps (LEGAL) |
+|---|---|---|
+| `local_ce` best | **2.197** | **6.482** |
+| `local_ce` median | 2.239 | 8.569 |
+| `train_exact` (soft) | 0.016 | 0.492 |
+| **`train_exact_hard`** | **0.008** | **0.012** |
+| **`held_exact_hard`** best | 0.026 (1/38) | 0.053 (2/38) |
+| `held_exact_hard` mixture | 0.000 | 0.000 |
+| `add_shift` (chance 0.285) | 0.290 | 0.280 |
+| `n_shifts` (truth 10) | **10** | **6** |
+| `pick_ok` | 0.10 | **0.00** |
+| held-out diversity (measured ref **0.816**) | 0.974 | 0.895 |
+
+**`alu-optimizer`'s inversion reproduces exactly on a different architecture.**
+Random init reads `local_ce` **2.197**, inside the 2.08–2.24 band that branch
+measured for `DigitALU`; 6,000 steps of the legal objective move it to **6.48 —
+3× further from the 0.006 cliff**. Structure moves the same way: `n_shifts`
+10 → 6 and `pick_ok` 0.10 → 0.00, i.e. training *destroys* the gauge-invariant
+structure present at initialisation. The two-examples-out-of-38 gain in
+`held_exact_hard` is the e1 variance floor and is not a result.
+
+Not a collapse: held-out diversity 0.895 against the **measured** exact-solution
+reference of **0.816** on this cohort under this detector (per `RESUME.md`, the
+reference is measured, never assumed to be 1.0). The model is **diverse and
+wrong**, the same signature `plan2/phase0` recorded.
+
+### 6.3 The fitting curve is calibrated — this is not a pre-fitting null
+
+`RESUME.md`: *a null at a step count you have not calibrated against a fitting
+curve is not a null.* The e1-scale legal run, `train_exact` (soft) versus
+`train_exact_hard`:
+
+| step | 1 | 500 | 1000 | 2000 | 3000 | 4000 | 5000 | 6000 |
+|---|---|---|---|---|---|---|---|---|
+| loss | 4.61 | 2.49 | 1.89 | 1.39 | 1.15 | 1.06 | 0.97 | 0.95 |
+| `train_exact` (soft) | 0.016 | 0.116 | 0.248 | 0.364 | 0.424 | 0.480 | 0.492 | 0.492 |
+| **`train_exact_hard`** | 0.008 | 0.016 | 0.016 | 0.016 | 0.012 | 0.016 | 0.012 | **0.012** |
+
+**Training moved a lot and then plateaued — the run is out of the pre-fitting
+region — and the hard metric never left the floor.** A 31× move in the soft
+metric buys nothing discrete. This is `alu-credit`'s DigitALU signature
+reproduced with `Tmul` deleted, which is the cleanest possible statement that
+`Tmul` was not the cause.
+
