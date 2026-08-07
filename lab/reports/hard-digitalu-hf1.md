@@ -7,6 +7,21 @@ OOD T 32, 298,752 rows, `max_seq_len` 19).
 Every row below is labelled **LEGAL** or **DIAGNOSTIC**. Nothing was submitted to
 the hosted service. Nothing under `data/generated/` was read.
 
+**One paragraph.** The reference floor on `hf1` is a hard zero on every rung of
+both ladders and on all three scoring splits, for both model classes, at
+initialisation (§0.2). No baseline-class capacity — 0.83, 13 or 52 params/row —
+leaves the pre-fitting region on `hf1` within 40,000 steps; the onset is
+~12,000–14,000 steps at ~98 params/row, which only `hf1s` reaches (§0.3).
+`DigitALU`'s constructed and teacher-forced ceilings are **1.000 on unseen
+moduli and unseen modulus sizes** (§2, §3), so representation and modulus-split
+generalisation are fine. The legal objective reads **0.0000 on argmax, mixture
+and best replica across 64 replicas**, with `local_ce` moving 2.14 → 3.12, i.e.
+*away* from the solution (§4). The modulus split changes nothing versus
+prompt-split — 8 training moduli and 1,725 agree to three decimals (§4). Cost is
+**not** the closure: ~2,100 steps available against ~1,200 needed by the illegal
+ceiling (§5, and it corrects a wrong number of my own). **`DigitALU` is closed
+at the ranked tier, by the objective.**
+
 ---
 
 ## 0. THE REFERENCE FLOOR — read this first
@@ -92,36 +107,66 @@ AdamW(0.9, 0.95), wd 0.1, `lab_hf1_fs40000_s74`, seed 74, 40,000 steps.
 `params/row` is against **243,000 train rows**. `e5` fit at 24.9 params/row;
 `m1` at `D_H`=128 was 17.4 and did fit at 40k steps.
 
-| `D_MODEL` | params | params/row | `train_exact` @ 40k | final loss | `MAX_T` |
-|---|---|---|---|---|---|
-| 128 | 202,752 | **0.83** | **0.000** (flat for all 40,000 steps) | 2.156 | 0 |
-| 512 | 3,170,304 | 13.0 | (see §0.4) | | 0 |
-| 1024 | 12,632,064 | 52.0 | (see §0.4) | | 0 |
+| dataset | train rows | `D_MODEL` | params | params/row | `train_exact` @ 40k | final loss | `MAX_T` |
+|---|---|---|---|---|---|---|---|
+| `hf1` | 243,000 | 128 | 202,752 | **0.83** | **0.000** | 2.156 | 0 |
+| `hf1` | 243,000 | 512 | 3,170,304 | **13.0** | **0.000** | 2.151 | 0 |
+| `hf1` | 243,000 | 1024 | 12,632,064 | **52.0** | **0.000** | 2.161 | 0 |
+| **`hf1s`** | 32,400 | 512 | 3,170,304 | **97.8** | **0.109–0.174** | **0.90** | 0 |
 
-**`D_MODEL`=128 on `hf1` never leaves the pre-fitting region.** Loss falls
-2.862 → 2.16 in the first ~4,000 steps and then sits there for 36,000 more:
-the model has learned the digit marginals and nothing else. Batch-level
-`train_exact` is 0.000 at every one of the 400 logged points; the single
-0.00195 at step 40,000 is one example in a batch of 512.
+**No baseline-class capacity leaves the pre-fitting region on `hf1` inside
+40,000 steps.** At all three widths the loss falls 2.86–3.12 → ~2.17 in the
+first ~4,000 steps and then sits there for 36,000 more — against a
+digit-uniform reference of `ln 10 = 2.303`, so the model has learned the digit
+marginals and essentially nothing else. `train_exact` is 0.000 at every one of
+the 400 logged points at every width; the isolated 0.002/0.004 readings are
+one or two examples in a batch of 512.
 
-**Consequence for every sibling:** a null taken with a baseline-width model on
-`hf1` is *uninterpretable* — it is a null in a region where the model has not
-begun to fit anything. `hf1` is 9× more rows than m1 at the same width, and
-0.83 params/row is 30× below the 24.9/row that fit e5.
+**But the onset exists, and `hf1s` locates it.** The same `D`=512 model on
+`hf1s` (identical structure, 7.5× fewer training rows, so 97.8 params/row)
+leaves zero at **step ~12,000–14,000** and climbs 0.012 → 0.035 → 0.098 →
+0.174 by step 38,000 while the loss falls 2.18 → 0.90. So:
+
+> **Fitting onset for a reference-class model on the `hf1` family:
+> ~12,000–14,000 steps at ~98 params/row.
+> On `hf1` itself, 52 params/row × 40,000 steps is still entirely pre-fitting.**
+
+**Two consequences for every sibling.**
+
+1. **A null taken on `hf1` with `train_exact` as the calibration signal is not a
+   calibrated null for the dense family** — the signal never leaves zero at any
+   capacity you can afford. Calibrate on `hf1s` and carry the step count over,
+   or use an architecture (like `DigitALU`) that cannot memorise, where the
+   diagnostic inverts.
+2. **Fitting still buys nothing.** The `hf1s` cell that memorises 17% of its
+   training set reads rung-1 = 0.001 (one example of 768), `test`/`ood_t`/`ood_n_t`
+   = 0.000, `MAX_T` = 0 — identical to the `--lr 0` control. This is the same
+   train-vs-held phenomenon `RESUME` records at 600 rows and at 27,000, now at
+   32,400 rows on the ranked split structure, where `test` additionally requires
+   an unseen modulus.
 
 ### 0.4 Throughput calibration on this box (B300, contended)
 
-| model | shape | ms/step | steps in a 1,800 s training half-budget |
-|---|---|---|---|
-| ref `D`=128, 1 block | batch 512, L=19 | **5.3** | ~340,000 |
-| `DigitALU` tree:quotient, S=7, 16 loops | batch 128, L=19 | **5,030** (evaluator-measured) | **~360** |
+Three sibling agents share this GPU, so **only interleaved ratios are usable**
+(BRIEF2 §7). `lab/time_ratio.py` alternates the candidates round-robin so both
+see the same contention; the reference converts to H100 milliseconds through the
+hosted calibration (38.6 ms for a `D`=128 × 8-loop stack = 4.83 ms per loop).
 
-The hosted H100 reference is 38.6 ms/step for a `D`=128 × 8-loop stack, i.e.
-~4.8 ms per loop, so this box's 1-block reference is within ~10% of the H100
-figure per unit of work. Take the ALU row as a **ratio**: the `DigitALU` costs
-**~950×** the reference model's step, at Hard's own shape. Both numbers are
-from the evaluator, on a GPU shared with three sibling agents, so the ratio is
-the transferable quantity and the absolute is pessimistic.
+| model | shape | ratio to reference | implied H100 ms/step | steps in 1,800 s |
+|---|---|---|---|---|
+| ref `D`=128, 1 block | batch 512, L=19 | 1.00× | 4.8 | ~373,000 |
+| `DigitALU` tree:quotient, S=7, 16 loops | batch 128, L=19 | **170–176×** | **820–850** | **≈ 2,100** |
+
+Two runs, 4 and 6 reps: ratio 175.98× and 170.04× — stable.
+
+> **A correction I have to make against my own first number.** The same quantity
+> read straight off a contended evaluator run was 4.93 s/step, implying ~360
+> steps — **3.4× pessimistic**, all of it contention. I had drafted a closure
+> argument on that figure before the interleaved measurement replaced it. The
+> conclusion in §5 is different as a result. This is BRIEF2 §7 firing on this
+> branch's own work: never take a wall-clock absolute from a shared GPU.
+
+Evaluation is not a constraint either — see §0.2's 265 s against 1,800 s.
 
 ---
 
@@ -321,39 +366,37 @@ collapsed — the `--assoc` degeneracy from `alu-population` does not appear.
 
 ---
 
-## 5. THE RESULT THAT CLOSES IT: the step budget, measured on the evaluator
+## 5. The step budget — tight, but NOT the closure
 
-This is independent of the objective, and it is new.
+`alu-compose`'s P3 ("step famine") was the standing reason to expect this family
+to fail on cost: ~14–22 optimizer steps at Easy and ~22 at Medium, on the
+257-step serial graph. At Hard's budget with the 129-step graph it is much
+better than that, and the honest conclusion is that **cost does not close
+`DigitALU`.**
 
 | | measured |
 |---|---|
-| `DigitALU` tree:quotient, S=7, 16 training loops, batch 128 | **4.93 s / optimizer step** (591.3 s for 120 steps, `benchmark.runner`, contended B300) |
-| eval, all 16 `hf1` splits, `eval_batch_size` 2048 | **265 s** |
-| steps available in a 3,600 s Hard run (1,800 s training) | **≈ 360** |
-| **fitting onset under the ILLEGAL working signal** | **200–400 steps** (best replica 0.517 at 200, 1.000 by 1,200) |
+| step cost, interleaved ratio to the reference model at Hard's shape | **170–176×** |
+| implied H100 | **820–850 ms / optimizer step** |
+| steps available in a 3,600 s Hard run (1,800 s training) | **≈ 2,100** |
+| eval, all 16 `hf1` splits | 265 s of 1,800 s (**6.8× margin**) |
+| fitting onset under the ILLEGAL working signal | 200–400 steps (best replica 0.517 at 200) |
+| steps for the illegal ceiling to reach 1.000 | ~1,200 |
 
-> **A Hard run affords ~360 optimizer steps for this architecture. The teacher-
-> forced ceiling — which is illegal — needs 200–400 steps to leave zero and
-> ~1,200 to reach 1.000. Even if a legal per-op signal existed, the ranked tier
-> could not train this model with it.**
+**≈ 2,100 available against ~1,200 needed.** Tight, ~1.8×, and measured at
+P=1 — a 32-replica population would cost more and could put it the other side
+of the line — but it is *not* a disqualification, and I will not claim it as
+one. **P3 is substantially relieved at Hard by `tree:quotient` + the 3,600 s
+budget: ~2,100 steps against Easy's 14–22 is a ~100× improvement.**
 
-This is a *different* closure argument from the objective one and does not
-depend on it. It also survives the obvious rescues:
+What *would* have to be true for cost to become the argument: a population at
+P≥8 (needed to convert the 0.22–0.41 per-replica basin rate into a reliable
+hit) pushing the step cost past ~4×, i.e. below ~500 steps. That is likely but
+unmeasured here, and I am flagging it as unmeasured rather than asserting it.
 
-* Reducing training loops (the 16 is `hf1`'s deepest training T) trades step
-  cost against the composition the loop is there to learn.
-* Batch size does not help — the model, not the DataLoader, dominates
-  (`RESUME`: batch 512→32 is 1.2× for the ALU, not 5.8×).
-* `torch.compile` and hand-written kernels are unavailable on this box
-  (`sm_107a` / `ptxas-blackwell`), and on an H100 they would need ~10× to close
-  a 950× gap.
-* The 129-step graph is already `alu-depth`'s best; the serial graph is 1,537
-  steps at S=7, i.e. 12× worse.
-
-The step famine `alu-compose` called P3 was measured at ~14–22 steps for the
-*Easy/Medium* tiers on the 257-step graph. Hard's 3,600 s and the 129-step graph
-lift it to ~360 — a 20× improvement that lands **just below** where the ceiling
-becomes reachable, and only under a signal that cannot be used.
+So the closure rests on §4 alone, and §4 is sufficient: the objective's gradient
+points away from the solution from step one, at every scale and split structure
+tried, with 64 independent initialisations and a calibrated budget.
 
 ---
 
@@ -384,24 +427,31 @@ the deliverable asks for it and because it fixes the eval-budget question
 
 ## 7. Verdict
 
-**`DigitALU` is closed at the ranked tier, and it is now closed twice over.**
+**`DigitALU` is closed at the ranked tier — on the objective, and only on the
+objective.**
 
-1. **The objective.** At Hard-faithful scale, on the ranked split structure,
-   with `tree:quotient`, untied tables, `EMB_INIT`, a 32-replica population, a
-   differentiable selector and a calibrated budget — every legal cell is
-   0.0000 on argmax, mixture *and* best replica, across 64 independent
-   initialisations, while `local_ce` moves from 2.14 at random init to 3.12
-   trained. Training goes the wrong way from step one, exactly as
-   `alu-optimizer` measured at a tenth of this scale.
-2. **The budget.** A Hard run affords ~360 optimizer steps for this
-   architecture. The *illegal* ceiling needs 200–400 to leave zero and ~1,200
-   to reach 1.000. Even a perfect legal per-op signal, if one were found
-   tomorrow, would not fit in the tier.
+At Hard-faithful scale, on the ranked split structure, with `tree:quotient`,
+untied tables, `EMB_INIT`, a 32-replica population, a differentiable selector,
+a calibrated budget and the `--lr 0` control alongside: **every legal cell reads
+0.0000 on argmax, mixture *and* best replica, on all four splits, across 64
+independent initialisations**, while `local_ce` moves from **2.14 at random init
+to 3.12 trained**. Training goes the wrong way from step one — exactly as
+`alu-optimizer` measured at a tenth of this scale, and now under every condition
+that measurement had not been taken at: 129 graph depth instead of 39, seven
+digit slots instead of five, 1,725 training moduli instead of one, and a test
+split whose moduli never appear in training.
 
-Argument 2 is the one to carry forward, because it does not depend on the
-objective and it prices the whole family: **any candidate whose per-step cost is
-~10³× the reference model's cannot be trained at this tier, whatever its
-gradients look like.** `DigitALU` is 950×.
+**Everything else about the family is fine, and three of the four things the
+ranking hoped for came true.** The `tree:quotient` graph works; the population
+transfers; `EMB_INIT` puts step-1 loss at `ln 17`; the eval budget is solved
+with a 6.8× margin; the constructed and teacher-forced ceilings are 1.000 on
+unseen moduli *and* unseen modulus sizes. The one thing that was already known
+to be broken is still broken, and it is the only thing that matters.
+
+**The cost argument does NOT close it** — see §5. ~2,100 available steps against
+~1,200 needed by the illegal ceiling. I drafted the opposite conclusion from a
+contended wall-clock reading and the interleaved measurement overturned it. Do
+not cite a step-famine argument against this family at Hard.
 
 **What survives and should be reused.**
 
@@ -429,13 +479,21 @@ after the fact, it is a precondition for reading either the argmax or the
 mixture at all.** If `wmax ≈ 1/P` the selector has learned nothing and both
 numbers are meaningless.
 
-**Recommendation for the ranking.** Move `DigitALU` from #2 to closed. Its two
-transferable assets — the modulus-independent digit readout and the 129-step
-graph's eval margin — belong to whatever replaces it, and the ranking's #1
-(`addition-only transducer`) should be checked against argument 2 **before** it
-is built: if its per-step cost is within ~10× of the reference model it is
-worth building, and if it is within ~10³× it is not, independent of how good its
-repair basin is.
+**Recommendation for the ranking.** Move `DigitALU` from #2 to **closed**, with
+the reason recorded as *the objective*, not cost and not representation. Its
+transferable assets — the modulus-independent digit readout, the 129-step graph
+and its eval margin, the population instrument, and the `--lr 0` / `local_ce`
+control pair — belong to whatever replaces it.
+
+For #1 (`addition-only transducer`), the relevant transfer from this branch is
+**not** a cost warning; it is the control protocol. Before reading any
+improvement, measure `local_ce` (or its analogue) at `--lr 0`, and check `wmax`
+before quoting either the argmax or the mixture. The two things that would make
+#1 different in kind from `DigitALU` are (a) that its objective does not train
+away from the discrete solution — testable in ~10 minutes with the `--lr 0`
+control before any training run — and (b) that its repair basin (50/400 vs 0/5)
+survives from *random init* rather than from a corrupted solution, which is a
+different measurement from the one the ranking cites.
 
 ---
 
