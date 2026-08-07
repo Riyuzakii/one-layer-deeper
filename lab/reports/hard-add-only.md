@@ -636,9 +636,12 @@ measured that the objective fails from random init. Entry #3 should be run with
 that expectation stated in advance.
 
 **Entry #2 (`DigitALU` at hf1 scale, fully corrected) is untouched by this
-branch and now inherits the top slot by default.** Nothing here argues against
-it; §5 in fact says `Tmul` is marginally *more* identifiable than the adder, so
-the family it belongs to is the better of the two.
+branch and inherits the top slot by default.** The two classes trade places
+depending on the probe — add-only wins the repair *rate* at small corruption
+(§4.3), `DigitALU` wins the module-restricted identification (§5) and is 13 %
+shallower (§1) — and neither gets anywhere near a result, so the honest reason
+entry #2 moves up is that its prediction has not been falsified, not that it
+beat this one.
 
 **Entry #5 (replica population) is confirmed again as an instrument, and again
 as the wrong instrument here.** P = 32 costs 1.75× at hf1 scale (cheaper than
