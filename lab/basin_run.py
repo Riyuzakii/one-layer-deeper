@@ -40,6 +40,16 @@ def cells(which: str):
             yield f"o1-strat{k}-lr0", ["--modulus", "323", "--recip", "oracle",
                                        "--corrupt", str(k), "--corrupt-mode",
                                        "per_table", "--seed", "0", "--lr", "0"]
+    elif which == "sharp":          # one and two cells from a solution that scores 1.000
+        for k in (1, 2):
+            for s in (0, 1, 2):
+                yield f"o1-k{k}-s{s}", ["--modulus", "323", "--recip", "oracle",
+                                        "--corrupt", str(k), "--seed", str(s)]
+        # step-count calibration for the basin protocol itself: 10x the budget
+        for k in (5, 20):
+            yield f"o1-k{k}-20k", ["--modulus", "323", "--recip", "oracle",
+                                   "--corrupt", str(k), "--seed", "0",
+                                   "--steps", "20000", "--log-every", "5000"]
     elif which == "div":            # nothing oracular anywhere
         for k in (20, 400):
             for s in (0, 1, 2):

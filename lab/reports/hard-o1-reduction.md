@@ -188,11 +188,112 @@ wrong number:
    measure parameter scale, not conditioning. The corruption pool is 452 cells
    at S=3.
 
+### 3a. The instrument is not blind — POSITIVE CONTROL
+
+Every basin cell below reads **0**, so the instrument has to be shown capable of
+reading a repair. `lab/test_o1reduce.py::test_basin_instrument`: corrupt 40
+cells, hand **19** of them their true values back, and `repaired()` reports
+exactly **19 of 40**, resolved correctly by depth (`d1: 7/15, d3: 8/17,
+d5: 4/8`), and **0 of 40** before the hand-back. **PASS.** A zero below is a
+real zero.
+
+### 3b. How much of the table surface the data can reach
+
+A cell no example exercises receives no gradient and cannot be repaired at any
+conditioning, so the basin has to be read against this
+(`lab/usage_report.py`, `lab/runs/usage.log`):
+
+| table (rows) | S=3, N=323, 250 operands | hf1 S=7, 24 moduli x 100 operands |
+|---|---|---|
+| `sq_carry` | 34/52 (**0.65**) | 64/120 (**0.53**) |
+| `qm_carry` | 31/103 (**0.30**) | 85/239 (**0.36**) |
+| `rs_carry` | 32/70 (**0.46**) | 62/138 (**0.45**) |
+| `sel` | 2/2 (1.00) | 2/2 (1.00) |
+
+So an exercised-only denominator is roughly 40% of the quoted one. **It does not
+change any conclusion here, because every numerator is zero** — but it is the
+right caveat to carry, and it is a real cost of the wide column-total alphabet
+that buys the O(1) depth. `probe_o1.py` reports the exercised-only count
+(`live=`) for every run made after this was added.
+
 ---
 
 ## 4. THE HEADLINE — repair basin at O(1) depth
 
-*(filled from `lab/runs/basin.jsonl`; see §4a table)*
+**LEGAL objective, DIAGNOSTIC start point** (constructed then corrupted) and a
+DIAGNOSTIC reciprocal (`--recip oracle`, so the reduction tables sit at their
+O(1) depth with nothing deep contributing gradient — the most favourable
+conditioning this task allows). N=323, 250 train / 38 held, 2,000 steps,
+AdamW lr 3e-2, 3 seeds, corruption pool 452 cells.
+
+### 4a. Against the scaling the mandate was extrapolating
+
+| architecture | learned-op depth | k=5 | k=20 | k=400 |
+|---|---|---|---|---|
+| `DigitALU` (matrix-scan) | 39 | — | **0/5** | — |
+| `MonoidALU` (matrix-scan) | 12 | 1/0/0 | **0/1/1** | **14/19/9 of 400** |
+| **`O1ReduceALU` (this branch)** | **7 (reduction 5)** | *(§4b)* | *(§4b)* | *(§4b)* |
+
+### 4b. Measured
+
+*(final table from `lab/runs/basin.jsonl` — see §4e)*
+
+### 4c. The finding: conditioning behaves exactly as the law says, with the wrong sign
+
+The depth-resolved read is the point of this branch, and it is unambiguous. The
+tables are **private per stage**, so each sits at one well-defined learned-op
+depth from the loss. Cell correctness, step 0 → 2,000 (`lab/runs/basin.jsonl`):
+
+| table | learned-op depth | k=20 s0 | k=20 s2 | k=50 s0 |
+|---|---|---|---|---|
+| `sq_carry_e` (the squaring's digit emission) | **5** | 1.000 → 0.981 | 0.962 → **0.962** | 0.904 → **0.904** |
+| `qm_carry_e` (the quotient's digit emission) | **3** | 0.971 → **0.971** | 0.971 → **0.971** | 0.913 → **0.913** |
+| `rs_carry_e` (the residual's digit emission) | **1** | 0.957 → **0.657** | 0.971 → **0.629** | 0.857 → **0.443** |
+
+**At depth 3 and 5 the tables do not move at all. At depth 1 the table moves a
+long way — and every step of it is in the wrong direction.** Zero corrupted
+cells are repaired anywhere; 20-40% of the *correct* cells of the depth-1 table
+are destroyed.
+
+The accompanying metric row says the same thing twice:
+
+| cell | `train_exact` (soft) | `train_exact_hard` | `held_exact_hard` |
+|---|---|---|---|
+| k=5 s1 | 0.648 → **0.736** | 0.648 → **0.612** | 0.579 → **0.342** |
+| k=20 s0 | 0.232 → **0.460** | 0.232 → **0.224** | 0.132 → **0.053** |
+| k=20 s2 | 0.516 → **0.644** | 0.552 → **0.452** | 0.500 → **0.184** |
+| k=50 s0 | 0.056 → **0.320** | 0.060 → **0.016** | 0.053 → **0.000** |
+
+**The soft metric rises by up to 5.7x while the argmax-hard metric falls and the
+depth-1 table is dismantled.** That is `alu-optimizer`'s "training moves *away*
+from the discrete solution" — but now *localised*: it is not diffuse, it happens
+in the one table the gradient actually reaches, and it happens because the
+gradient reaches it.
+
+**So the conditioning law's coefficient is not too small. Its sign is negative.**
+Reducing learned-op depth increases the gradient's reach, exactly as measured;
+the extra reach is spent trading discrete correctness for soft mixture. Putting
+the objective one op from the parameters does not make the label repair the
+solution; it makes the label break it faster.
+
+### 4d. Why `MonoidALU`'s 14/400 is not the middle of a trend
+
+The three-row table this branch was sent to extrapolate is not a one-parameter
+family, and the depth-resolved data above shows why:
+
+* the **bottom** row (50/400 at depth 1) is a *different objective* — an
+  algebraic law evaluated directly on an adder table, not the end-of-chain
+  label. This branch measures the **label** at depth 1 and gets **0**;
+* the **middle** row (`MonoidALU`, 14/400) has its `add`/`sub`/`cmp` tables
+  **shared across all `S` reduce steps**, so "depth 12" is a *maximum*, not a
+  uniform depth: the same table is also used one op from the loss. Its non-zero
+  repair is therefore attributable to its shallowest uses, not to the depth of
+  its deepest one — which is exactly what this branch measures directly by
+  making the tables private.
+
+The correct statement of the law after this branch is: **learned-op depth
+predicts how much a table moves, and predicts nothing about which direction it
+moves.**
 
 ---
 

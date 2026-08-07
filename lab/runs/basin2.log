@@ -29,3 +29,18 @@
 [o1-k20-s2] step=  2000 loss=0.76136 train_exact=0.644 held_exact=0.237 train_exact_hard=0.452 held_exact_hard=0.184 held_div=0.974 tbl=0.958 repaired=0/20 naive=0/20 by_depth=1:0/6,3:0/9,5:0/5 (45s)
 --- o1-k20-s2 done in 64s
 === o1-k50-s0 ===
+[o1-k50-s0] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[o1-k50-s0] step=     0 loss=nan train_exact=0.056 held_exact=0.053 train_exact_hard=0.060 held_exact_hard=0.053 held_div=0.974 tbl=0.953 repaired=0/50 naive=0/50 by_depth=1:0/20,3:0/20,5:0/10 (2s)
+[o1-k50-s0] step=  2000 loss=0.99524 train_exact=0.320 held_exact=0.053 train_exact_hard=0.016 held_exact_hard=0.000 held_div=0.868 tbl=0.918 repaired=0/50 naive=0/50 by_depth=1:0/20,3:0/20,5:0/10 (47s)
+--- o1-k50-s0 done in 66s
+=== o1-k50-s1 ===
+[o1-k50-s1] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[o1-k50-s1] step=     0 loss=nan train_exact=0.080 held_exact=0.132 train_exact_hard=0.076 held_exact_hard=0.132 held_div=1.000 tbl=0.953 repaired=0/50 naive=0/50 by_depth=1:0/14,3:0/21,5:0/15 (2s)
+[o1-k50-s1] step=  2000 loss=1.15265 train_exact=0.212 held_exact=0.026 train_exact_hard=0.040 held_exact_hard=0.026 held_div=0.842 tbl=0.920 repaired=1/50 naive=1/50 by_depth=1:1/14,3:0/21,5:0/15 (44s)
+--- o1-k50-s1 done in 64s
+=== o1-k50-s2 ===
+[o1-k50-s2] mod=323 S=3 L=6 recip=oracle T=1 train=250 held=38 params=97,148 cells=1072 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[o1-k50-s2] step=     0 loss=nan train_exact=0.184 held_exact=0.132 train_exact_hard=0.188 held_exact_hard=0.158 held_div=0.947 tbl=0.953 repaired=0/50 naive=0/50 by_depth=1:0/18,3:0/21,5:0/11 (2s)
+[o1-k50-s2] step=  2000 loss=0.64635 train_exact=0.460 held_exact=0.158 train_exact_hard=0.192 held_exact_hard=0.079 held_div=0.947 tbl=0.931 repaired=0/50 naive=0/50 by_depth=1:0/18,3:0/21,5:0/11 (42s)
+--- o1-k50-s2 done in 59s
+=== o1-k100-s0 ===

@@ -19,12 +19,14 @@ def load(path):
 
 
 def main(paths):
-    final = {}
+    final, first = {}, {}
     for p in paths:
         for r in load(p):
             key = r["tag"]
             if key not in final or r["step"] >= final[key]["step"]:
                 final[key] = r
+            if key not in first or r["step"] < first[key]["step"]:
+                first[key] = r
     # --- headline: repair vs k -------------------------------------------- #
     by_k = defaultdict(list)
     for tag, r in sorted(final.items()):
@@ -47,7 +49,22 @@ def main(paths):
               f"{min(r['train_exact_hard'] for r in rs):.3f}-{max(r['train_exact_hard'] for r in rs):.3f} "
               f"{min(r['held_exact_hard'] for r in rs):.3f}-{max(r['held_exact_hard'] for r in rs):.3f} "
               f"{min(r['held_div'] for r in rs):.2f}-{max(r['held_div'] for r in rs):.2f}"
-              f"  n={len(rs)}")
+              f"  n={len(rs)}"
+              f"  tbl0={min(first[r['tag']]['tbl_all'] for r in rs):.3f}"
+              f"-{max(first[r['tag']]['tbl_all'] for r in rs):.3f}")
+
+    # --- does the objective BREAK correct cells while repairing none? ------ #
+    print("\nper-table cell correctness, +/-BIG tables only, step 0 -> final")
+    keys = ("sq_carry_t", "sq_carry_e", "qm_carry_t", "qm_carry_e",
+            "rs_carry_t", "rs_carry_e", "sel")
+    for tag in sorted(final):
+        a = final[tag].get("args", {})
+        if not a.get("corrupt"):
+            continue
+        f0, f1 = first[tag]["tbl"], final[tag]["tbl"]
+        cells = " ".join(f"{k.replace('_carry', '')}:{f0.get(k, 0):.2f}->{f1.get(k, 0):.2f}"
+                         for k in keys if k in f1)
+        print(f"  {tag:18} {cells}")
 
     # --- the new measurement: repair resolved by learned-op depth ---------- #
     print("\nrepair by LEARNED-OP DEPTH from the loss (pooled over seeds)")
