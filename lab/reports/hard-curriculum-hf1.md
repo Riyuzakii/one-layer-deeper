@@ -320,6 +320,34 @@ of each run, against a random baseline of **0.23–0.28**:
 Every legal cell sits on the random baseline; the illegal one is exact. There is
 no *partial* progress for a curriculum to accelerate.
 
+### 7.3 Held out on UNSEEN MODULI, per modulus size — the number the brief asked for
+
+`hf1`'s `test` split is *disjoint moduli*, so this is its offline analogue: 24
+moduli (8 per bit size) that appear in no training row, with operands that appear
+nowhere. FINAL at each cell's own endpoint (1,500 steps for every row here,
+including the baseline `B0-s2`). **Never pooled.**
+
+| cell | `held_n` **exact** 16 / 18 / 20 | `held_n` soft `dacc` 16 / 18 / 20 | `held_n` diversity |
+|---|---|---|---|
+| `B0-s2` (baseline) | **0.000 / 0.000 / 0.000** | 0.3803 / 0.3039 / 0.2327 | 0.089 |
+| `C-N-linear-b1` | **0.000 / 0.000 / 0.000** | 0.3800 / 0.2938 / 0.2377 | 0.173 |
+| `C-N-linear-b4` | **0.000 / 0.000 / 0.000** | 0.3680 / 0.2944 / 0.2347 | 0.132 |
+| `C-N-exp-b2` | **0.000 / 0.000 / 0.000** | 0.3677 / 0.2972 / 0.2302 | 0.120 |
+| `C-NX-linear-b1` | **0.000 / 0.000 / 0.000** | 0.3761 / 0.2924 / 0.2383 | 0.230 |
+| `D-only16` | **0.000 / 0.000 / 0.000** | 0.3823 / **0.2296** / 0.2162 | 0.368 |
+| `D-only20` | **0.000 / 0.000 / 0.000** | 0.3624 / **0.2319** / 0.2076 | 0.613 |
+| *trivial floor (held)* | | *0.3770 / 0.2991 / 0.2363* | |
+| *exact solution* | *1.000 / 1.000 / 1.000* | *1.000 / 1.000 / 1.000* | *0.995* |
+| *`--lr 0`* | *0.000 / 0.000 / 0.000* | *0.104 / 0.098 / 0.106* | *0.998 (hard) / 0.0007 (soft)* |
+
+**Exact accuracy on unseen moduli is 0.000 in every bucket of every cell**, and
+the soft digit accuracies are the held-out trivial floor to within ±0.01 —
+except where the extremes push a down-weighted bucket *below* it. The diversity
+column is read against a **measured** constructed reference of **0.995**: every
+trained cell is well below it (0.09–0.61), i.e. the models are partially
+collapsed relative to the exact solution, and the ones that look most "diverse"
+here are the ones trained on one bucket.
+
 **Reading.**
 
 * **`train_exact_hard` is 0.000 in every cell, and so is held-out exact.** The
