@@ -182,7 +182,7 @@ corrections this project earned applied together. Those corrections are:
 | **untied** tables | `alu-credit` (ties help repair, hurt learning from random init) | yes |
 | `EMB_INIT=0.02` | `plan2/phase0` + the hosted run's step-1 loss 79.936 | yes — step-1 loss is `2.833 = ln 17` exactly |
 | replica population + differentiable selector | `alu-population` | yes, P = 32 |
-| the real step budget | hosted H100 calibration | measured, and it is the headline negative — see §5 |
+| the real step budget | hosted H100 calibration | measured by interleaved ratio — and it does **not** bind; see §5 |
 | a calibrated fitting curve | BRIEF2 §2(e) | yes — §0.3 and §4 |
 | `--lr 0` control | `alu-optimizer` | yes, on every result |
 
@@ -416,12 +416,21 @@ The one non-zero cell is **one example out of 768** — the variance floor from
 is the fourth time in this project that `--lr 0` has come out level with a
 trained model.
 
-Scope, stated plainly: 120 steps is *below* the ~360 a Hard run affords and far
-below any fitting onset, so **this evaluator row is a compliance and
+Scope, stated plainly: 120 steps is **below** the ~2,100 a Hard run affords and
+below the 200–400 fitting onset, so **this evaluator row is a compliance and
 timing artefact, not the scientific null.** The calibrated null is §4's, taken
-offline at 5–15× the measured onset. I am reporting the evaluator row because
-the deliverable asks for it and because it fixes the eval-budget question
-(§0.2), not because 120 steps proves anything about trainability.
+offline at 5–15× the measured onset with a 32-replica population. I am
+reporting the evaluator row because the deliverable asks for a submission and
+because it fixes the eval-budget question (§0.2), not because 120 steps proves
+anything about trainability.
+
+**The one experiment this branch did not run, named honestly:** the submission
+at the *full* tier-faithful budget (`lab_hf1_wc3600_s74`, ~2,100 steps, ~90
+minutes of exclusive GPU). With three siblings on the box that would have cost
+several hours of shared time, and §4 already answers the question it would ask
+at 32× less replica width. If anyone wants it, the command is
+`lab/run_experiment.py --submission submissions/hard-digitalu-hf1/submission.py
+--manifest lab/manifests/lab_hf1_wc3600_s74.json --timeout 7200`.
 
 ---
 
