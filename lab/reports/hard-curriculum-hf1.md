@@ -470,6 +470,46 @@ Stated up front so nobody over-reads the null.
 
 ---
 
+## 12b. The curriculum's ILLEGAL ceiling — does easy-to-hard transfer work at all?
+
+**DIAGNOSTIC (rules 2 and 7).** BRIEF2 §6.6: measure a signal's illegal ceiling
+before building its legal version. A curriculum has two independent
+preconditions — a *learnable source* and *transfer from source to target* — and
+§6 kills the first. This isolates the second, by handing the model the one
+signal that is known to work on `hf1`-faithful data (`hard/digitalu-hf1` §3:
+teacher forcing on a constructed register tape reaches 1.000) and then
+**restricting it to 16-bit examples only**.
+
+`--tf 1.0 --task-w 0 --train-bits 16`, 800 steps, lr 3e-2, P=1, seed 0. The
+18- and 20-bit rows below are examples the model **never trained on**.
+
+| step | `local_ce` | soft exact **16-bit** | soft exact **18-bit** | soft exact **20-bit** |
+|---|---|---|---|---|
+| 200 | 0.0880 | 0.0354 | 0.0247 | 0.0000 |
+| 300 | 0.0770 | 0.2790 | 0.0684 | 0.0719 |
+| 400 | 0.0098 | 0.9096 | 0.8080 | **0.7824** |
+| 500 | 0.0060 | 0.9332 | 0.8992 | **0.9002** |
+| 600 | **0.0053** | 0.9450 | 0.8992 | **0.9002** |
+
+**Taught the shared tables from 16-bit examples alone, the model reaches ~0.90
+exact on 20-bit examples — the same as on the bucket it was taught from.** The
+control (`TF-all`, same signal on all three sizes) reads 0.816 / 0.726 / 0.691
+at step 600, i.e. *lower*, because 16-bit examples are cheaper per step.
+
+**So the curriculum's transfer step is not merely adequate, it is free.** The
+`DigitALU`'s tables are modulus-independent by construction, and that
+construction does what it claims: what is learned at the easy end is exactly
+what is needed at the hard end. Combined with §6, the diagnosis is unambiguous —
+
+> **The curriculum fails on the source, never on the transfer.** There is no
+> modulus size at which the legal objective produces tables worth annealing away
+> from, and no schedule can weight its way to one.
+
+*(FINAL held-out-modulus rows land with the run; the table above is the in-loop
+train cohort.)*
+
+---
+
 ## 13. Verdict
 
 **Null, and the evidence is calibrated.** Recommendation: **spend no further
