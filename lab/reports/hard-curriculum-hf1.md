@@ -11,7 +11,7 @@ an illegal per-op signal restricted to **16-bit examples only**, the shared
 digit tables come out **exactly right** and score **0.896 hard exact on 20-bit
 operands, 0.878 on unseen moduli, 0.867 at unseen modulus sizes** — beating the
 same signal spread over all three sizes (0.380) by 2.4x at matched steps
-(§12b). The source does not exist: under the legal
+(§12). The source does not exist: under the legal
 end-of-chain label, `train_exact_hard` is **0.000 at every modulus size**,
 including a 10-bit, three-decimal-digit problem six bits below `hf1`'s floor
 (§6). And the method's stated premise is inverted — with a fixed slot count a
@@ -466,33 +466,7 @@ bash lab/curric_sweep2.sh a   # ... through g
 
 ---
 
-## 12. Scope — what this does and does not cover
-
-Stated up front so nobody over-reads the null.
-
-1. **`T = 1`.** The probe measures **one squaring step**. `hf1` trains at
-   `T ∈ {4,8,16}`. This follows `RANKING.md`'s organising fact ("the failure is
-   one squaring on unseen operands"; composition is solved and certified) and
-   every ALU-family probe before it. A curriculum could in principle act on `T`
-   as a third axis — but `T` is *not* a difficulty axis for a weight-tied step,
-   and `alu-compose` already showed downward generalisation in `T` works by
-   construction.
-2. **48 training moduli, not 2,167.** 16 per bit size out of the 148 / 543 /
-   1718 that exist, and 49,152 rows against `hf1`'s 243,000. The modulus
-   *universe* is reproduced exactly (§10); the *sample* is smaller. For a
-   modulus-independent readout more moduli means more constraints, so this is
-   the direction that would make the null *stronger*, not weaker.
-3. **P = 1, no replica population.** `alu-population`'s instrument is available
-   and legal, and I did not spend it here: it characterised itself as *"the
-   right instrument for a stochastic obstruction and the wrong one for a
-   systematic one"*, and §8 reads systematic — the basin is dead at k=20 of 200
-   at **every** modulus size, so extra draws sample the same dead region.
-4. **The evaluator rows are a mechanism check only** (§9), for the reason
-   `hard/digitalu-hf1` §0.3 gives.
-
----
-
-## 12b. The curriculum's ILLEGAL ceiling — does easy-to-hard transfer work at all?
+## 12. The curriculum's ILLEGAL ceiling — does easy-to-hard transfer work at all?
 
 **DIAGNOSTIC (rules 2 and 7).** BRIEF2 §6.6: measure a signal's illegal ceiling
 before building its legal version. A curriculum has two independent
@@ -570,7 +544,33 @@ other than the source are measured good here.
 
 ---
 
-## 13. Verdict
+## 13. Scope — what this does and does not cover
+
+Stated up front so nobody over-reads the null.
+
+1. **`T = 1`.** The probe measures **one squaring step**. `hf1` trains at
+   `T ∈ {4,8,16}`. This follows `RANKING.md`'s organising fact ("the failure is
+   one squaring on unseen operands"; composition is solved and certified) and
+   every ALU-family probe before it. A curriculum could in principle act on `T`
+   as a third axis — but `T` is *not* a difficulty axis for a weight-tied step,
+   and `alu-compose` already showed downward generalisation in `T` works by
+   construction.
+2. **48 training moduli, not 2,167.** 16 per bit size out of the 148 / 543 /
+   1718 that exist, and 49,152 rows against `hf1`'s 243,000. The modulus
+   *universe* is reproduced exactly (§10); the *sample* is smaller. For a
+   modulus-independent readout more moduli means more constraints, so this is
+   the direction that would make the null *stronger*, not weaker.
+3. **P = 1, no replica population.** `alu-population`'s instrument is available
+   and legal, and I did not spend it here: it characterised itself as *"the
+   right instrument for a stochastic obstruction and the wrong one for a
+   systematic one"*, and §8 reads systematic — the basin is dead at k=20 of 200
+   at **every** modulus size, so extra draws sample the same dead region.
+4. **The evaluator rows are a mechanism check only** (§9), for the reason
+   `hard/digitalu-hf1` §0.3 gives.
+
+---
+
+## 14. Verdict
 
 **Null, and the evidence is calibrated.** Recommendation: **spend no further
 budget on a curriculum over modulus size or operand magnitude for this task.**
@@ -589,7 +589,7 @@ The argument in four steps, each a measurement rather than an expectation:
    `sub_shift` all 1.000) and score **0.896 hard exact on 20-bit** examples,
    **0.878 on unseen moduli** and **0.867 at unseen modulus sizes** — while the
    same signal spread over all three sizes reaches only 0.380 at matched steps
-   (§12b). Easy-to-hard transfer is not the problem; it is the one thing in this
+   (§12). Easy-to-hard transfer is not the problem; it is the one thing in this
    report that works.
 3. **The source it assumes does not exist.** Under the legal end-of-chain label,
    `train_exact_hard` is **0.000 at every modulus size on the ladder**,
