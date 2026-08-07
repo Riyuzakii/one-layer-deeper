@@ -881,10 +881,9 @@ objective's exact-repair *rate* significantly at small corruption (32 % vs 0 %
 at 4.2 % of free cells, `p = 0.0056`), which is the first movement of a legal
 basin anywhere in this project. It leaves the basin's outer *radius* unchanged
 at 5.9 % of free cells, does not make the remaining table identifiable, and
-does not change a single training number. At the fraction-matched corruption the add-only class and `DigitALU`
-both repair **1 of 20** at 5.9 % of free cells; at 4.2 % add-only leads 5/20 to
-0/20 (`p = 0.047`), which is real and is roughly two orders of magnitude short
-of the 14× the entry promised.
+does not change a single training number. Against the entry's own claim —
+50 of 400 cells, 12.5 %, with 3/3 exact recovery — the add-only class at 11.8 %
+of its cells reads **0/20**.
 
 The error in the ranking's inference is now explicit and worth more than the
 branch: **`alu-relational`'s 50/400 basin was a property of an objective
