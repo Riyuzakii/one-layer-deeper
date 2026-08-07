@@ -1,28 +1,34 @@
 # `hard/add-only` — the addition-only transducer, tested on Hard-faithful `hf1`
 
-**Verdict up front. The branch's own justifying prediction is REFUTED, with a
-measurement, and the #1 ranking does not survive.**
+**Verdict up front. The branch's justifying prediction is refuted in the
+quantity that matters, it is confirmed — significantly — in a quantity that
+does not, and the #1 ranking does not survive.**
 
 `lab/RANKING.md` put this method first on one argument: `Tmul` is
 unidentifiable (`alu-relational`), the adder's laws have the widest repair
 basin in the project (50/400 cells), therefore an *adder-only* hypothesis class
 should have a much wider basin than `DigitALU`'s **0/5 at k = 20**. Built, and
-measured at matched conditions, same searcher, same seed stream, 20 repetitions
-per cell, compared at **matched fractions of free cells**:
+measured at matched conditions, same searcher, up to 25 repetitions per cell,
+compared at **matched fractions of free cells**:
 
-| corrupted fraction of free cells | add-only A | `DigitALU` |
-|---|---|---|
-| **4.2 %** | **5/20** | **0/20** (Fisher p = 0.047) |
-| **5.9 %** | **1/20** | **1/20** (p = 1.0) |
-| pooled 3–8 % | 7/60 | 2/60 (p = 0.16) |
+| corrupted fraction of free cells | add-only A | `DigitALU` | |
+|---|---|---|---|
+| ~3 % | — | 2/25 (8 %) | |
+| **~4.2 %** | **8/25 (32 %)** | **0/20 (0 %)** | Fisher **p = 0.0056** |
+| **~5.9 %** | **1/20 (5 %)** | **1/25 (4 %)** | p = 1.0 |
+| ~12 % | 0/20 | — | |
 
-So the honest answer is **a modest edge at the smallest corruption that does
-not survive to 6 %, and no edge in the pooled comparison** — not the 14× the
-ranking predicted (50/400 = 12.5 % against the label's 0.9 %), and not enough
-to change any downstream number. By 50 corrupted cells both are at zero.
+**The advantage is real and significant — and it is in the wrong quantity.** It
+raises the success *rate* inside the basin (32 % vs 0 % at 4 % corruption) and
+leaves the basin's outer *radius* untouched: both classes fall to ~5 % success
+at **5.9 % of free cells** — the same number to two significant figures — and
+both are at zero by 15 %. The radius is what decides whether a search or a
+gradient can get inside; the rate is not. Against the entry's own claim (50 of
+400 cells = 12.5 % with 3/3 exact recovery) the add-only class at 11.8 % of its
+cells reads **0/20**.
 
-Three further measurements point the same way, and the third points the
-opposite way to the ranking. The objective *profile* is no more informative at
+Three further measurements say the advantage is not usable, and the third says
+the premise behind it was backwards. The objective *profile* is no more informative at
 any corruption level and is measurably **less** per fraction of cells (§4.2).
 From random init both classes sit at the identical chance floor (§4.4). And
 with **every other tensor set to the truth**, the legal label cannot identify
@@ -275,66 +281,59 @@ predicted.
 
 ### 4.3 Exact repair under the LEGAL end-of-chain label — the headline
 
-Reps that recovered the transducer exactly (`train_exact_hard = 1.000`).
+Reps that recovered the transducer exactly (`train_exact_hard = 1.000`), pooled
+over both seed streams (`--seed 11`, 5 reps, and `--seed 501`, 20 reps — same
+protocol, independent draws). Rendered from the archive by `lab/basin_table.py`.
 
-**20 reps per cell, both sides, matched searcher and seed stream:**
+| k | add-only A tied (237 cells) | | `DigitALU` tied (337 cells) | |
+|---|---|---|---|---|
+| | recovered | % of cells | recovered | % of cells |
+| 10 | **8/25** | 4.22 % | **2/25** | 2.97 % |
+| 14 | **1/20** | 5.91 % | **0/20** | 4.15 % |
+| 20 | **1/25** | 8.44 % | **1/25** | 5.93 % |
+| 28 | 0/20 | 11.8 % | — | |
+| 50 | 0/25 | 21.1 % | 0/5 | 14.8 % |
+| 100 | 0/5 | | 0/5 | |
+| 200 | 0/5 | | 0/5 | |
 
-By absolute `k`:
-
-| k | add-only A (of 237 cells) | `DigitALU` (of 337 cells) |
-|---|---|---|
-| 10 | **5/20** = 25 % (4.2 % of cells) | **1/20** = 5 % (3.0 % of cells) |
-| 14 | **1/20** = 5 % (5.9 %) | **0/20** = 0 % (4.2 %) |
-| 20 | **1/20** = 5 % (8.4 %) | **1/20** = 5 % (5.9 %) |
-
-By **matched fraction of free cells**, which is the comparison that controls
-for add-only's smaller table (237 vs 337):
+Compared at **matched fractions of free cells**, which is the only comparison
+that controls for add-only's smaller table:
 
 | corrupted fraction | add-only A | `DigitALU` | Fisher two-sided |
 |---|---|---|---|
-| ~3 % | — | 1/20 | |
-| **4.2 %** | **5/20** (k = 10) | **0/20** (k = 14) | **p = 0.047** |
-| **5.9 %** | **1/20** (k = 14) | **1/20** (k = 20) | p = 1.0 |
-| ~8 % | 1/20 (k = 20) | — | |
-| **pooled 3–8 %** | **7/60** | **2/60** | **p = 0.16** |
+| ~3 % | — | 2/25 (8 %) | |
+| **~4.2 %** | **8/25 (32 %)** | **0/20 (0 %)** | **p = 0.0056** |
+| **~5.9 %** | **1/20 (5 %)** | **1/25 (4 %)** | p = 1.0 |
+| ~8–12 % | 1/25, then 0/20 | — | |
 
-Mean `train_exact_hard` over the same reps: at 4.2 % of cells, add-only 0.61 vs
-`DigitALU` 0.49; at 5.9 %, add-only 0.16 vs `DigitALU` 0.175.
+**Reading this honestly, and it cuts both ways.**
 
-**5 reps per cell** (the full ladder, same seed stream, `--seed 11`):
-
-| k | add-only A tied (237) | add-only A untied (817) | add-only B tied (227) | `DigitALU` tied (337) |
-|---|---|---|---|---|
-| 1 | 5/5 | 5/5 | 4/5 | 3/5 |
-| 2 | 4/5 | 5/5 | 4/5 | 2/5 |
-| 3 | 2/5 | 1/5 | 5/5 | 1/5 |
-| 5 | 3/5 | 2/5 | 3/5 | 2/5 |
-| 10 | 3/5 | 3/5 | 1/5 | 1/5 |
-| 20 | **0/5** | 2/5 | **0/5** | **0/5** |
-| 50 | 0/5 | 0/5 | 0/5 | 0/5 |
-| 100 | 0/5 | 0/5 | 0/5 | 0/5 |
-| 200 | 0/5 | 0/5 | 0/5 | — |
-| 500 | — | 0/5 | — | — |
-
-**Reading this honestly.**
-
-* **There IS a real edge at the smallest corruption, and I report it as such:**
-  5/20 versus 0/20 at 4.2 % of free cells, `p = 0.047`. That is the branch's
-  hypothesis showing up — but at a magnitude of *a few*, in one cell of the
-  ladder.
-* **It does not survive to 5.9 %** (1/20 vs 1/20, `p = 1.0`) or to the pooled
-  3–8 % comparison (7/60 vs 2/60, `p = 0.16`), and by 50 cells both are at
-  zero. **The prediction was 50/400 = 12.5 % against the label's 0.9 %, a 14×
-  factor. Nothing near that appears at any corruption level.**
-* The qualitative fact that mattered — *the legal label cannot repair a
-  double-digit number of wrong cells* — is unchanged by deleting `Tmul`, and
-  §4.4, §5 and §7 all say the residual edge is not enough to matter.
+* **There is a real, statistically significant advantage, and it is the first
+  time an architecture change has moved a legal repair basin in this project.**
+  At 4.2 % of free cells the add-only class recovers **32 %** of the time
+  against `DigitALU`'s **0 %** (`p = 0.0056`, n = 45). That is the branch's
+  hypothesis showing up, and I will not report it away.
+* **But it is a change in success *rate* inside the basin, not in the basin's
+  outer *radius* — and the radius is what decides whether optimisation can
+  reach it.** Both classes fall to ~5 % success at ~5.9 % of free cells
+  (add-only 1/20 at 5.91 %, `DigitALU` 1/25 at 5.93 %) and both are at zero by
+  ~15 %. **The outer radius is the same number to two significant figures.**
+* **The prediction was 50 of 400 cells = 12.5 % with 3/3 exact recovery.** The
+  add-only class at 11.8 % of its cells reads **0/20**. Nothing in this ladder
+  is within an order of magnitude of that.
 * Untied add-only looks better at `k = 20` (2/5) purely because 20 of 817 is
   2.4 % where 20 of 237 is 8.4 %. Cell count, not `Tmul`.
-* The 5-rep `DigitALU` numbers here are noisier than `discrete-search` §8's
-  published 5/5 @ k=3, 1/5 @ k=10, 0/5 @ k=20; my 20-rep k=10 estimate (1/20)
-  sits below its 5-rep 1/5. **The published 5-rep ladder was optimistic**, which
+* The 5-rep `DigitALU` numbers are noisier than `discrete-search` §8's published
+  5/5 @ k=3, 1/5 @ k=10, 0/5 @ k=20; the pooled 25-rep k=10 estimate (2/25 = 8 %)
+  sits below its 5-rep 20 %. **The published 5-rep ladder was optimistic**, which
   is worth recording as a screening note in its own right.
+
+**Why the radius is the number that matters.** A wider basin only helps if a
+search or a gradient can get inside it. §4.4 measures directly that neither
+class gets anywhere near — both sit at the identical chance floor from random
+init — and §5 measures that the label cannot identify the adder even from a
+starting point where *every other tensor is exactly correct*. A 4× better
+success rate at 4 % corruption changes nothing about either.
 
 ### 4.4 From RANDOM init the two classes are indistinguishable — and both at chance
 
@@ -581,19 +580,23 @@ is a live risk for any ALU-family Hard attempt, not a lab inconvenience.
 
 ## 8. What this means for `lab/RANKING.md`
 
-**Entry #1 (this method) should be struck.** Not "untested with a weak result" —
-its *justifying prediction was measured directly and comes back a factor of a
-few where a factor of 14 was needed*, and three other measurements point the
-other way: the objective profile (§4.2), the identical chance floor from random
-init (§4.4), and the module-restricted identification that inverts the premise
-outright (§5, §7). Nothing about the add-only class needs to be tried again;
-the closure is structural, not budgetary.
+**Entry #1 (this method) should be struck — but for a more interesting reason
+than "it did not work".** Its prediction was measured directly: the basin's
+*success rate* moves significantly, its *outer radius* does not, and only the
+radius is reachable from outside. Three further measurements confirm the
+advantage is unusable: the objective profile is no more informative (§4.2), the
+chance floor from random init is identical (§4.4), and the module-restricted
+identification inverts the premise outright (§5, §7). Nothing about the
+add-only class needs to be tried again; the closure is structural, not
+budgetary.
 
-To be fair to the entry: the one place its prediction shows up — 5/20 versus
-0/20 at 4.2 % of free cells, `p = 0.047` — is real, and it is the only
-architectural change in this project that has moved a legal basin at all. It is
-simply far short of what would be needed (a factor of a few against the 14×
-claimed), and it disappears by 6 % corruption.
+To be fair to the entry, and this is the one genuinely positive result in the
+branch: at 4.2 % of free cells the add-only class recovers **8/25 = 32 %**
+against `DigitALU`'s **0/20**, `p = 0.0056`. **That is the first time an
+architecture change has moved a legal repair basin anywhere in this project**
+and it should be recorded as such. It is also in the wrong quantity — it raises
+the success rate inside the basin and not its outer radius (5.9 % of cells on
+both sides), and the radius is what an optimiser has to cross.
 
 **The correction the ranking needs, stated as a rule.** The table in
 `RESUME.md` records that every *metric* here has a configuration that fools it.
@@ -603,10 +606,11 @@ This branch adds the same caution for *basins*:
 > table.** `alu-relational`'s 50/400 was the basin of the **O(1) adder-law
 > objective**. Carrying that number to a different objective — the legal
 > end-of-chain label — by changing only which tables exist is a substitution
-> error. Measured, the label's basin on the adder-only class extends to ~4 % of
-> free cells at 25 % success and is gone by 6 %, against `DigitALU`'s ~5 % at
-> 3–6 %; and under the module-restricted protocol the adder is the *less*
-> identifiable of the two tables.
+> error. Measured: deleting `Tmul` raises the *success rate* inside the basin
+> (32 % vs 0 % at 4.2 % of free cells, `p = 0.0056`) and leaves the basin's
+> *outer radius* at 5.9 % of free cells on both sides. Only the radius is
+> reachable-from-outside, and under the module-restricted protocol the adder is
+> the *less* identifiable of the two tables.
 
 **Entry #3 (modular reduction at O(1) learned-op depth) is the one this branch
 supports, and it is now the only live descendant of the conditioning argument.**
@@ -730,11 +734,13 @@ Nothing was submitted to the hosted service.
 
 I built the method `lab/RANKING.md` ranked first, verified it can express the
 answer, and then measured the one quantity the ranking rested on. **It does not
-hold at the magnitude it needed to.** Deleting `Tmul` from the hypothesis class
-— the table `alu-relational` proved unidentifiable — buys a factor of a few in
-the legal objective's repair basin at the smallest corruptions, nothing by 6 %
-corruption, does not make the remaining table identifiable, and does not change
-a single training number. At the fraction-matched corruption the add-only class and `DigitALU`
+hold in the quantity that matters.** Deleting `Tmul` from the hypothesis class
+— the table `alu-relational` proved unidentifiable — does raise the legal
+objective's exact-repair *rate* significantly at small corruption (32 % vs 0 %
+at 4.2 % of free cells, `p = 0.0056`), which is the first movement of a legal
+basin anywhere in this project. It leaves the basin's outer *radius* unchanged
+at 5.9 % of free cells, does not make the remaining table identifiable, and
+does not change a single training number. At the fraction-matched corruption the add-only class and `DigitALU`
 both repair **1 of 20** at 5.9 % of free cells; at 4.2 % add-only leads 5/20 to
 0/20 (`p = 0.047`), which is real and is roughly two orders of magnitude short
 of the 14× the entry promised.
