@@ -460,10 +460,14 @@ Two readings, and they point the same way as §8.1:
    is no modulus size at which the end-of-chain label can see the solution from
    random init.
 
-This is the same shape as `matrix-scan`'s closing argument (0/5 repaired at
-k=20 of 337 on a 39-op graph) at 183 ops and three modulus sizes, and it is why
-re-weighting *which* examples supply that label cannot help: the weighting
-changes the mixture, not the conditioning.
+**Scope of this instrument.** It measures how many wrong cells the label can
+still *see* (forward sensitivity), not how many training *repairs* — that is
+`matrix-scan`'s measurement and it is a different, strictly harder quantity.
+Sensitivity is an upper bound on repair: an objective cannot fix what it cannot
+distinguish. So "0.0035 exact at k=20" is the optimistic end, and it is already
+nine times inside where random init sits. Re-weighting *which* examples supply
+that label cannot move it: the weighting changes the mixture, not the
+conditioning.
 
 ---
 
@@ -714,10 +718,12 @@ mirror `D-only20` does the same to 16- and 18-bit).
 
 * **Rank 1 (`hard/add-only`) and rank 3 (`hard/o1-reduction`) both attack the
   quantity this branch measured as binding**: how many learned ops separate the
-  objective from the tables, hence how wide the repair basin is. §8.2 adds a
-  data point to that law — at 183 ops the basin is 20 cells of 200, against
-  `matrix-scan`'s 0/5 at k=20 with 39 ops and 50/400 at 1 op. Nothing about
-  *which examples* supply the objective changes that number.
+  objective from the tables. §8.2 adds a data point of a *related but distinct*
+  kind to `matrix-scan`'s repair law — not "how many cells does the label
+  repair" but "how many wrong cells can the label still *see*". At 183 learned
+  ops the answer is **~10–20 of 200**, and it is the same at every modulus size.
+  Random init is ~177 wrong. Nothing about *which examples* supply the objective
+  changes that number; only shortening the chain does.
 * **If anyone does revisit a curriculum**, the only version not closed by this
   report is one over a *graph* axis rather than a *value* axis — something that
   genuinely shortens the learned-op chain early and grows it, e.g.
