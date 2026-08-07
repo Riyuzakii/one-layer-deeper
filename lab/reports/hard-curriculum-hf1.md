@@ -470,6 +470,70 @@ Stated up front so nobody over-reads the null.
 
 ---
 
-## 13. Verdict and what I would do with the budget instead
+## 13. Verdict
 
-*(filled in)*
+**Null, and the evidence is calibrated.** Recommendation: **spend no further
+budget on a curriculum over modulus size or operand magnitude for this task.**
+
+The argument in four steps, each a measurement rather than an expectation:
+
+1. **The mechanism is sound and it is cheap.** A per-example curriculum *is*
+   expressible under the evaluator's fixed loop — not in `training_loss`, whose
+   arguments arrive flattened by a ragged mask (§4), but as a per-row gradient
+   scale in the forward, which agrees with a weighted loss to 6.9e-08. The
+   schedule fits in a non-persistent buffer. Nothing about the contract blocks
+   this idea.
+2. **The transfer it assumes works perfectly.** Under a per-op (illegal) signal
+   restricted to 16-bit examples *only*, the shared tables reach ~0.90 exact on
+   **20-bit** examples — the same as on the 16-bit examples they were taught
+   from (§14). Easy-to-hard transfer across modulus size is not the problem.
+3. **The source it assumes does not exist.** Under the legal end-of-chain label,
+   `train_exact_hard` is **0.000 at every modulus size on the ladder**,
+   including a 10-bit, 3-decimal-digit problem six bits below `hf1`'s floor
+   (§6), with gauge-invariant structure scores on their random baseline and
+   `local_ce` climbing *away* from the cliff at every rung. There is nothing
+   correct at the easy end to anneal away from.
+4. **And the premise is inverted.** With a fixed slot count a small modulus does
+   not shorten the chain at all (§8.0); what it does is make the example touch
+   **21.5 of 100** shared product cells instead of 28.2, and make its answer
+   **less** sensitive to a wrong cell (0.786 vs 0.718 exact at one corrupted
+   cell). Upweighting the easy end upweights the thinner, quieter gradient. The
+   label's basin is dead by 20 wrong cells of 200 at *every* modulus size, and
+   random init is ~177 wrong.
+
+So the curriculum is not mistuned; its precondition never holds. **No schedule
+between "16-bit only" and "uniform" can help, because the sweep's two endpoints
+are measured and both are 0.000** — and the endpoint that concentrates hardest
+on the easy set is the one that does measurable *damage* (`D-only16` drives
+18-bit digit accuracy to 0.192, below its own 0.303 trivial floor).
+
+### What I would do with the budget instead
+
+* **Rank 1 (`hard/add-only`) and rank 3 (`hard/o1-reduction`) both attack the
+  quantity this branch measured as binding**: how many learned ops separate the
+  objective from the tables, hence how wide the repair basin is. §8.2 adds a
+  data point to that law — at 183 ops the basin is 20 cells of 200, against
+  `matrix-scan`'s 0/5 at k=20 with 39 ops and 50/400 at 1 op. Nothing about
+  *which examples* supply the objective changes that number.
+* **If anyone does revisit a curriculum**, the only version not closed by this
+  report is one over a *graph* axis rather than a *value* axis — something that
+  genuinely shortens the learned-op chain early and grows it, e.g.
+  `alu-credit`'s `--r-start`/`--r-warm` on the reduction count, ported to
+  `tree:quotient`. That was measured null at e1 scale and is untested here. I
+  would still rank it below 1–3, for the reason in §8.2: it changes the number
+  of ops, but the basin has to widen by roughly an order of magnitude, not a
+  factor of two.
+* **Do not port the replica population here.** §8.2 reads systematic across
+  every modulus size, and `alu-population` characterised a population as the
+  wrong instrument for a systematic obstruction.
+
+### Two things worth carrying to other branches
+
+1. **`training_loss` cannot express a per-example weight on this dataset** — the
+   valid mask is ragged because the answer's digit count varies, and the row
+   boundaries are unrecoverable from `(logits, labels, aux)`. Use the forward
+   gradient-scale identity (§4), and put it *after* the head.
+2. **A fixed-slot ALU on a mixed-modulus dataset must reduce at every place.**
+   The published "reduce only for `t <= S`" schedule overflows the quotient
+   alphabet for the smaller moduli; `redall` costs 14 reductions instead of 8
+   and restores the 1.000 constructed ceiling at every bit size (§2).
