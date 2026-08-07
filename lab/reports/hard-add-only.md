@@ -592,8 +592,8 @@ the closure is structural, not budgetary.
 To be fair to the entry: the one place its prediction shows up — 5/20 versus
 0/20 at 4.2 % of free cells, `p = 0.047` — is real, and it is the only
 architectural change in this project that has moved a legal basin at all. It is
-simply two orders of magnitude short of what would be needed, and it disappears
-by 6 % corruption.
+simply far short of what would be needed (a factor of a few against the 14×
+claimed), and it disappears by 6 % corruption.
 
 **The correction the ranking needs, stated as a rule.** The table in
 `RESUME.md` records that every *metric* here has a configuration that fools it.
@@ -603,8 +603,9 @@ This branch adds the same caution for *basins*:
 > table.** `alu-relational`'s 50/400 was the basin of the **O(1) adder-law
 > objective**. Carrying that number to a different objective — the legal
 > end-of-chain label — by changing only which tables exist is a substitution
-> error. Measured, the label's basin on the adder-only class is ~4 % of free
-> cells, indistinguishable from `DigitALU`'s ~3 %, and the adder is the *less*
+> error. Measured, the label's basin on the adder-only class extends to ~4 % of
+> free cells at 25 % success and is gone by 6 %, against `DigitALU`'s ~5 % at
+> 3–6 %; and under the module-restricted protocol the adder is the *less*
 > identifiable of the two tables.
 
 **Entry #3 (modular reduction at O(1) learned-op depth) is the one this branch
@@ -654,14 +655,14 @@ rather than *stochastic*.
    ceiling is null too) or the end-of-chain label (O(chain)). If the answer is
    no, the conditioning law says the family is closed regardless of
    architecture, and entry #3 can be retired on paper rather than on GPU.
-2. **Re-examine the one asymmetry §5 turned up**: `pick` — 10 cells, 10
-   candidates — is recovered *exactly, every seed*, by the same objective that
-   cannot touch 400. The threshold between "identifiable" and "not" is somewhere
-   between 10 and 200 cells at this chain depth. Locating it is cheap (the
-   integer twin, no training) and it would turn the project's qualitative
-   closure into a quantitative one: *how small must a learned table be before
-   an O(chain) label identifies it?* That number would tell the next
-   architecture how much learned content it is allowed to have.
+2. **Push §7's separability finding into a design constraint.** §7 measured
+   that the threshold is *not* table size — `pick` (10 cells, 9 wrong at init)
+   is recovered exactly while 10 wrong adder cells are not — and named the
+   mechanism (coupling through the carry recurrence). The cheap follow-up, on
+   the integer twin with no training, is to sweep how the repair radius of a
+   table varies with **how many times the forward pass reads it**. If the radius
+   really scales like 1/reads, that is a quantitative design rule for the next
+   architecture and it can be measured in an afternoon.
 3. Nothing else in this family.
 
 ---
