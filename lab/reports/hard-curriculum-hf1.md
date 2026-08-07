@@ -205,7 +205,26 @@ which the graph finds the algorithm.
 
 ---
 
-## 8. Why it cannot work here — the two measurements that close it
+## 8. Why it cannot work here — the premise, corrected and measured
+
+### 8.0 A smaller modulus does NOT shorten the chain
+
+The method as ranked says *"smaller moduli mean shorter carry chains and a
+strictly easier instance of the same function."* The second half is true; **the
+first half is false for any fixed-slot ALU**, and it is worth saying plainly
+because it is the load-bearing half.
+
+The model's slot count `S` is fixed at build time and has to be sized for the
+largest modulus it will ever see. A 16-bit example is then a 20-bit-shaped
+computation with leading zeros: **the same 183 sequential softmax steps, the
+same 14 reductions, the same tables.** Nothing about the graph gets shorter, and
+under this branch's `redall` schedule (§2) the small moduli actually need
+*every* reduction, so if anything they exercise more of the reduction path, not
+less.
+
+What is genuinely easier is only the *values*: fewer significant digits. The two
+measurements below ask what that buys, and the answer is: less signal, not
+cheaper signal.
 
 Both are DIAGNOSTIC (they start from the constructed solution or read the
 inputs directly), and both are about the *premise* rather than the tuning.
@@ -326,6 +345,32 @@ bash lab/curric_sweep2.sh a   # ... through g
 
 ---
 
-## 12. Verdict and what I would do with the budget instead
+## 12. Scope — what this does and does not cover
+
+Stated up front so nobody over-reads the null.
+
+1. **`T = 1`.** The probe measures **one squaring step**. `hf1` trains at
+   `T ∈ {4,8,16}`. This follows `RANKING.md`'s organising fact ("the failure is
+   one squaring on unseen operands"; composition is solved and certified) and
+   every ALU-family probe before it. A curriculum could in principle act on `T`
+   as a third axis — but `T` is *not* a difficulty axis for a weight-tied step,
+   and `alu-compose` already showed downward generalisation in `T` works by
+   construction.
+2. **48 training moduli, not 2,167.** 16 per bit size out of the 148 / 543 /
+   1718 that exist, and 49,152 rows against `hf1`'s 243,000. The modulus
+   *universe* is reproduced exactly (§10); the *sample* is smaller. For a
+   modulus-independent readout more moduli means more constraints, so this is
+   the direction that would make the null *stronger*, not weaker.
+3. **P = 1, no replica population.** `alu-population`'s instrument is available
+   and legal, and I did not spend it here: it characterised itself as *"the
+   right instrument for a stochastic obstruction and the wrong one for a
+   systematic one"*, and §8 reads systematic — the basin is dead at k=20 of 200
+   at **every** modulus size, so extra draws sample the same dead region.
+4. **The evaluator rows are a mechanism check only** (§9), for the reason
+   `hard/digitalu-hf1` §0.3 gives.
+
+---
+
+## 13. Verdict and what I would do with the budget instead
 
 *(filled in)*
