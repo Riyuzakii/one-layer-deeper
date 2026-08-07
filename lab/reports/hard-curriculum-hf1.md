@@ -303,6 +303,23 @@ Three seeds of the canonical cell (`beta_n`=1, linear) read `d20` **0.2350 /
 schedule is the `beta`-held-fixed limit of the `step` row, which is inside the
 band.
 
+**The parameter-level view agrees.** Gauge-invariant structure scores at the end
+of each run, against a random baseline of **0.23–0.28**:
+
+| cell | `mul_fn` | `mul_gauge` | `add_shift` | `sub_shift` |
+|---|---|---|---|---|
+| `B0` (3 seeds) | 0.26 / 0.32 / 0.32 | 0.5 / 0.5 / 0.7 | 0.300 / 0.265 / 0.275 | 0.278 / 0.217 / 0.294 |
+| `C-N-linear-b1` | 0.30 | 0.5 | 0.290 | 0.272 |
+| `C-N-linear-b4` | 0.34 | 0.5 | 0.265 | 0.278 |
+| `C-N-exp-b2` | 0.27 | 0.4 | 0.275 | 0.294 |
+| `C-NX-linear-b1` | 0.24 | 0.6 | 0.270 | 0.289 |
+| `D-only16` | 0.29 | 0.5 | 0.270 | 0.289 |
+| `D-only20` | 0.26 | 0.4 | 0.325 | 0.289 |
+| **`TF-only16` (DIAGNOSTIC)** | **1.000** | **1.000** | **1.000** | **1.000** |
+
+Every legal cell sits on the random baseline; the illegal one is exact. There is
+no *partial* progress for a curriculum to accelerate.
+
 **Reading.**
 
 * **`train_exact_hard` is 0.000 in every cell, and so is held-out exact.** The
