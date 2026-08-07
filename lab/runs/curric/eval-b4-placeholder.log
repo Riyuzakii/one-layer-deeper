@@ -1,0 +1,1 @@
+[x] tree:quotient S=7 W=8 Q=10 params=6,820 DEPTH main=183 (adds=56 reduce=126) N-prefix=32 leaves=13 alphabet={'digit': 10, 'carry': 2, 'borrow': 2, 'quotient': 11}
