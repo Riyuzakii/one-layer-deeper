@@ -40,3 +40,24 @@ Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/cs
 [alu-legal-pool-P32] step=   500 loss=3.8672 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.472 solved=0/32 div_unseenN=0.8809 (478s)
 [alu-tf-P32-basin] step=   200 loss=0.1914 HARD train=0.0000/0.0020/0.5171 held_seen_N=0.0000/0.0015/0.5312 held_unseen_N=0.0000/0.0020/0.5225 held_ood_n=0.0000/0.0020/0.5166 soft_train=0.0000 wmax=0.031 solved=0/32 div_unseenN=0.9941 (181s)
 [alu-legal-pool-P32] step=   750 loss=3.8348 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.375 solved=0/32 div_unseenN=0.3867 (659s)
+[alu-legal-pool-P32] step=  3500 loss=3.8331 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.308 solved=0/32 div_unseenN=0.9971 (3002s)
+[alu-tf-P32-basin] step=   400 loss=0.1253 HARD train=0.0000/0.6704/0.7705 held_seen_N=0.0000/0.6963/0.8042 held_unseen_N=0.0000/0.6816/0.8057 held_ood_n=0.0000/0.5703/0.7637 soft_train=0.0000 wmax=0.031 solved=0/32 div_unseenN=0.9980 (348s)
+[alu-legal-pool-P32] step=  1000 loss=3.8208 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.290 solved=0/32 div_unseenN=0.8667 (832s)
+[alu-tf-P32-basin] step=   600 loss=0.1247 HARD train=0.0000/0.3940/0.7705 held_seen_N=0.0000/0.4380/0.8042 held_unseen_N=0.0000/0.4023/0.8057 held_ood_n=0.0000/0.0830/0.7568 soft_train=0.0000 wmax=0.031 solved=0/32 div_unseenN=0.9995 (491s)
+[alu-tf-P32-basin] FINAL [DIAGNOSTIC] HARD train=0.0000/0.3940/0.7705 held_seen_N=0.0000/0.4380/0.8042 held_unseen_N=0.0000/0.4023/0.8057 held_ood_n=0.0000/0.0830/0.7568 soft_train=0.0000 local_ce(min/med)=0.0142/0.1274 wmax=0.031 struct={'mul_fn': 1.0, 'mul_gauge': 1.0, 'add_shift': 0.9, 'sub_shift': 1.0} (498s)
+/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/hf-digitalu-hf1/lab/probe_hf.py:532: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:838.)
+  "wmax": round(float(w.max()), 4), **sc,
+L2L3DONE
+[alu-legal-pool-P32] step=  1250 loss=3.8381 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.322 solved=0/32 div_unseenN=0.9023 (975s)
+[alu-legal-pool-P32] step=  4000 loss=3.7985 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.286 solved=0/32 div_unseenN=0.9980 (3267s)
+[alu-legal-pool-P32] step=  1500 loss=3.8206 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.242 solved=0/32 div_unseenN=0.9844 (1092s)
+[alu-legal-pool-P32] step=  1750 loss=3.8662 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.231 solved=0/32 div_unseenN=0.9971 (1186s)
+[alu-legal-pool-P32] step=  4500 loss=3.8242 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.220 solved=0/32 div_unseenN=0.9658 (3460s)
+[alu-legal-pool-P32] step=  2000 loss=3.7832 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0010 soft_train=0.0000 wmax=0.297 solved=0/32 div_unseenN=0.9731 (1288s)
+[alu-legal-pool-P32] FINAL [LEGAL] HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0010 soft_train=0.0000 local_ce(min/med)=3.1214/3.9535 wmax=0.297 struct={'mul_fn': 0.3, 'mul_gauge': 0.5, 'add_shift': 0.265, 'sub_shift': 0.237} (1293s)
+/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/hf-digitalu-hf1/lab/probe_hf.py:532: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:838.)
+  "wmax": round(float(w.max()), 4), **sc,
+L1bDONE
+[alu-legal-pool-P32] step=  5000 loss=3.8517 HARD train=0.0000/0.0000/0.0000 held_seen_N=0.0000/0.0000/0.0000 held_unseen_N=0.0000/0.0000/0.0000 held_ood_n=0.0000/0.0000/0.0000 soft_train=0.0000 wmax=0.222 solved=0/32 div_unseenN=0.9907 (3618s)
