@@ -261,11 +261,15 @@ Reps that recovered the transducer exactly (`train_exact_hard = 1.000`).
 
 **20 reps per cell, both sides, matched searcher and seed stream:**
 
-| corruption | add-only A (of 237) | `DigitALU` (of 337) |
+| corruption | add-only A (of 237 cells) | `DigitALU` (of 337 cells) |
 |---|---|---|
-| k = 10 → 4.2 % vs 3.0 % | **5/20** (25 %) | **1/20** (5 %) |
-| k = 14 → **5.9 %** (fraction-matched to `DigitALU` k=20) | **1/20** (5 %) | — |
-| k = 20 → 8.4 % vs 5.9 % | **1/20** (5 %) | **0/20** |
+| k = 10 → 4.2 % vs 3.0 % of free cells | **5/20** (25 %) | **1/20** (5 %) |
+| k = 14 of 237 = **5.9 %**, fraction-matched to `DigitALU` k = 20 | **1/20** (5 %) | **1/20** (5 %) |
+| k = 20 → 8.4 % vs 5.9 % | **1/20** (5 %) | **1/20** (5 %) |
+
+Mean `train_exact_hard` over the same 20 reps: at k = 10, add-only 0.61 vs
+`DigitALU` 0.615; at k = 20, add-only 0.16 vs `DigitALU` 0.175. **The
+fraction-matched row is identical to within one rep, and so is the mean.**
 
 **5 reps per cell** (the full ladder, same seed stream, `--seed 11`):
 
@@ -291,10 +295,11 @@ Reps that recovered the transducer exactly (`train_exact_hard = 1.000`).
   two radii are k ≈ 10–20 on both sides.
 * There **is** a real but small edge at `k = 10`: 5/20 vs 1/20, and add-only's
   10 cells are a *larger* fraction of its table. At n = 20 that is
-  **Fisher two-sided p = 0.18 — not significant**; it would be significant only
-  against a 0/20 control (p = 0.047). I report it as *suggestive of a factor
-  ~2 in cell fraction*, and explicitly not as the promised 14×.
-* By `k = 20` both are at 0–1 in 20 and by `k = 50` both are at zero. The
+  **Fisher two-sided p = 0.18 — not significant.** I report it as
+  *suggestive of a factor ~2 in cell fraction at small k*, and explicitly not as
+  the promised 14×; and it does not survive to the fraction-matched row.
+* **At the fraction-matched point the two are the same number, 1/20 and 1/20.**
+  By `k = 50` both are at zero. The
   qualitative fact that mattered — *the legal label cannot repair a
   double-digit number of wrong cells* — is unchanged by deleting `Tmul`.
 * Untied add-only looks better at `k = 20` (2/5) purely because 20 of 817 is
@@ -465,6 +470,29 @@ region — and the hard metric never left the floor.** A 31× move in the soft
 metric buys nothing discrete. This is `alu-credit`'s DigitALU signature
 reproduced with `Tmul` deleted, which is the cleanest possible statement that
 `Tmul` was not the cause.
+
+### 6.4 At hf1's arithmetic scale — the `--lr 0` control and the fitting curve
+
+20-bit sampled semiprime, S = 7, 8,000 train / 1,024 held-out operands, P = 32,
+batch 256. `--lr 0` is the reference for every legal row.
+
+| metric | DIAGNOSTIC gate (teacher-forced) | **`--lr 0`** (LEGAL) | **LEGAL, trained** |
+|---|---|---|---|
+| `train_exact_hard` best | **1.000** (by step 200) | 0.000 | *see below* |
+| `held_exact_hard` best | **1.000** | 0.000 | *see below* |
+| `local_ce` best | **0.000** | **2.227** | *see below* |
+| `add_shift` / `sub_shift` | 1.000 / 1.000 | 0.290 / 0.283 | |
+| `n_shifts` (truth 10) | **10** | 9 | |
+| `pick_ok` | **1.000** | 0.20 | |
+| replicas in basin | 5 / 32 | 0 / 32 | |
+| held-out diversity (measured ref 0.9961) | 0.9961 | 0.999 | |
+
+The `--lr 0` `local_ce` of **2.227** lands inside `alu-optimizer`'s measured
+random-init band of **2.08–2.24** for `DigitALU` — a different architecture,
+the same number, which is itself evidence that this quantity is a property of
+the *objective* and not of the parameter inventory. The cliff is at 0.006.
+
+---
 
 ---
 
