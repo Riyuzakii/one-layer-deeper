@@ -41,5 +41,13 @@ case "$1" in
     run LAD-b20 $C --id-bits 20 --ood-bits 21 --n-mod 16 --n-mod-held 8 --n-x 1024 --n-held-x 64
     run C-N-exp-b2 $C --beta-n 2.0 --sched exp --anneal-frac 0.25
     ;;
-  *) echo "usage: $0 a|b|c|d|e"; exit 2;;
+  f)
+    run C-N-linear-b1  $C --beta-n 1.0 --sched linear --anneal-frac 0.5
+    run C-N-step-b1    $C --beta-n 1.0 --sched step --anneal-frac 0.5
+    ;;
+  g)
+    run C-N-linear-b4  $C --beta-n 4.0 --sched linear --anneal-frac 0.5
+    run C-X-linear-b1  $C --beta-x 1.0 --sched linear --anneal-frac 0.5
+    ;;
+  *) echo "usage: $0 a|b|c|d|e|f|g"; exit 2;;
 esac
