@@ -193,8 +193,10 @@ class Model(nn.Module):
         for f, weight in ((0, 1.0), (1, 1.0)):
             m = is_digit & (field == f)
             n_dig = m.sum(-1).float()
-            lead = torch.where(m, digits, torch.zeros_like(digits))
-            top = lead.max(-1).values.float().clamp_min(1.0)
+            # `number_tokens` writes most-significant digit first, so the
+            # leading digit is the first masked position of the field.
+            first = m.float().argmax(-1, keepdim=True)
+            top = digits.gather(1, first).squeeze(1).float().clamp_min(1.0)
             out = out + weight * (n_dig - 1.0 + torch.log10(top))
         return out
 
