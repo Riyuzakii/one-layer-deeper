@@ -32,7 +32,7 @@ help; the difficulty is concentrated entirely in the single step.
 | 1 | **Addition-only transducer** — multiplication by double-and-add, so the only learned arithmetic primitive is an adder (+ comparator) | removes the provably-unidentifiable `Tmul`; adder laws repair 50/400 where `Tmul` repairs ~0 | **untested** |
 | 2 | **`DigitALU` at hf1 scale, fully corrected** — `tree:quotient` (39 steps), `EMB_INIT=0.02`, ~93k-step budget, replica population, calibrated fitting curve | never run on a modulus-split dataset; applies every earned correction at once; supplies the reference and `--lr 0` floor | **untested at Hard-faithful** |
 | 3 | **Modular reduction at O(1) learned-op depth** | `matrix-scan` named it the one well-posed remaining target; the conditioning law is measured and correct (0/5 @39 ops, 14/400 @12, 50/400 @1) — this is where its coefficient is largest | **untested** |
-| 4 | **Loss-side curriculum over modulus size** (hf1 has [16,18,20]) and operand magnitude | legal, cheap, untested at Hard-faithful scale; the prior null was e1/`DigitALU` | weak |
+| 4 | ~~Loss-side curriculum over modulus size / operand magnitude~~ | **CLOSED — null on hf1.** 10 cells x 4 schedule shapes x 4 strengths x 3 axes x 3 seeds: `train_exact_hard` 0.000 everywhere, held-out 0.000 per size; all six evaluator arms within **one example in 27,000** of the `--lr 0` control | **closed** |
 | 5 | **Replica population** as a standard instrument on whichever of 1-3 shows any tail | validated: 1-in-7 -> 6-of-6, legal, +29% wall clock, eval at P=1 cost | instrument |
 
 ## Do NOT spend runs on these — closed with reasons
@@ -65,3 +65,30 @@ calibration only (fewer rows makes memorisation *easier* — not for accuracy cl
    diversity is **not** 1.0.
 6. Label every row **LEGAL** or **DIAGNOSTIC**. Oracles and teacher forcing can never
    appear in a submission.
+
+## Findings from the closed #4 branch that the live branches depend on
+
+1. **A fixed-slot ALU on a MIXED-modulus dataset must reduce at every place.** `hf1` has
+   three modulus sizes in one training set; the `t <= S` schedule **overflows the
+   quotient alphabet for smaller moduli**, so the constructed ceiling is NOT 1.000 across
+   sizes. `redall` restores **1.000 at all six bit sizes** (ID 16/18/20, OOD-N 17/19/21)
+   for +54 sequential steps (183 vs ~129). **Verify constructed ceilings PER MODULUS
+   SIZE, never pooled.**
+2. **`training_loss` cannot express a per-example weight here.** The valid mask is ragged
+   (supervised positions = the *answer's* digit count; `number_tokens(result)` is
+   unpadded) and row boundaries are unrecoverable from `(logits, labels, aux)` after
+   flattening. Working equivalent: a per-row gradient scale in the forward, after the
+   head — `logits = w*logits + (1-w)*logits.detach()` — verified to 6.9e-08.
+3. **Digit accuracy is fooled by leading zeros.** A constant-zero predictor scores
+   **0.379 / 0.303 / 0.235** at 16/18/20 bits — exactly the profile a "successful"
+   size-curriculum would show. Measure the constant-zero floor for your own setup.
+4. **Correct tables transfer across modulus size nearly for free (DIAGNOSTIC).** Taught
+   from **16-bit examples only** under an illegal per-op signal, the tables come out
+   exactly right and score **0.896** hard exact at 20-bit, **0.878** on unseen moduli and
+   **0.867** at unseen modulus *sizes* — 2.4x better than the same signal spread over all
+   three sizes. **Transfer is not the obstacle; the source is.**
+5. **A ranking premise of mine was wrong:** with a fixed slot count a smaller modulus does
+   NOT shorten the chain (same 183 steps), touches fewer shared cells (21.5 vs 28.2 of
+   100), and is *less* disturbed by a wrong cell. "Smaller = easier" does not hold here.
+6. `hf1` reference scale: **243k train rows, 768-example rungs, variance floor 1/768**,
+   and the reference-width model **never leaves the pre-fitting region at 40k steps**.
