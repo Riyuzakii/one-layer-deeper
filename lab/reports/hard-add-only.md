@@ -494,6 +494,60 @@ the *objective* and not of the parameter inventory. The cliff is at 0.006.
 
 ---
 
+## 7. A new number for the project: the identifiability threshold
+
+§5 found that the legal label recovers a 10-cell table exactly and a 400-cell
+table not at all. Walking the ladder in between — **confined to one module**,
+with every other table held at the construction — turns the project's
+qualitative closure into a quantitative one. 5 reps per cell, same searcher.
+
+| corrupted cells of the named table | add-only `Tadd` (of 400) | `DigitALU` `Tmul` (of 200) |
+|---|---|---|
+| 5 | **3/5** | **3/5** |
+| 10 | **0/5** | **1/5** |
+| 20 | 0/5 | 0/5 |
+| 40 | 0/5 | 0/5 |
+| 80 | 0/5 | 0/5 |
+| 160 | 0/5 | — |
+| 400 (fully random) | 0/5 | — |
+
+**The legal end-of-chain label's exact-repair radius on a single arithmetic
+table is between 5 and 10 wrong cells — and it is the same for the adder and
+for the multiplier.** For the third time in this report, deleting `Tmul` buys
+nothing; if anything `Tmul` repairs marginally better.
+
+Set against `pick` (10 cells, ~9 of them wrong at random init, recovered
+**exactly, every seed**, §5), the controlling variable is **not** the number of
+wrong cells. It is *coupling*: `pick`'s cells are separable — each `pick[d]`
+affects a disjoint slice of the objective, so single-cell coordinate moves are
+informative — while adder cells sit inside a carry recurrence that every scan
+reads O(depth) times, so no single-cell move is. **That is a mechanism, and it
+predicts the sign this branch measured**: `Tmul` is read once per partial
+product and is therefore *more* separable than `Tadd`, which is read
+W × (chain rounds + reduce) times per forward.
+
+**The design rule it yields**, and it is the one thing here worth carrying
+forward: *a learned table is identifiable from an O(chain) label roughly to the
+extent that its cells are separable in the objective, not to the extent that
+they are few.* An architecture that wants its arithmetic learned should put its
+learned content where the objective can vary one cell at a time.
+
+---
+
+## 7b. hf1 through the real evaluator
+
+LEGAL. `lab/manifests/lab_hf1_fs2000_s74.json` (`--mode fixed_step`, 2,000
+steps, seed 74) against the trained submission and an identical `lr = 0` copy.
+
+**Cost note, recorded because it is a result.** At the manifest's
+`batch_size = 512` the add-only transducer did not complete 2,000 steps inside
+`run_experiment.py`'s 1,200 s default and the run was killed
+(`status = failed`, archived as `add-only-hf1`). This family is expensive at
+Hard's shape, exactly as `alu-compose` P2/P3 warned; `SUBMISSION.batch_size =
+128` is what makes it fit. **A submission that cannot finish is *below* the
+leaderboard floor** (`service/db.py` counts only `status='succeeded'`), so this
+is a live risk for any ALU-family Hard attempt, not a lab inconvenience.
+
 ---
 
 ## 8. What this means for `lab/RANKING.md`
@@ -632,3 +686,48 @@ contains no `torch.load`, no residue-indexed table, no Python control flow that
 reads `input_ids`, one forward / one backward / one `optimizer.step()` per
 batch, and every tensor is initialised at random and trained in the run.
 Nothing was submitted to the hosted service.
+
+---
+
+## 11. Honest summary
+
+I built the method `lab/RANKING.md` ranked first, verified it can express the
+answer, and then measured the one quantity the ranking rested on. **It does not
+hold.** Deleting `Tmul` from the hypothesis class — the table `alu-relational`
+proved unidentifiable — does not widen the legal objective's repair basin, does
+not make the remaining table identifiable, and does not change any training
+number. At the fraction-matched corruption the add-only class and `DigitALU`
+both repair **1 of 20**, with mean `train_exact_hard` 0.16 versus 0.175.
+
+The error in the ranking's inference is now explicit and worth more than the
+branch: **`alu-relational`'s 50/400 basin was a property of an objective
+evaluated one learned op from the adder, not a property of the adder.** Moving
+tables in and out of the model does not move the objective. Under the objective
+a submission is actually allowed to use, the adder turns out to be the *less*
+identifiable of the two tables, in both architectures — because its cells sit
+in a carry recurrence that the chain reads O(depth) times, while `Tmul`'s are
+read once per partial product.
+
+Three things here are worth keeping regardless of what happens to this method:
+
+1. **A repair basin belongs to an (objective, architecture) pair.** Carrying a
+   basin number across objectives is a substitution error, and it cost a #1
+   ranking. This belongs in `RESUME.md`'s metric-fooling table.
+2. **The identifiability threshold, measured: 5–10 wrong cells of one
+   arithmetic table**, identical for `Tadd` and `Tmul`, against a 10-cell
+   *separable* table that is recovered exactly every time. The controlling
+   variable is separability, not size.
+3. **The compliance ruling and the reductio behind it** (§2): if a
+   repeated-addition schedule with a learned adder is illegal as architecture,
+   then `DigitALU.multiples()` has been illegal since `digit-carry` and every
+   ALU result in the project is void. That argument will come up again for any
+   future architecture that composes learned primitives.
+
+**Does the #1 ranking survive? No.** The entry should be struck, not
+downgraded, and `DigitALU` at hf1 scale inherits the top slot by default.
+
+**What this branch did not do.** It did not produce a submission that scores.
+It did not test the family under a *different* objective, because there is no
+legal one to test it under. And it did not settle whether a legal O(1)-distance
+objective exists at all — which §9 argues is now the only question left in this
+whole line of work.
