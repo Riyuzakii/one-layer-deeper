@@ -150,6 +150,10 @@ def main() -> int:
     ap.add_argument("--tag", default="", help="axis label, e.g. A-depth")
     ap.add_argument("--gpu", default="0", help="CUDA_VISIBLE_DEVICES value")
     ap.add_argument("--timeout", type=int, default=1200)
+    ap.add_argument("--log", default=None,
+                    help="also write the runner's full stdout+stderr here "
+                         "(the archive only keeps a 40-point downsample of the "
+                         "training curve; a fitting curve wants every point)")
     args = ap.parse_args()
 
     sub = Path(args.submission).resolve()
@@ -184,6 +188,15 @@ def main() -> int:
         stdout, stderr, rc = proc.stdout, proc.stderr, proc.returncode
     except subprocess.TimeoutExpired as e:
         stdout, stderr, rc = (e.stdout or ""), (e.stderr or "") + "\n[TIMEOUT]", -9
+
+    if args.log:
+        log_path = Path(args.log)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_path.write_text(
+            f"# cmd: {' '.join(cmd)}\n# rc={rc}\n"
+            f"# submission: {sub}\n# manifest: {manifest}\n"
+            f"--- stdout ---\n{stdout}\n--- stderr ---\n{stderr}\n"
+        )
 
     result = parse_result(stdout) if rc == 0 else None
     row = {

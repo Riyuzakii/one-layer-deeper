@@ -1,0 +1,19 @@
+[alu-lr0] hf1-faithful modulus split {16: {'train': 133, 'test': 15}, 18: {'train': 488, 'test': 55}, 20: {'train': 1546, 'test': 172}, 'oodn': 192} S=7 W=8 tree:quotient depth=129 P=32
+[alu-lr0] train prompts=80,992 over 1,725 distinct training moduli
+[alu-lr0] params/replica=6,821 params/train-row=0.0842
+[alu-lr0] step=     1 loss=2.3003 HARD train=0.0000/0.0000 held_seen_N=0.0000/0.0000 held_unseen_N=0.0000/0.0000 held_ood_n=0.0000/0.0000 soft_train=0.0000 wmax=0.031 div_unseenN=0.9995 (3s)
+[alu-lr0] step=    20 loss=2.3001 HARD train=0.0000/0.0000 held_seen_N=0.0000/0.0000 held_unseen_N=0.0000/0.0000 held_ood_n=0.0000/0.0000 soft_train=0.0000 wmax=0.031 div_unseenN=0.9995 (8s)
+[alu-lr0] FINAL [LEGAL] HARD train=0.0000/0.0000 held_seen_N=0.0000/0.0000 held_unseen_N=0.0000/0.0000 held_ood_n=0.0000/0.0000 soft_train=0.0000 local_ce(min/med)=2.1425/2.1899 wmax=0.031 struct={'mul_fn': 0.26, 'mul_gauge': 0.8, 'add_shift': 0.255, 'sub_shift': 0.287} (9s)
+/home/scratch.arohan_hw/git/one-layer-deeper/.worktrees/hf-digitalu-hf1/lab/probe_hf.py:498: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:838.)
+  "wmax": round(float(w.max()), 4), **sc,
+=== TF ceiling (DIAGNOSTIC) ===
+[alu-tf-P32] hf1-faithful modulus split {16: {'train': 133, 'test': 15}, 18: {'train': 488, 'test': 55}, 20: {'train': 1546, 'test': 172}, 'oodn': 192} S=7 W=8 tree:quotient depth=129 P=32
+[alu-tf-P32] train prompts=80,992 over 1,725 distinct training moduli
+[alu-tf-P32] params/replica=6,821 params/train-row=0.0842
+[alu-tf-P32] step=     1 loss=2.1911 HARD train=0.0000/0.0000 held_seen_N=0.0000/0.0000 held_unseen_N=0.0000/0.0000 held_ood_n=0.0000/0.0000 soft_train=0.0000 wmax=0.031 div_unseenN=0.9995 (4s)
+[alu-tf-P32] step=   200 loss=0.1914 HARD train=0.0000/0.0020 held_seen_N=0.0000/0.0015 held_unseen_N=0.0000/0.0020 held_ood_n=0.0000/0.0020 soft_train=0.0000 wmax=0.031 div_unseenN=0.9941 (38s)
+[alu-tf-P32] step=   400 loss=0.1253 HARD train=0.0000/0.6704 held_seen_N=0.0000/0.6963 held_unseen_N=0.0000/0.6816 held_ood_n=0.0000/0.5703 soft_train=0.0000 wmax=0.031 div_unseenN=0.9980 (114s)
+[alu-tf-P32] step=   600 loss=0.1247 HARD train=0.0000/0.3940 held_seen_N=0.0000/0.4380 held_unseen_N=0.0000/0.4023 held_ood_n=0.0000/0.0830 soft_train=0.0000 wmax=0.031 div_unseenN=0.9995 (201s)
+[alu-tf-P32] step=   800 loss=0.1108 HARD train=0.0000/0.3467 held_seen_N=0.0000/0.3804 held_unseen_N=0.0000/0.3613 held_ood_n=0.0000/0.0811 soft_train=0.0000 wmax=0.031 div_unseenN=0.9985 (244s)
+[alu-tf-P32] step=  1000 loss=0.1032 HARD train=0.0000/0.2095 held_seen_N=0.0000/0.2339 held_unseen_N=0.0000/0.2070 held_ood_n=0.0000/0.0381 soft_train=0.0000 wmax=0.031 div_unseenN=0.9990 (289s)
