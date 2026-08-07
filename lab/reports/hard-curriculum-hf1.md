@@ -365,12 +365,16 @@ here are the ones trained on one bucket.
   (`C-N-linear-b1` reads 0.2321 / 0.2350 / 0.2461 at steps 750 / 1,000 / 1,500;
   `B0-s0` reads 0.2344 / 0.2435 / 0.2387) — larger than any difference between
   cells, which is the honest resolution limit of this screen.
-* **`local_ce` looks like it improves, and that is the trap.** Every curriculum
-  cell reads *lower* `local_ce` than the baseline (3.89–4.14 against 4.04–5.18),
-  and `D-only16` lowest of all at 3.56. But `--lr 0` reads **2.20**, so every one
-  of these is **partial regression toward initialisation** — exactly the last row
-  of `RESUME.md`'s fooling table. The cells that "improve" `local_ce` most are
-  the ones that train least.
+* **`local_ce` looks like it improves, and that is the trap — twice over.** At
+  matched seed 0 every curriculum cell reads *lower* `local_ce` than the seed-0
+  baseline (3.89–4.20 against 4.04), and `D-only16` lowest of all at 3.56. Two
+  reasons not to believe it. (i) The **same** cell across three seeds spans
+  3.94 / 4.50 / 5.51, wider than the effect — `local_ce` here is a seed
+  property, not a curriculum property; the baseline spans 4.04 / 4.62 / 5.18 and
+  the two ranges overlap almost completely. (ii) Even if it were real, `--lr 0`
+  reads **2.20**, so any leftward shift is **partial regression toward
+  initialisation** — the last row of `RESUME.md`'s fooling table. The cells that
+  "improve" `local_ce` most are the ones that train least.
 * **Both extremes damage the buckets they down-weight, symmetrically.**
   `D-only16` leaves its own bucket exactly at its trivial floor (`d16` 0.3817
   against 0.3792 — the same +0.003 the baseline gets for free) while driving
