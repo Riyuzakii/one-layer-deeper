@@ -1,10 +1,25 @@
 # `hard/curriculum-hf1` — a loss-side curriculum over modulus size and operand magnitude
 
 **Verdict: NULL, and closed for a mechanical reason rather than a tuning one.**
-Draft — numbers are filled in as runs land. See §9 for the state of play.
 
 Method #4 in `lab/RANKING.md`. Ranked below the architectural entries, and the
 brief asked for a clean negative if that is what the evidence says. It is.
+
+**The one-paragraph version.** A curriculum needs a *learnable source* and
+*transfer from source to target*. Transfer is free here and I measured it: given
+an illegal per-op signal restricted to **16-bit examples only**, the shared
+digit tables reach **0.90 exact on 20-bit examples**, the same as on the bucket
+they were taught from (§12b). The source does not exist: under the legal
+end-of-chain label, `train_exact_hard` is **0.000 at every modulus size**,
+including a 10-bit, three-decimal-digit problem six bits below `hf1`'s floor
+(§6). And the method's stated premise is inverted — with a fixed slot count a
+small modulus does **not** shorten the chain, it just makes the example touch
+21.5 of the 100 shared product cells instead of 28.2 and makes its answer *less*
+sensitive to a wrong cell (§8). So the curriculum upweights the thinner, quieter
+gradient toward a source that is not there. Every schedule, strength and axis
+reads `train_exact_hard` **0.000** and held-out exact **0.000** (§7), the
+strongest one does measurable damage, and the `--lr 0` control is the same 0.000
+(§3, §9).
 
 ---
 
