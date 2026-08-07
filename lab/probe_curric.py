@@ -425,7 +425,6 @@ def build_data(args, dev):
 
 
 # ---------------------------------------------------------------- curriculum
-_POW = None
 
 
 def magnitudes(x_oh, n_oh):
@@ -434,17 +433,12 @@ def magnitudes(x_oh, n_oh):
     This is the quantity a submission computes inside `training_loss` from the
     parsed digit slots carried in `aux`; nothing here reads a dataset field.
     """
-    global _POW
-    if _POW is None or _POW.device != x_oh.device:
-        _POW = {}
     dev = x_oh.device
-    key = (x_oh.shape[1], n_oh.shape[1])
     dig = torch.arange(10, device=dev, dtype=torch.float32)
     px = 10.0 ** torch.arange(x_oh.shape[1], device=dev, dtype=torch.float32)
     pn = 10.0 ** torch.arange(n_oh.shape[1], device=dev, dtype=torch.float32)
     xval = ((x_oh.float() * dig).sum(-1) * px).sum(-1)
     nval = ((n_oh.float() * dig).sum(-1) * pn).sum(-1)
-    del key
     return (torch.log10(xval.clamp_min(1.0)),
             torch.log10(nval.clamp_min(1.0)))
 
