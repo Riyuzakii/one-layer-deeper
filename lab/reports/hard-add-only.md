@@ -501,20 +501,22 @@ table not at all. Walking the ladder in between — **confined to one module**,
 with every other table held at the construction — turns the project's
 qualitative closure into a quantitative one. 5 reps per cell, same searcher.
 
-| corrupted cells of the named table | add-only `Tadd` (of 400) | `DigitALU` `Tmul` (of 200) |
-|---|---|---|
-| 5 | **3/5** | **3/5** |
-| 10 | **0/5** | **1/5** |
-| 20 | 0/5 | 0/5 |
-| 40 | 0/5 | 0/5 |
-| 80 | 0/5 | 0/5 |
-| 160 | 0/5 | — |
-| 400 (fully random) | 0/5 | — |
+| corrupted cells of the named table | add-only `Tadd` (of 400) | `DigitALU` `Tmul` (of 200) | `DigitALU` `Tadd` (of 400) |
+|---|---|---|---|
+| 5 | **3/5** | **3/5** | **3/5** |
+| 10 | **0/5** | **1/5** | **2/5** |
+| 20 | 0/5 | 0/5 | 0/4 |
+| 40 | 0/5 | 0/5 | — |
+| 80 | 0/5 | 0/5 | — |
+| 160 | 0/5 | 0/5 | — |
+| 400 (fully random) | 0/5 | — | — |
 
 **The legal end-of-chain label's exact-repair radius on a single arithmetic
-table is between 5 and 10 wrong cells — and it is the same for the adder and
-for the multiplier.** For the third time in this report, deleting `Tmul` buys
-nothing; if anything `Tmul` repairs marginally better.
+table is between 5 and 10 wrong cells, in every cell of this table.** For the
+third time in this report, deleting `Tmul` buys nothing. Note the third
+column: the *same* adder, inside `DigitALU`'s 13 %-shorter chain, repairs
+**2/5 at k = 10 where the add-only model repairs 0/5** — the depth cost of
+deleting `Tmul` shows up directly, and in the wrong direction.
 
 Set against `pick` (10 cells, ~9 of them wrong at random init, recovered
 **exactly, every seed**, §5), the controlling variable is **not** the number of
