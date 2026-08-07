@@ -114,6 +114,10 @@ def main(argv=None) -> int:
                     help="LAB DIAGNOSTIC start point: begin at the EXACT solution "
                          "(k=0) and train on the LEGAL label.  Asks whether the "
                          "objective destroys a solution that already scores 1.000.")
+    ap.add_argument("--corrupt-extra", type=int, default=0,
+                    help="after the main corruption, also randomise this many rows of "
+                         "each NON-separable depth-1 table.  Sweeping it measures how "
+                         "much competing error a separable parameter's repair survives.")
     ap.add_argument("--corrupt-scale", type=float, default=0.5)
     ap.add_argument("--corrupt-tables", default="logit", choices=["logit", "all", "sel", "d1arith"],
                     help="logit = only the +/-BIG tables, which are on exactly the scale "
@@ -187,6 +191,12 @@ def main(argv=None) -> int:
         g = torch.Generator().manual_seed(args.seed + 1000)
         hit = model.corrupt_(args.corrupt, g, args.corrupt_scale, args.corrupt_mode,
                              args.corrupt_tables)
+        if args.corrupt_extra:
+            g2 = torch.Generator().manual_seed(args.seed + 2000)
+            extra = model.corrupt_(args.corrupt_extra, g2, args.corrupt_scale,
+                                   "per_table", "d1arith")
+            for k_, v_ in extra.items():
+                hit[k_] = torch.cat([hit[k_], v_]) if k_ in hit else v_
         pre = model.cell_correct(ref)   # baseline: which touched cells are wrong
         # a cell no example exercises cannot be repaired at any conditioning
         use = model.usage(xin, nin, mu_tr if args.recip == "oracle" else None)

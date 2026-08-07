@@ -3,3 +3,16 @@
 [hf1-legal-orac-40k] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.996 tbl=0.005 (3s)
 [hf1-legal-orac-40k] step=  5000 loss=0.65902 train_exact=0.170 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.997 tbl=0.011 (50s)
 [hf1-legal-orac-40k] step= 10000 loss=0.44452 train_exact=0.331 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.996 tbl=0.006 (98s)
+[hf1-legal-orac-40k] step= 15000 loss=0.34119 train_exact=0.459 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.995 tbl=0.006 (146s)
+[hf1-legal-orac-40k] step= 20000 loss=0.35570 train_exact=0.530 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.997 tbl=0.005 (192s)
+[hf1-legal-orac-40k] step= 25000 loss=0.30580 train_exact=0.583 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.997 tbl=0.006 (242s)
+[hf1-legal-orac-40k] step= 30000 loss=0.21053 train_exact=0.672 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.998 tbl=0.005 (285s)
+[hf1-legal-orac-40k] step= 35000 loss=0.21142 train_exact=0.684 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.995 tbl=0.007 (338s)
+[hf1-legal-orac-40k] step= 40000 loss=0.17881 train_exact=0.725 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.996 tbl=0.006 (384s)
+--- hf1-legal-orac-40k done in 475s
+=== hf1-legal-orac-40k-s1 ===
+[hf1-legal-orac-40k-s1] mod=16,18,20 S=6 L=12 recip=oracle T=1 train=6000 held=4608 params=335,211 cells=1480 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[hf1-legal-orac-40k-s1] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.992 tbl=0.003 (1s)
+[hf1-legal-orac-40k-s1] step= 10000 loss=0.45902 train_exact=0.301 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.997 tbl=0.004 (85s)
+[hf1-legal-orac-40k-s1] step= 20000 loss=0.31109 train_exact=0.550 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.997 tbl=0.003 (168s)
+[hf1-legal-orac-40k-s1] step= 30000 loss=0.22135 train_exact=0.652 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.997 tbl=0.004 (251s)

@@ -65,3 +65,23 @@
 [hf1-legal-div-s0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.995 tbl=0.013 (1s)
 [hf1-legal-div-s0] step=   500 loss=1.85401 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.786 tbl=0.013 (24s)
 [hf1-legal-div-s0] step=  1000 loss=1.55382 train_exact=0.003 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.948 tbl=0.009 (44s)
+[hf1-legal-div-s0] step=  1500 loss=1.30846 train_exact=0.011 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.974 tbl=0.014 (69s)
+[hf1-legal-div-s0] step=  2000 loss=1.13127 train_exact=0.025 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.982 tbl=0.013 (90s)
+[hf1-legal-div-s0] step=  2500 loss=0.99902 train_exact=0.038 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.984 tbl=0.013 (110s)
+[hf1-legal-div-s0] step=  3000 loss=0.93657 train_exact=0.060 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.987 tbl=0.012 (131s)
+[hf1-legal-div-s0] step=  3500 loss=0.83248 train_exact=0.072 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.988 tbl=0.013 (153s)
+[hf1-legal-div-s0] step=  4000 loss=0.78774 train_exact=0.087 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.990 tbl=0.011 (180s)
+--- hf1-legal-div-s0 done in 252s
+=== hf1-legal-div-lr0 ===
+[hf1-legal-div-lr0] mod=323 S=6 L=12 recip=div T=1 train=6000 held=4608 params=342,727 cells=1756 reduce_op_depth=5 op_depth=7 full_op_depth=41
+[hf1-legal-div-lr0] step=     0 loss=nan train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.995 tbl=0.013 (1s)
+[hf1-legal-div-lr0] step=   500 loss=2.30201 train_exact=0.000 held_exact=0.000 train_exact_hard=0.000 held_exact_hard=0.000 held_div=0.995 tbl=0.013 (33s)
+--- hf1-legal-div-lr0 done in 93s
+=== hf1-ceiling ===
+[hf1-ceiling] mod=323 S=6 L=12 recip=div T=1 train=6000 held=4608 params=342,727 cells=1756 reduce_op_depth=5 op_depth=7 full_op_depth=41
+[hf1-ceiling] step=     0 loss=nan train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.988 tbl=1.000 (2s)
+--- hf1-ceiling done in 94s
+=== hf1-ceiling-orac ===
+[hf1-ceiling-orac] mod=323 S=6 L=12 recip=oracle T=1 train=6000 held=4608 params=335,211 cells=1480 reduce_op_depth=5 op_depth=7 full_op_depth=7
+[hf1-ceiling-orac] step=     0 loss=nan train_exact=1.000 held_exact=1.000 train_exact_hard=1.000 held_exact_hard=1.000 held_div=0.988 tbl=1.000 (1s)
+--- hf1-ceiling-orac done in 51s

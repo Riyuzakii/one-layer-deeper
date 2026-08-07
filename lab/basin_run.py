@@ -75,6 +75,15 @@ def cells(which: str):
             yield f"sep-arith-s{s_}", ["--modulus", "323", "--recip", "oracle",
                                        "--corrupt", "4", "--corrupt-mode", "per_table",
                                        "--corrupt-tables", "d1arith", "--seed", str(s_)]
+    elif which == "attrib":
+        # How much competing error does a separable parameter's repair survive?
+        # Corrupt the selector fully, then add j rows of non-separable error.
+        for j in (0, 1, 2, 4, 8, 16):
+            for s_ in range(4):
+                yield f"attr-j{j}-s{s_}", ["--modulus", "323", "--recip", "oracle",
+                                           "--corrupt", "2", "--corrupt-mode", "per_table",
+                                           "--corrupt-tables", "sel",
+                                           "--corrupt-extra", str(j), "--seed", str(s_)]
     elif which == "div":            # nothing oracular anywhere
         for k in (20, 400):
             for s in (0, 1, 2):
