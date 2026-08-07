@@ -202,7 +202,31 @@ on held-out `x` at the *same* modulus, and the tables are at chance. `local_ce`
 climbs from 2.27 to 8.91 — the objective walks away from the discrete solution
 just as fast at 10 bits as at 20.
 
-*(12-, 16- and 20-bit rungs land as they complete)*
+**The whole ladder, at a matched 1,500 steps.** Each cell trains on ONE bit size
+with the same graph and the same tables. `dacc` is only comparable *down* a
+column, never across rows — the trivial floor moves with the number of
+structurally-zero slots — so the excess over each rung's own measured floor is
+the column to read. **LEGAL.**
+
+| rung | `Tmul` cells / example | trivial `dacc` floor | soft `dacc` | **excess** | soft `train_exact` | **`train_exact_hard`** | `held_n` exact |
+|---|---|---|---|---|---|---|---|
+| 10-bit (3 digits) | — | 0.6305 | 0.6911 | **+0.061** | 0.0150 | **0.000** | **0.000** |
+| 12-bit | 15.58 | 0.5384 | 0.5624 | +0.024 | 0.0007 | **0.000** | **0.000** |
+| 16-bit | 21.47 | 0.3896 | *(running)* | | | | |
+| 20-bit | 27.54 | 0.2475 | 0.2505 | +0.003 | 0.000 | **0.000** | **0.000** |
+
+The excess over the trivial predictor **does** grow monotonically as the modulus
+shrinks — so the difficulty axis is real, and a curriculum has something to
+climb. But it is climbing the wrong thing: at **every** rung, including a
+3-digit one, `train_exact_hard` is 0.000, held-out exact is 0.000, and the
+gauge-invariant structure scores sit on their random baseline. What gets easier
+with a smaller modulus is *how much of the answer is structurally zero*, not
+*how findable the algorithm is*.
+
+**This is `alu-credit`'s chain-length result again, on a different axis**: the
+easy end fits the degenerate solution faster and does not find the algorithm.
+A curriculum needs something correct at the source; there isn't one at any
+modulus size this task can present.
 
 ---
 
